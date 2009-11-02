@@ -8,3 +8,5 @@ bin:
 
 clean:
 	cd src && make clean
+
+.PHONY: doc bin clean
