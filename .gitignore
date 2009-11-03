@@ -1,3 +1,4 @@
 doc/
 src/tiniweb
 src/md5main
+*.o
