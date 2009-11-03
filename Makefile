@@ -9,4 +9,10 @@ bin:
 clean:
 	$(MAKE) -C src/ clean
 
-.PHONY: doc bin clean
+run: bin
+	socat -v TCP4-LISTEN:8080,reuseaddr,bind=localhost,fork SYSTEM:"src/tiniweb --cgi-dir=./cgi-bin --web-dir=htdoc"
+
+singlerun: bin
+	socat -v TCP4-LISTEN:8080,reuseaddr,bind=localhost SYSTEM:"src/tiniweb --cgi-dir=./cgi-bin --web-dir=htdoc"
+
+.PHONY: doc bin clean run singlerun
