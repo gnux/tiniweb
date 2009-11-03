@@ -4,9 +4,9 @@ doc:
 	cd doc && doxygen
 
 bin:
-	cd src && make
+	$(MAKE) -C src/ all
 
 clean:
-	cd src && make clean
+	$(MAKE) -C src/ clean
 
 .PHONY: doc bin clean
