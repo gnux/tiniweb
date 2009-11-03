@@ -1,0 +1,10 @@
+#!/bin/sh
+
+/bin/echo -e 'Content-type: text/plain\r\n\r\n'
+
+unset PWD
+
+echo -n 'cwd: '; pwd
+echo
+echo 'Headers:'
+exec env
