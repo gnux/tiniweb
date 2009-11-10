@@ -2,10 +2,14 @@
  * \file tiniweb.c
  * \author Sase Group 03: Plaschzug, Partl, Ladenhauf, Neubauer
  */
-#include <stdio.h>
+
 #include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <getopt.h>
+
+#include "secmem.h"
 
 
 // default values for options, if no command line option is available
@@ -30,6 +34,9 @@ int main(int argc, char** argv)
     int flag_cgi_dir = 0;
     int flag_cgi_timeout = 0;
     int option_index = 0;
+
+    sec_test();
+
     // command line parsing: like done in example from
     // http://www.gnu.org/s/libc/manual/html_node/Getopt-Long-Option-Example.html
     while(1){

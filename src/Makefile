@@ -18,7 +18,8 @@ LDLIBS  := -lm
 # Add your own source-files to this variable.
 #
 TINIWEB_SRC = \
-	tiniweb.c
+	tiniweb.c \
+	secmem.c
 
 # Sources for the MD5 demo application
 MD5_SRC = \
