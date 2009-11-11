@@ -2,3 +2,8 @@ doc/
 src/tiniweb
 src/md5main
 *.o
+*.cdtproject
+*.project
+*.prefs
+*.kdev4
+*~
