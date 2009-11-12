@@ -4,114 +4,129 @@
  */
 
 #include <memory.h>
+#include <stdio.h>
 #include "secmem.h"
 
-/** describes list entry structure for a double-linked list, that holds ptr to memory blocks
- *
+/**
+ * describes list entry structure for a double-linked list, that holds ptr to memory blocks
  */
 typedef struct list_entry {
-    struct list_entry *_before;
-    void *_ptr;
-    struct list_entry *_next;
+    struct list_entry *lep_before;
+    void *vp_ptr;
+    struct list_entry *lep_next;
 } list_entry;
 
-static list_entry *le_memory_handles_first = 0;
-static list_entry *le_memory_handles_last = 0;
+static list_entry *lep_memory_handles_first = 0;
+static list_entry *lep_memory_handles_last = 0;
 
-void sec_cleanup() {
-    list_entry *le_iterate = 0;
-    sec_rewind();
+void secCleanup() {
+    list_entry *lep_iterate = 0;
+    secRewind();
     // clean up all registered pointers
-    while (le_memory_handles_first) {
-        le_iterate = le_memory_handles_first->_next;
-        free(le_memory_handles_first->_ptr);
-        free(le_memory_handles_first);
-        le_memory_handles_first = le_iterate;
+    while (lep_memory_handles_first) {
+        lep_iterate = lep_memory_handles_first->lep_next;
+        free(lep_memory_handles_first->vp_ptr);
+        free(lep_memory_handles_first);
+        lep_memory_handles_first = lep_iterate;
     }
-    le_memory_handles_first = 0;
-    le_memory_handles_last = 0;
+    lep_memory_handles_first = 0;
+    lep_memory_handles_last = 0;
 }
 
-void sec_rewind() {
-    while (le_memory_handles_first->_before)
-        le_memory_handles_first = le_memory_handles_first->_before;
-    while (le_memory_handles_last->_next)
-        le_memory_handles_last = le_memory_handles_last->_next;
+void secRewind() {
+  if(!lep_memory_handles_first || !lep_memory_handles_last)
+    return;
+    while (lep_memory_handles_first->lep_before)
+        lep_memory_handles_first = lep_memory_handles_first->lep_before;
+    while (lep_memory_handles_last->lep_next)
+        lep_memory_handles_last = lep_memory_handles_last->lep_next;
 }
 
-void sec_addnewentry() {
+void secAddNewEntry() {
     // on init, initialiase first occourences
-    if (!le_memory_handles_first) {
-        le_memory_handles_first = malloc(sizeof(list_entry));
-        le_memory_handles_last = le_memory_handles_first;
-        le_memory_handles_first->_before = 0;
+    if (!lep_memory_handles_first) {
+        lep_memory_handles_first = malloc(sizeof(list_entry));
+        lep_memory_handles_last = lep_memory_handles_first;
+        lep_memory_handles_first->lep_before = 0;
     } else {
         // be sure to rewind
-        sec_rewind();
-        le_memory_handles_last->_next = malloc(sizeof(list_entry));
-        le_memory_handles_last->_next->_before = le_memory_handles_last;
-        le_memory_handles_last = le_memory_handles_last->_next;
+        secRewind();
+        lep_memory_handles_last->lep_next = malloc(sizeof(list_entry));
+        lep_memory_handles_last->lep_next->lep_before = lep_memory_handles_last;
+        lep_memory_handles_last = lep_memory_handles_last->lep_next;
     }
-    le_memory_handles_last->_next = 0;
+    lep_memory_handles_last->lep_next = 0;
 }
 
-void *sec_malloc(size_t size) {
+void *secMalloc(size_t size) {
     void *ptr;
     ptr = malloc(size);
-    sec_addnewentry();
-    le_memory_handles_last->_ptr = ptr;
-    return le_memory_handles_last->_ptr;
+    secProof(ptr);
+    secAddNewEntry();
+    lep_memory_handles_last->vp_ptr = ptr;
+    return lep_memory_handles_last->vp_ptr;
 }
 
-void *sec_calloc(size_t nmemb, size_t size) {
+void *secCalloc(size_t nmemb, size_t size) {
     void *ptr;
     ptr = calloc(nmemb, size);
-    sec_addnewentry();
-    le_memory_handles_last->_ptr = ptr;
-    return le_memory_handles_last->_ptr;
+    secProof(ptr);
+    secAddNewEntry();
+    lep_memory_handles_last->vp_ptr = ptr;
+    return lep_memory_handles_last->vp_ptr;
 }
 
-void *sec_realloc(void *ptr, size_t size) {
+void *secRealloc(void *ptr, size_t size) {
     list_entry *le = 0;
     if (!ptr)
-        return sec_malloc(size);
-    le = sec_find_element(ptr);
+        return secMalloc(size);
+    le = secFindElement(ptr);
     if (!le)
         return 0;
     if (!size) {
-        sec_free(ptr);
+        secFree(ptr);
         return 0;
     }
-    le->_ptr = realloc(ptr, size);
-    return le->_ptr;
+    ptr = realloc(ptr, size);
+    secProof(ptr);
+    le->vp_ptr = ptr;
+    return ptr;
 }
 
-void sec_free(void *ptr) {
+void secFree(void *ptr) {
     list_entry *le = 0;
-    le = sec_find_element(ptr);
+    le = secFindElement(ptr);
     if(!le)
         return;
-    free(le->_ptr);
-    if (le->_before)
-        le->_before->_next = le->_next;
-    if (le->_next)
-        le->_next->_before = le->_before;
-    if (le == le_memory_handles_first)
-        le_memory_handles_first = le->_next;
-    if (le == le_memory_handles_last)
-        le_memory_handles_last = le->_before;
+    free(le->vp_ptr);
+    if (le->lep_before)
+        le->lep_before->lep_next = le->lep_next;
+    if (le->lep_next)
+        le->lep_next->lep_before = le->lep_before;
+    if (le == lep_memory_handles_first)
+        lep_memory_handles_first = le->lep_next;
+    if (le == lep_memory_handles_last)
+        lep_memory_handles_last = le->lep_before;
     free(le);
 }
 
-void *sec_find_element(void *ptr) {
+void *secFindElement(void *ptr) {
     list_entry *le = 0;
-    sec_rewind();
+    secRewind();
     while (le) {
-        if (le->_ptr == ptr)
+        if (le->vp_ptr == ptr)
             break;
-        le = le->_next;
+        le = le->lep_next;
     }
     return le;
+}
+
+void secProof(void *ptr){
+  if(!ptr){
+    fprintf(stderr, "Got NULL-Pointer from memory call, abnormall behaviour detected, we will abort!");
+    secCleanup();
+    abort();
+  }
 }
 
 //TODO: remove this function, if not needed anymore
@@ -120,23 +135,23 @@ void sec_test() {
     int i;
 
     for (i = 0; i < 500; i++) {
-        sec_malloc(i);
-        sec_calloc(i * 3, i);
+        secMalloc(i);
+        secCalloc(i * 3, i);
     }
-    ptr = sec_malloc(30);
+    ptr = secMalloc(30);
 
     for (i = 0; i < 100; ++i)
-        ptr = sec_realloc(ptr, i);
+        ptr = secRealloc(ptr, i);
 
-    ptr = sec_malloc(300000);
+    ptr = secMalloc(300000);
     for (i = 0; i < 3000; ++i)
-        ptr = sec_realloc(ptr, i);
-    ptr = sec_realloc(0, 222);
-    ptr = sec_realloc(ptr, 0);
+        ptr = secRealloc(ptr, i);
+    ptr = secRealloc(0, 222);
+    ptr = secRealloc(ptr, 0);
 
-    sec_cleanup();
-    ptr = sec_calloc(5, 30);
-    sec_free(ptr);
-    ptr = sec_calloc(5, 30);
-    sec_cleanup();
+    secCleanup();
+    ptr = secCalloc(5, 30);
+    secFree(ptr);
+    ptr = secCalloc(5, 30);
+    secCleanup();
 }

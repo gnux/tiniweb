@@ -8,51 +8,56 @@
 
 #include <stdlib.h>
 
-/** sec_malloc routine, wrapper for malloc that registers allocated memory
+/** secMalloc routine, wrapper for malloc that registers allocated memory
  * \param size size of memory to allocate
  * \return ptr to new memory block
  */
-void *sec_malloc(size_t size);
+void *secMalloc(size_t size);
 
-/** sec_calloc routine, wrapper for calloc that registers allocated memory
+/** secCalloc routine, wrapper for calloc that registers allocated memory
  * \param nmemb number of blocks to allocate
  * \param size size of memory to allocate
  * \return ptr to new memory block
  */
-void *sec_calloc(size_t nmemb, size_t size);
+void *secCalloc(size_t nmemb, size_t size);
 
-/** sec_realloc routine, wrapper for realloc that registers allocated memory
+/** secRealloc routine, wrapper for realloc that registers allocated memory
  * \param ptr ptr to previous allocated memory block
  * \param size size of memory to allocate
  * \return ptr to new memory block
  */
-void *sec_realloc(void *ptr, size_t size);
+void *secRealloc(void *ptr, size_t size);
 
-/** sec_find_element routine, find element in ptr lists
+/** secFindElement routine, find element in ptr lists
  * \param ptr search for this pointer
  * \return ptr to list entry or null if argument was invalid
  */
-void *sec_find_element(void *ptr);
+void *secFindElement(void *ptr);
 
-/** sec_addnewentry routine, at a new list entry at end of ptr list
+/** secAddNewEntry routine, at a new list entry at end of ptr list
  *
  */
-void sec_addnewentry();
+void secAddNewEntry();
 
-/** sec_cleanup routine, cleanup referenced pointers
+/** secCleanup routine, cleanup referenced pointers
  *
  */
-void sec_cleanup();
+void secCleanup();
 
-/** sec_free routine, free allocated memory
+/** secFree routine, free allocated memory
  * \param ptr to memory block that should be freed
  */
-void sec_free(void *ptr);
+void secFree(void *ptr);
 
-/** sec_rewind routine, rewind referenced pointer list
+/** secRewind routine, rewind referenced pointer list
  *
  */
-void sec_rewind();
+void secRewind();
+
+/**
+ * secProof routine, proof memory pointers
+ */
+void secProof(void *ptr);
 
 //TODO: remove this function, if not needed anymore
 void sec_test();
