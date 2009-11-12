@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
 
     fprintf(stderr, "Argument parsing finished \n");
 
-    // just to make tcp wrapper happy
+    // just to make tcp wrapper happy 
     //    char buf[8192];
     //    int ret = read(STDIN_FILENO, buf, 8192);
     //    fprintf(stderr, "tiniweb: got %d bytes\n", ret);
