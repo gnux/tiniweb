@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 
+#include "md5.h"
 #include "secmem.h"
 
 // default values for options, if no command line option is available
@@ -34,6 +35,24 @@ int main(int argc, char** argv) {
     int option_index = 0;
 
     sec_test();
+    
+    md5_state_t my_md5_state;
+    md5_init(&my_md5_state);
+    
+    const md5_byte_t * username = "testuser";
+    const md5_byte_t * realm = "testrealm";
+    const md5_byte_t * password = "test";
+     
+    md5_append(&my_md5_state, username, 8);
+    md5_append(&my_md5_state, realm, 9);
+    md5_append(&my_md5_state, password, 4);
+    
+    md5_byte_t result[16];
+    md5_finish(&my_md5_state, result);
+
+    fprintf(stderr, "MD5-Test Finished, Result: %x \n", (unsigned int)result);
+    
+    
 
     // command line parsing: like done in example from
     // http://www.gnu.org/s/libc/manual/html_node/Getopt-Long-Option-Example.html
