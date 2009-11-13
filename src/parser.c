@@ -44,46 +44,76 @@ void parse(char input[], int max_bufsize){
 
 void normalizeHeader(char input[]){
 	fprintf(stderr, "Size of Input: %i \n", strlen(input));
-	char normalized_input[strlen(input)];
+	char normalized_input[strlen(input)][strlen(input)];
 	int j=0;
+	int line_count=0;
 	for(int i=0; input[i]!='\0' && i<= strlen(input);i++){
-		if(input[i]==' ' || input[i]=='\t'){
+		if(isWhiteSpace(input[i])==TRUE){
 			//Do nothing except the sign bevor this sign wasn't a whitespace
 			// and the next sign isn't a :
 			if(i>0 && i<strlen(input)){
-				if(input[i-1]!=' ' && input[i-1]!='\t' && input[i+1]!=':'){
-					normalized_input[j]=' ';
+				if((isWhiteSpace(input[i-1])==FALSE) && input[i+1]!=':'){
+					normalized_input[line_count][j]=' ';
 					j++;
 				}	
 			}
 		}
 		else{
-			normalized_input[j]=input[i];
-			j++;
+			//Check if we made a mistake and ther is an space bevor our : in the normalized_input
+			if(i>0 && i<strlen(input)){
+				if(input[i]==':' && isWhiteSpace(normalized_input[line_count][j-1])==TRUE){
+					j--;
+				}
+			}
+			//Copy input to normalized_input
+			if(isChar(input[i]==TRUE)){
+				normalized_input[line_count][j]=input[i];
+				j++;
+				//Now we have to check if after the : an whitespace is going to be written next time or not
+				if(i>0 && i<strlen(input)){
+					if(input[i]==':' && isWhiteSpace(input[i+1])==FALSE){
+						normalized_input[line_count][j]=' ';
+						j++;
+					}
+				}
+			}
+			else if(isNewLine(input[i],input[i+1])==FALSE){
+				line_count++;
+			}
+			else{
+				//we don't know this char
+			}
+			
+			
 		}
 	}
-	normalized_input[j]='\0';
-	secRealloc(normalized_input, (strlen(normalized_input) + 1) * sizeof(char));
-	fprintf(stderr, "Normalized: %s \n", normalized_input);
+	normalized_input[line_count][j]='\0';
+	//secRealloc(normalized_input, (strlen(normalized_input) + 1) * sizeof(char));
+	for(int i=0; i<=line_count;i++){
+		fprintf(stderr, "Normalized: %s \n", normalized_input[i]);
+	}
+	//fprintf(stderr, "Normalized: %s \n", normalized_input);
 }
 
 bool isChar(char input){
-	if(input < 32 || input > 126)
+	if(input < 32 || input > 126 || input!='\t')
 		return FALSE;
 	else
 		return TRUE;
 }
 
-bool isWhiteSpace(char input)
-{
-	int i;
-	for(i = 0; BLANKS[i] != '\0'; ++i)
-		if(BLANKS[i] == input)
+bool isWhiteSpace(char input){
+	if(input==' ' || input=='\t')
 			return TRUE;
 	return FALSE;
 }
 
-bool isBlankNewLine(char input)
+bool isNewLine(char input, char input2){
+	if(input=='\n' || (input=='\r' && input2=='\n'))
+		return TRUE;
+	return FALSE;
+}
+/*bool isBlankNewLine(char input)
 {
 	int i;
 	for(i = 0; BLANKS_NEW_LINE[i] != '\0'; ++i)
@@ -109,5 +139,5 @@ bool isEmptyLine(char* line)
 		if(FALSE == isBlankNewLine(line[i]))
 			return FALSE;
 	return TRUE;
-}
+}*/
 
