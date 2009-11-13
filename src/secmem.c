@@ -129,6 +129,13 @@ void secProof(void *ptr){
   }
 }
 
+void secRegister(void *ptr){
+  if(secFindElement(ptr))
+    return;
+  secAddNewEntry();
+  lep_memory_handles_last->vp_ptr=ptr;
+}
+
 //TODO: remove this function, if not needed anymore
 void sec_test() {
     char *ptr;

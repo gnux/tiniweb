@@ -12,15 +12,19 @@
 
 #include "md5.h"
 #include "secmem.h"
-#include "envvar.h"
+#include "typedef.h"
 
 // default values for options, if no command line option is available
-static const char str_web_dir[] = "/";
-static const char str_cgi_dir[] = "/cgi-bin/";
-static unsigned int val_cgi_timeout = 1;
+static const char SCCA_WEB_DIR[] = "/";
+static const char SCCA_CGI_DIR[] = "/cgi-bin/";
+static const uint SCUI_CGI_TIMEOUT = 1;
 
 static int flag_verbose = 0;
 
+
+static char *scp_web_dir_ = NULL;
+static char *scp_cgi_dir_ = NULL;
+static uint sui_cgi_timeout = 0;
 
 /*char *generateHexString(char* ptr, int size){
   int i;
@@ -154,8 +158,6 @@ int main(int argc, char** argv) {
     //           "Content-type: text/html\r\n"
     //           "\r\n"
     //           "<html><body>Hello!</body></html>\r\n");
-    
-    processCGIScript("test");
 
     sec_test();
     sec_test();
