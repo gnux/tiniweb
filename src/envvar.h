@@ -26,4 +26,6 @@ int initEnvVarList(char* cp_name, char* cp_value);
 
 int applyEnvVarList();
 
+void printEnvVarList();
+
 #endif

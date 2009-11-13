@@ -12,6 +12,7 @@
 #include "md5.h"
 #include "secmem.h"
 #include "envvar.h"
+#include "cgi.h"
 
 // default values for options, if no command line option is available
 static const char str_web_dir[] = "/";

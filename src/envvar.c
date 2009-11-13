@@ -5,6 +5,7 @@
 
 #include <libio.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "envvar.h"
 #include "secmem.h"
@@ -42,7 +43,7 @@ int deleteEnvVarList()
     if (evp_first_element == NULL)
         return -1;
     
-    while (evp_var->evp_next)
+    while (evp_var)
     {
         evp_var_next = evp_var->evp_next;
         sec_free((void*)evp_var->cp_name);
@@ -75,7 +76,7 @@ int applyEnvVarList()
     
     evp_current_var = evp_first_element;
     
-    while(evp_current_var->evp_next)
+    while(evp_current_var)
     {
         success = setenv(evp_current_var->cp_name, evp_current_var->cp_value, 1);
         
@@ -87,5 +88,23 @@ int applyEnvVarList()
     }
     
     return 0;
+}
+
+void printEnvVarList()
+{
+    environment_variable* evp_current_var = NULL;
+    if(evp_first_element == NULL) 
+    {
+        fprintf(stderr, "Envvar list is NULL\n");
+        return;
+    }
+    
+    evp_current_var = evp_first_element;
+    
+    while(evp_current_var)
+    {
+        fprintf(stderr, "Name: %s, Value: %s \n", evp_current_var->cp_name, evp_current_var->cp_value);
+        evp_current_var = evp_current_var->evp_next;
+    }
 }
 

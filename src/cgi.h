@@ -6,6 +6,6 @@
 #ifndef __CGI_H__
 #define __CGI_H__
 
-void processCGIScript(char* cp_filename);
+void processCGIScript(const char* cp_path);
 
 #endif
