@@ -8,20 +8,61 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <string.h>
 
 #include "md5.h"
 #include "secmem.h"
-#include "envvar.h"
+#include "typedef.h"
 #include "cgi.h"
 
 // default values for options, if no command line option is available
-static const char str_web_dir[] = "/";
-static const char str_cgi_dir[] = "/cgi-bin/";
-static unsigned int val_cgi_timeout = 1;
+static const char SCCA_WEB_DIR[] = "/";
+static const char SCCA_CGI_DIR[] = "/cgi-bin/";
+static const uint SCUI_CGI_TIMEOUT = 1;
 
 static int flag_verbose = 0;
 
 
+static char *scp_web_dir_ = NULL;
+static char *scp_cgi_dir_ = NULL;
+static uint sui_cgi_timeout = 0;
+
+/*char *generateHexString(char* ptr, int size){
+  int i;
+  unsigned char val;
+  char *res;
+  
+  // TODO: error handling!
+  if(size*2 < 0)
+    abort();
+  res = secMalloc(size*2 + 1);
+  memset(res, 0, size*2+1);
+  for(i=0; i<size; ++i)
+  {
+    sprintf(&res[i*2],"%x",ptr[i]);
+  
+  }
+  
+  /*for(i=0; i<16; ++i){
+    val = ptr[i] & 0x0f;
+    if(val<10)
+      val+=48;
+    else
+      val+=55;
+    res[i*2] = val;
+    val = ptr[i] & 0xf0;
+    val>>4;
+    if(val<10)
+      val+=48;
+    else
+      val+=55;
+    res[i*2+1] = val;
+}
+  
+    
+ return res;
+  
+}*/
 
 /** tiniweb main routine
  * \param argc number of commandline arguments
@@ -38,7 +79,7 @@ int main(int argc, char** argv) {
     int flag_cgi_timeout = 0;
     int option_index = 0;
 
-    sec_test();
+   /* sec_test();
     
     md5_state_t my_md5_state;
     md5_init(&my_md5_state);
@@ -47,14 +88,16 @@ int main(int argc, char** argv) {
     const md5_byte_t * realm = "testrealm";
     const md5_byte_t * password = "test";
      
-    md5_append(&my_md5_state, username, 8);
-    md5_append(&my_md5_state, realm, 9);
-    md5_append(&my_md5_state, password, 4);
+    md5_append(&my_md5_state, username, strlen(username));
+    md5_append(&my_md5_state, realm, strlen(realm));
+    md5_append(&my_md5_state, password, strlen(password));
     
     md5_byte_t result[16];
-    md5_finish(&my_md5_state, result);
-
-    fprintf(stderr, "MD5-Test Finished, Result: %x \n", (unsigned int)result);
+    memset(result,0,16);
+    md5_finish(&my_md5_state, &result[0]);
+*/
+   // char *out = generateHexString(&result[0], 16);
+   // fprintf(stderr, "MD5-Test Finished, Result: %s \n", out);
     
     
 
@@ -117,8 +160,16 @@ int main(int argc, char** argv) {
     //           "Content-type: text/html\r\n"
     //           "\r\n"
     //           "<html><body>Hello!</body></html>\r\n");   
+
+    processCGIScript("String");
     
-    processCGIScript("test");
+//     sec_test();
+//     sec_test();
+//     
+//     secMalloc(34);
+//     secRealloc(secCalloc(38,55),22);
+//     secProof(0);
+//     secCleanup();
     
     
     return EXIT_SUCCESS;

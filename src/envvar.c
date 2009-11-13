@@ -26,7 +26,7 @@ int appendToEnvVarList(char* cp_name, char* cp_value)
         evp_var = evp_var->evp_next;
     }
     
-    evp_new_var = (environment_variable*)sec_malloc(sizeof(environment_variable));
+    evp_new_var = (environment_variable*)secMalloc(sizeof(environment_variable));
     evp_new_var->cp_name = cp_name;
     evp_new_var->cp_value = cp_value;
     evp_new_var->evp_next = NULL;
@@ -46,9 +46,9 @@ int deleteEnvVarList()
     while (evp_var)
     {
         evp_var_next = evp_var->evp_next;
-        sec_free((void*)evp_var->cp_name);
-        sec_free((void*)evp_var->cp_value);
-        sec_free((void*)evp_var);
+        secFree((void*)evp_var->cp_name);
+        secFree((void*)evp_var->cp_value);
+        secFree((void*)evp_var);
         evp_var = evp_var_next;
     }
     
@@ -59,7 +59,7 @@ int deleteEnvVarList()
 
 int initEnvVarList(char* cp_name, char* cp_value)
 {
-    evp_first_element = (environment_variable*)sec_malloc(sizeof(environment_variable));
+    evp_first_element = (environment_variable*)secMalloc(sizeof(environment_variable));
     evp_first_element->cp_name = cp_name;
     evp_first_element->cp_value = cp_value;
     evp_first_element->evp_next = NULL;

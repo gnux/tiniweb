@@ -37,7 +37,7 @@ void processCGIScript(const char* cp_path)
                 //TODO: safe exit
             }
             
-            sec_cleanup();
+            secCleanup();
             
             success = chdir("path_to_cgi");
             if(success == -1)
