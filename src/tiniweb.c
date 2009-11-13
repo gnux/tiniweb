@@ -15,6 +15,7 @@
 #include "typedef.h"
 #include "cgi.h"
 #include "debug.h"
+#include "parser.h"
 
 // default values for options, if no command line option is available
 //static const char SCCA_WEB_DIR[] = "/";
@@ -171,10 +172,12 @@ int main(int argc, char** argv) {
 
     // I am testing!
     // just to make tcp wrapper happy 
-    //    char buf[8192];
-    //    int ret = read(STDIN_FILENO, buf, 8192);
-    //    fprintf(stderr, "tiniweb: got %d bytes\n", ret);
+    	char buf[8192];
+    	int ret = read(STDIN_FILENO, buf, 8192);
+    	parse(buf,8192);
+    	fprintf(stderr, "tiniweb: got %d bytes\n", ret);
 
+		
     // sample response
     //    printf("HTTP/1.1 200 OK\r\n"
     //           "Server: tiniweb/1.0\r\n"
@@ -191,7 +194,7 @@ int main(int argc, char** argv) {
 //     secMalloc(34);
 //     secRealloc(secCalloc(38,55),22);
 //     secProof(0);
-//     secCleanup();
+       secCleanup();
     
     
     return EXIT_SUCCESS;
