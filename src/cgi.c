@@ -10,8 +10,10 @@
 
 void processCGIScript(const char* cp_path) 
 {
-    int success = 0;
-    pid_t child_pid = 0;
+    int i_success = 0;
+    int ia_cgi_response_pipe[2] = {-1, -1};
+    int ia_cgi_post_body_pipe[2] = {-1, -1};
+    pid_t pid_child = 0;
     char* cpa_cgi_args[] = {"testscript", NULL};
     /*
     char* cp_test_env_var_name = NULL;
@@ -40,32 +42,35 @@ void processCGIScript(const char* cp_path)
     appendToEnvVarList("TEST_VARIABLE3", "this is just a third test");
     
     printEnvVarList();
+    
+    if (pipe(ia_cgi_response_pipe) || pipe(ia_cgi_post_body_pipe))
+    {
+        //TODO: safe exit
+    }
 
     /* Fork the child process */
-    child_pid = fork();
-    
-    
+    pid_child = fork();  
 
-    switch (child_pid) {
+    switch (pid_child) {
         case 0:
             /* We are the child process */
             fprintf(stderr, "we are the child\n");
             
-            success = clearenv();
-            if(success == -1)
+            i_success = clearenv();
+            if(i_success == -1)
             {
                 //TODO: safe exit
             }
-            success = applyEnvVarList();
-            if(success == -1)
+            i_success = applyEnvVarList();
+            if(i_success == -1)
             {
                 //TODO: safe exit
             }
             
             secCleanup();
             
-            success = chdir("../cgi-bin/");
-            if(success == -1)
+            i_success = chdir("../cgi-bin/");
+            if(i_success == -1)
             {
                 //TODO: safe exit
             }
