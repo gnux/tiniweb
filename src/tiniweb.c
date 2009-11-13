@@ -146,6 +146,7 @@ int main(int argc, char** argv) {
 
     fprintf(stderr, "Argument parsing finished \n");
 
+    // I am testing!
     // just to make tcp wrapper happy 
     //    char buf[8192];
     //    int ret = read(STDIN_FILENO, buf, 8192);
@@ -157,7 +158,7 @@ int main(int argc, char** argv) {
     //           "Connection: close\r\n"
     //           "Content-type: text/html\r\n"
     //           "\r\n"
-    //           "<html><body>Hello!</body></html>\r\n");
+    //           "<html><body>Hello!</body></html>\r\n");   
 
     sec_test();
     sec_test();
@@ -166,6 +167,7 @@ int main(int argc, char** argv) {
     secRealloc(secCalloc(38,55),22);
     secProof(0);
     secCleanup();
+    
     
     return EXIT_SUCCESS;
 }

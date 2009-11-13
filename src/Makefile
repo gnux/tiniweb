@@ -22,7 +22,6 @@ TINIWEB_SRC = \
 	secmem.c \
 	envvar.c \
 	cgi.c \
-	md5.c
 
 # Sources for the MD5 demo application
 MD5_SRC = \
