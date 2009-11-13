@@ -103,6 +103,7 @@ int main(int argc, char** argv) {
 
     fprintf(stderr, "Argument parsing finished \n");
 
+    // I am testing!
     // just to make tcp wrapper happy 
     //    char buf[8192];
     //    int ret = read(STDIN_FILENO, buf, 8192);
