@@ -4,11 +4,13 @@
  */
 
 #include <libio.h>
+#include <stdlib.h>
 
 #include "envvar.h"
 #include "secmem.h"
 #include "typedef.h"
 
+static environment_variable* evp_first_element = NULL;
 
 int appendToEnvVarList(char* cp_name, char* cp_value)
 {
@@ -60,6 +62,29 @@ int initEnvVarList(char* cp_name, char* cp_value)
     evp_first_element->cp_name = cp_name;
     evp_first_element->cp_value = cp_value;
     evp_first_element->evp_next = NULL;
+    
+    return 0;
+}
+
+int applyEnvVarList()
+{
+    environment_variable* evp_current_var = NULL;
+    int success = 0;
+    if(evp_first_element == NULL)
+        return -1;
+    
+    evp_current_var = evp_first_element;
+    
+    while(evp_current_var->evp_next)
+    {
+        success = setenv(evp_current_var->cp_name, evp_current_var->cp_value, 1);
+        
+        if(success == -1)
+        {
+            //TODO: safe exit
+        }
+        evp_current_var = evp_current_var->evp_next;
+    }
     
     return 0;
 }

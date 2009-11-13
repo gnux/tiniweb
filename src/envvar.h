@@ -14,8 +14,6 @@ typedef struct environment_variable_ {
     
 } environment_variable;
 
-static environment_variable* evp_first_element = NULL;
-
 /**
  * 
  *
@@ -25,5 +23,7 @@ int appendToEnvVarList(char* cp_name, char* cp_value);
 int deleteEnvVarList();
 
 int initEnvVarList(char* cp_name, char* cp_value);
+
+int applyEnvVarList();
 
 #endif
