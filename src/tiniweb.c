@@ -19,6 +19,8 @@ static unsigned int val_cgi_timeout = 1;
 
 static int flag_verbose = 0;
 
+
+
 /** tiniweb main routine
  * \param argc number of commandline arguments
  * \param argv arguments itself
@@ -111,7 +113,7 @@ int main(int argc, char** argv) {
     //           "Connection: close\r\n"
     //           "Content-type: text/html\r\n"
     //           "\r\n"
-    //           "<html><body>Hello!</body></html>\r\n");
-
+    //           "<html><body>Hello!</body></html>\r\n");   
+    
     return EXIT_SUCCESS;
 }

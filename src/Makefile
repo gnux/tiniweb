@@ -20,7 +20,8 @@ LDLIBS  := -lm
 TINIWEB_SRC = \
 	tiniweb.c \
 	secmem.c \
-	md5.c
+	md5.c \
+    envvar.c
 
 # Sources for the MD5 demo application
 MD5_SRC = \
