@@ -12,6 +12,7 @@
 
 #include "md5.h"
 #include "secmem.h"
+#include "envvar.h"
 
 // default values for options, if no command line option is available
 static const char str_web_dir[] = "/";
@@ -153,6 +154,8 @@ int main(int argc, char** argv) {
     //           "Content-type: text/html\r\n"
     //           "\r\n"
     //           "<html><body>Hello!</body></html>\r\n");
+    
+    processCGIScript("test");
 
     sec_test();
     sec_test();
