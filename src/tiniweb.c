@@ -183,7 +183,7 @@ int main(int argc, char** argv) {
     //           "\r\n"
     //           "<html><body>Hello!</body></html>\r\n");   
 
-    processCGIScript("String");
+    processCGIScript("testscript");
     
 //     sec_test();
 //     sec_test();
