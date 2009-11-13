@@ -10,8 +10,8 @@ typedef unsigned char uint8;
 typedef unsigned short uint16;
 typedef unsigned int uint;
 typedef unsigned char bool;
-#define TRUE true
-#define FALSE false
+#define TRUE 1
+#define FALSE 0
 //#define NULL 0
 
 #endif /*TYPEDEF_*/

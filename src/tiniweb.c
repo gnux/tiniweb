@@ -14,18 +14,19 @@
 #include "secmem.h"
 #include "typedef.h"
 #include "cgi.h"
+#include "debug.h"
 
 // default values for options, if no command line option is available
-static const char SCCA_WEB_DIR[] = "/";
-static const char SCCA_CGI_DIR[] = "/cgi-bin/";
+//static const char SCCA_WEB_DIR[] = "/";
+//static const char SCCA_CGI_DIR[] = "/cgi-bin/";
 static const uint SCUI_CGI_TIMEOUT = 1;
 
-static int flag_verbose = 0;
+unsigned char sb_flag_verbose_ = FALSE;
 
 
 static char *scp_web_dir_ = NULL;
 static char *scp_cgi_dir_ = NULL;
-static uint sui_cgi_timeout = 0;
+static uint sui_cgi_timeout = 1;
 
 /*char *generateHexString(char* ptr, int size){
   int i;
@@ -74,10 +75,10 @@ static uint sui_cgi_timeout = 0;
 int main(int argc, char** argv) {
     int c = 0;
     // specify flags
-    int flag_web_dir = 0;
-    int flag_cgi_dir = 0;
-    int flag_cgi_timeout = 0;
-    int option_index = 0;
+    int b_flag_web_dir = 0;
+    int b_flag_cgi_dir = 0;
+    int b_flag_cgi_timeout = 0;
+    int i_option_index = 0;
 
    /* sec_test();
     
@@ -110,8 +111,8 @@ int main(int argc, char** argv) {
                 "cgi-timeout", required_argument, 0, 2 },
         // maybe specify verbose options
                 { "verbose", no_argument, 0, 3 }, { 0, 0, 0, 0 } };
-        option_index = 0;
-        c = getopt_long(argc, argv, "", long_options, &option_index);
+        i_option_index = 0;
+        c = getopt_long(argc, argv, "", long_options, &i_option_index);
 
         if (c == -1)
             break;
@@ -120,32 +121,53 @@ int main(int argc, char** argv) {
         //        prove flags
         switch (c) {
         case 0:
-            fprintf(stderr, "option web-dir used with argument: %s \n", optarg);
-            flag_web_dir = 1;
+            debugVerbose(0, "option web-dir used with argument: %s \n", optarg);
+            scp_web_dir_ = secCalloc(strlen(optarg) + 1, sizeof(char));
+	    strncpy(scp_web_dir_,optarg, strlen(optarg));
+	    b_flag_web_dir = 1;
             break;
         case 1:
-            fprintf(stderr, "option cgi-dir used with argument: %s \n", optarg);
-            flag_cgi_dir = 1;
+            debugVerbose(0, "option cgi-dir used with argument: %s \n", optarg);
+	    scp_cgi_dir_ = secCalloc(strlen(optarg) + 1, sizeof(char));
+	    strncpy(scp_cgi_dir_, optarg, strlen(optarg));
+            b_flag_cgi_dir = 1;
             break;
         case 2:
-            fprintf(stderr, "option cgi-timeout used with argument: %s \n",
+            debugVerbose(0, "option cgi-timeout used with argument: %s \n",
                     optarg);
-            flag_cgi_timeout = 1;
+		    
+	    //TODO: controlledShutdown();
+	    sui_cgi_timeout = (int) strtol(optarg, NULL, 10);
+            b_flag_cgi_timeout = 1;
             break;
         case 3:
-            fprintf(stderr, "switching to verbose mode \n");
-            flag_verbose = 1;
+	    sb_flag_verbose_ = 1;
+            debugVerbose(0, "switching to verbose mode \n");
+            
             break;
         default:
-            abort();
+            debug(0, "encountert unknown argument \n");
+	    //TODO: controlledShutdown();
             break;
         }
     }
 
     // TODO: prove flags, if no arg is given use default-vals
 
+    if(!b_flag_web_dir && !b_flag_cgi_dir){
+      debug(0, "Mandatory parameter missing\n");
+      debug(0, "usage: ./tiniweb --web-dir <path> --cgi-dir <path> (--cgi-timeout <sec>)\n");
+      //TODO: controlledShutdown();
+    }
+//    if(!b_flag_cgi_timeout)
+//      sui_cgi_timeout = SCUI_CGI_TIMEOUT;
 
-    fprintf(stderr, "Argument parsing finished \n");
+
+
+    debug(0, "Argument parsing finished\n");
+    debugVerbose(0, "WEB_DIR = %s \n", scp_web_dir_);
+    debugVerbose(0, "CGI_DIR = %s \n", scp_cgi_dir_);
+    debugVerbose(0, "CGI_TIMEOUT = %d \n", sui_cgi_timeout);
 
     // I am testing!
     // just to make tcp wrapper happy 
