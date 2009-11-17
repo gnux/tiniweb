@@ -24,6 +24,7 @@ static char *scp_web_dir_ = NULL;
 static char *scp_cgi_dir_ = NULL;
 static int si_cgi_timeout_ = 1;
 
+  
 /** tiniweb main routine
  * \param argc number of commandline arguments
  * \param argv arguments itself
