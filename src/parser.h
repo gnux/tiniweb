@@ -14,9 +14,11 @@ bool isChar(char input);
 bool isWhiteSpace(char input);
 bool isNewLine(char input, char input2);
 
-//bool isBlankNewLine(char input);
-//bool checkLineValidChars(const char* line);
-//bool isEmptyLine(char* line);
+bool parseHttpRequestHeader(char* input, char** outputline);
+bool parseRequestLine(char* input, char** outputline);
+bool parseMethod(char* input, char** outputline);
+bool parseHttpVersion(char* input, char** outputline);
+bool parseHttpRequest(char* input, char** outputline);
 
 
 

@@ -24,12 +24,16 @@ typedef struct body_info {
 #include "parser.h"
 #include "secmem.h"
 
-const char BLANKS[] = " \t";
-const char BLANKS_NEW_LINE[] = " \t\n";
+static const char BLANKS[] = " \t";
+static const char BLANKS_NEW_LINE[] = " \t\n";
+static const char* METHOD[] = {"GET", "POST", "HEAD"};
+static const char HTTPVERSION[] = "HTTP/1.1";
 
-void parse(char input[], int max_bufsize){
+void parse(char* input, int max_bufsize){
 	fprintf(stderr, "tiniweb: your input %s \n", input);
-  	char* pch_get;
+	char** outputline = NULL;
+	parseHttpRequestHeader(input,outputline);
+/*  	char* pch_get;
   	char* pch_host;
   	pch_get = strstr (input,"GET");
   	pch_host = strstr (input,"Host:");
@@ -39,11 +43,12 @@ void parse(char input[], int max_bufsize){
 	if(isChar('a')==TRUE){
 		fprintf(stderr, "it was an a \n");
 	}
+*/
 
 }
 
-void normalizeHeader(char input[]){
-	fprintf(stderr, "Size of Input: %i \n", strlen(input));
+void normalizeHeader(char* input){
+	/*fprintf(stderr, "Size of Input: %i \n", strlen(input));
 	char normalized_input[strlen(input)][strlen(input)];
 	int j=0;
 	int line_count=0;
@@ -92,7 +97,55 @@ void normalizeHeader(char input[]){
 	for(int i=0; i<=line_count;i++){
 		fprintf(stderr, "Normalized: %s \n", normalized_input[i]);
 	}
-	//fprintf(stderr, "Normalized: %s \n", normalized_input);
+	//fprintf(stderr, "Normalized: %s \n", normalized_input);*/
+}
+
+
+
+bool parseHttpRequestHeader(char* input, char** outputline){
+	
+	fprintf(stderr, "Parse: %s \n", input);
+	if(parseRequestLine(input,outputline)==TRUE){
+		fprintf(stderr, "Method: %s \n", input);
+		return TRUE;
+	}
+	return FALSE;
+		
+	
+	
+}
+bool parseRequestLine(char* input, char** outputline){
+	
+	if(parseMethod(input,outputline)==TRUE)
+			return TRUE;
+	return FALSE;
+	
+}
+bool parseMethod(char* input, char** outputline){
+	
+	bool was_right = TRUE;
+	for(int i=0; i<=2; i++){
+		for(int j=0; j<=strlen(METHOD[i]); j++){
+			if(input[j]==METHOD[i][j])
+				was_right = was_right * TRUE;
+			else
+				was_right = FALSE;
+		
+		}
+		if(was_right==TRUE){
+			return TRUE;
+		}
+	}
+	
+	return FALSE;
+			
+	
+}
+bool parseHttpVersion(char* input, char** outputline){
+	return TRUE;
+}
+bool parseHttpRequest(char* input, char** outputline){
+	return FALSE;
 }
 
 bool isChar(char input){
@@ -113,31 +166,4 @@ bool isNewLine(char input, char input2){
 		return TRUE;
 	return FALSE;
 }
-/*bool isBlankNewLine(char input)
-{
-	int i;
-	for(i = 0; BLANKS_NEW_LINE[i] != '\0'; ++i)
-		if(BLANKS_NEW_LINE[i] == input)
-			return TRUE;
-	return FALSE;
-}
-
-bool checkLineValidChars(const char* line)
-{
-	size_t i;
-	for(i = 0; '\0' != line[i]; ++i)
-		if(line[i] < 32 || line[i] > 126)
-			if(FALSE == isBlankNewLine(line[i]))
-					return TRUE;
-	return FALSE;
-}
-
-bool isEmptyLine(char* line)
-{
-	size_t i;
-	for(i = 0; '\0' != line[i]; ++i)
-		if(FALSE == isBlankNewLine(line[i]))
-			return FALSE;
-	return TRUE;
-}*/
 

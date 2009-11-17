@@ -20,7 +20,7 @@
 // default values for options, if no command line option is available
 //static const char SCCA_WEB_DIR[] = "/";
 //static const char SCCA_CGI_DIR[] = "/cgi-bin/";
-static const uint SCUI_CGI_TIMEOUT = 1;
+static const int SCUI_CGI_TIMEOUT = 1;
 
 unsigned char sb_flag_verbose_ = FALSE;
 
