@@ -19,14 +19,14 @@
 // default values for options, if no command line option is available
 //static const char SCCA_WEB_DIR[] = "/";
 //static const char SCCA_CGI_DIR[] = "/cgi-bin/";
-static const uint SCUI_CGI_TIMEOUT = 1;
+static const int SCI_CGI_TIMEOUT = 1;
 
 unsigned char sb_flag_verbose_ = FALSE;
 
 
 static char *scp_web_dir_ = NULL;
 static char *scp_cgi_dir_ = NULL;
-static uint sui_cgi_timeout = 1;
+static int si_cgi_timeout = 1;
 
 /*char *generateHexString(char* ptr, int size){
   int i;
@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
                     optarg);
 		    
 	    //TODO: controlledShutdown();
-	    sui_cgi_timeout = (int) strtol(optarg, NULL, 10);
+	    si_cgi_timeout = (int) strtol(optarg, NULL, 10);
             b_flag_cgi_timeout = 1;
             break;
         case 3:
@@ -162,12 +162,15 @@ int main(int argc, char** argv) {
 //    if(!b_flag_cgi_timeout)
 //      sui_cgi_timeout = SCUI_CGI_TIMEOUT;
 
-
+    if(si_cgi_timeout < 1) {
+      debug(0,"0 < CGI_TIMEOUT is mandatory, using default value (%d)\n", SCI_CGI_TIMEOUT);
+      si_cgi_timeout = SCI_CGI_TIMEOUT;
+    }
 
     debug(0, "Argument parsing finished\n");
     debugVerbose(0, "WEB_DIR = %s \n", scp_web_dir_);
     debugVerbose(0, "CGI_DIR = %s \n", scp_cgi_dir_);
-    debugVerbose(0, "CGI_TIMEOUT = %d \n", sui_cgi_timeout);
+    debugVerbose(0, "CGI_TIMEOUT = %d \n", si_cgi_timeout);
 
     // I am testing!
     // just to make tcp wrapper happy 
@@ -191,7 +194,7 @@ int main(int argc, char** argv) {
 //     secMalloc(34);
 //     secRealloc(secCalloc(38,55),22);
 //     secProof(0);
-//     secCleanup();
+     secCleanup();
     
     
     return EXIT_SUCCESS;
