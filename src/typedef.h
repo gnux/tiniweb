@@ -14,4 +14,14 @@ typedef unsigned char bool;
 #define FALSE 0
 //#define NULL 0
 
+typedef struct http_norm {
+  char *cp_first_line;
+  int i_num_fields;
+  char **cpp_header_field_name;
+  char **cpp_header_field_body;
+  char *cp_header;
+  char *cp_body;
+} http_norm;
+
+
 #endif /*TYPEDEF_*/
