@@ -13,7 +13,7 @@
 #include "secmem.h"
 #include "typedef.h"
 
-extern int si_cgi_timeout;
+extern int si_cgi_timeout_;
 
 /**
  * Helper function for safely closing a pipe pair
@@ -172,7 +172,7 @@ int readFromCGIScript(int i_cgi_response_pipe, pid_t pid_child)
     {
 
         // Poll for more events
-        i_poll_result = poll(poll_fd, sizeof(poll_fd)/sizeof(poll_fd[0]), si_cgi_timeout);
+        i_poll_result = poll(poll_fd, sizeof(poll_fd)/sizeof(poll_fd[0]), si_cgi_timeout_);
         if (i_poll_result < 0)
         {
             // TODO debug output
