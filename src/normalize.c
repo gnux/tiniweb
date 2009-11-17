@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "typedef.h"
 #include "secmem.h"
 #include "normalize.h"
@@ -8,19 +9,16 @@ static const char *SCCP_BLANK = {" \t"};
 static const char *SCCPA_NEW_LINE[] = {"\r\n", "\n", "\0"};
 
 
-http_norm *normaliseHttp(const char* ccp_input){
+http_norm *normaliseHttp(const FILE* cfp_input){
   http_norm *hnp_http_info;
   hnp_http_info = secMalloc(sizeof(hnp_http_info));
   char *cp_current_line;
   //first char must be valid and no Space
-  if(isCharacter(ccp_input, 0) != EXIT_SUCCESS)
+ // cp_current_line = getline()
+  // TODO: sec_abort!
+  if(isCharacter(cfp_input, 0) != EXIT_SUCCESS)
     return EXIT_FAILURE;
-  
-  
-  
-  
-  
-
+ // cp_current_line = 
   return EXIT_FAILURE;
 }
 

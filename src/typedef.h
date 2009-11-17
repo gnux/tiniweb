@@ -6,6 +6,11 @@
 #ifndef TYPEDEF_
 #define TYPEDEF_
 
+#ifdef EXIT_FAILURE
+#undef EXIT_FAILURE
+#endif
+#define EXIT_FAILURE -1
+
 typedef unsigned char uint8;
 typedef unsigned short uint16;
 typedef unsigned int uint;
