@@ -5,12 +5,15 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <signal.h>
+#include <string.h>
 
 #include "debug.h"
 #include "cgi.h"
 #include "envvar.h"
 #include "secmem.h"
 #include "typedef.h"
+
+extern int si_cgi_timeout;
 
 /**
  * Helper function for safely closing a pipe pair
@@ -154,54 +157,60 @@ void processCGIScript(const char* cp_path)
 
 int readFromCGIScript(int i_cgi_response_pipe, pid_t pid_child)
 {
-    struct pollfd* poll_fd;
+    struct pollfd poll_fd[1];
     int i_poll_result = 0;
     int i_response_length = 0;
     char* cp_cgi_response = NULL;
     
     /* Setup poll_fds for child standard output and 
      * standard error stream */
-    poll_fd->fd = i_cgi_response_pipe;
-    poll_fd->events = POLLIN;
-    poll_fd->revents = 0;
+    poll_fd[0].fd = i_cgi_response_pipe;
+    poll_fd[0].events = POLLIN;
+    poll_fd[0].revents = 0;
     
     while (!(poll_fd->revents & (POLLHUP | POLLERR)))
     {
 
         // Poll for more events
-        i_poll_result = poll(poll_fd, sizeof(poll_fd)/sizeof(poll_fd), si_cgi_timeout);
+        i_poll_result = poll(poll_fd, sizeof(poll_fd)/sizeof(poll_fd[0]), si_cgi_timeout);
         if (i_poll_result < 0)
         {
-            // TODO safe exit
+            // TODO debug output
+            return -1;
         }
 
         // Timeout?
         if (i_poll_result == 0)
         {
             // Kill child
+            
             kill(pid_child, 0);
-            break;
+            //TODO: Send 501 to http client
+            debug(2, "Child process timed out, killing it.\n");
+            return -1;
         }
 
         /* Drain the standard output pipe */
-        if (poll_fd->revents & POLLIN)
+        if (poll_fd[0].revents & POLLIN)
         {   
-            i_response_length = drainPipe(poll_fd->fd, &cp_cgi_response);
+            i_response_length = drainPipe(poll_fd[0].fd, &cp_cgi_response);
             if (i_response_length < 0)
             {
 //                 fprintf(stderr, "failed to drain child standard output pipe");
 //                 goto err_join_child;
+                debug(2, "Could not read from pipe.\n");
+                return -1;
             }
             
-            debugVerbose(2, "Got following CGI response: %s\n", cp_cgi_response);
-            
-            //parse
+            debug(2, "Got following CGI response: %s\n", cp_cgi_response);
+            //TODO: parse
 
-            poll_fd->revents ^= POLLIN;
+            poll_fd[0].revents ^= POLLIN;
         }
 
     } 
-
+    
+    return 0;
     
 }
 
@@ -209,7 +218,9 @@ int drainPipe(int i_source_fd, char** cpp_cgi_response)
 {
     int i_total_read_bytes = 0;
     char ca_buffer[256];
+    char* cp_newly_allocated_memory = NULL;
     bool b_first_iteration = TRUE;
+    bool b_eof_reached = FALSE;
  
     do 
     {
@@ -217,30 +228,42 @@ int drainPipe(int i_source_fd, char** cpp_cgi_response)
         ssize_t read_bytes;
 
         read_bytes = read(i_source_fd, ca_buffer, sizeof(ca_buffer));
-        i_total_read_bytes += read_bytes;
         
-        if (read_bytes <= 0) 
+        if (read_bytes < 0) 
         {
+            debug(2, "Error reading from pipe: %d\n", errno);
             return -1;        
         }
+
+        if(read_bytes < 256)
+        {
+            ca_buffer[read_bytes] = '\0';
+            read_bytes++;   
+            b_eof_reached = TRUE;
+        }
+        
+        i_total_read_bytes += read_bytes;
         
         if (b_first_iteration == TRUE)
         {
-            (*cpp_cgi_response) = (char*)secMalloc(read_bytes);
+            (*cpp_cgi_response) = (char*)secMalloc(i_total_read_bytes);
+            strncpy((*cpp_cgi_response), ca_buffer, i_total_read_bytes);
+            
+            debug(2, "Read %s\n", (*cpp_cgi_response));
             b_first_iteration = FALSE;
         }
         else
-        {
-            (*cpp_cgi_response) = (char*)secRealloc((*cpp_cgi_response), i_total_read_bytes);
+        { 
+            //TODO: Have another look at this
+            (*cpp_cgi_response) = (char*) secRealloc((*cpp_cgi_response), i_total_read_bytes);
+            cp_newly_allocated_memory = cpp_cgi_response[i_total_read_bytes - read_bytes -1];
+            strncpy((*cpp_cgi_response) + (i_total_read_bytes - read_bytes), ca_buffer, read_bytes);
+            debug(2, "Read after realloc %s\n", (*cpp_cgi_response));
             //TODO: There should be a maximum size.
         }
-        
-        if (read_bytes == 256 && ca_buffer[255] == '\0')
-        {
-            break;
-        }
 
-    } while (1);
+    } while (!b_eof_reached);
     
     return i_total_read_bytes;
 }
+

@@ -30,3 +30,4 @@ void debugVerbose(int type, const char *ptr, ...){
   vfprintf(stderr, ptr, va);
   va_end(va);
 }
+
