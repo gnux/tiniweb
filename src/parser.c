@@ -29,10 +29,20 @@ static const char BLANKS_NEW_LINE[] = " \t\n";
 static const char* METHOD[] = {"GET", "POST", "HEAD"};
 static const char HTTPVERSION[] = "HTTP/1.1";
 
+int MAX_BUFSIZE=0;
+bool selectedMETHOD[] = {FALSE, FALSE, FALSE};
+
+
+
 void parse(char* input, int max_bufsize){
+	MAX_BUFSIZE = max_bufsize;
 	fprintf(stderr, "tiniweb: your input %s \n", input);
 	char** outputline = NULL;
-	parseHttpRequestHeader(input,outputline);
+	int offset = 0;
+	offset = parseHttpRequestHeader(input, outputline, offset);
+	if(offset != EXIT_FAILURE){
+		//TODO: ERROR
+	}
 /*  	char* pch_get;
   	char* pch_host;
   	pch_get = strstr (input,"GET");
@@ -102,11 +112,11 @@ void normalizeHeader(char* input){
 
 
 
-bool parseHttpRequestHeader(char* input, char** outputline){
+int parseHttpRequestHeader(char* input, char** outputline, int offset){
 	
-	fprintf(stderr, "Parse: %s \n", input);
-	if(parseRequestLine(input,outputline)==TRUE){
-		fprintf(stderr, "Method: %s \n", input);
+
+	if(parseRequestLine(input,outputline,offset)!=EXIT_FAILURE){
+		fprintf(stderr, "Parser: this is an correct input \n");
 		return TRUE;
 	}
 	return FALSE;
@@ -114,38 +124,91 @@ bool parseHttpRequestHeader(char* input, char** outputline){
 	
 	
 }
-bool parseRequestLine(char* input, char** outputline){
+int parseRequestLine(char* input, char** outputline, int offset){
 	
-	if(parseMethod(input,outputline)==TRUE)
-			return TRUE;
-	return FALSE;
+	int new_offset=0;
+	new_offset = parseMethod(input,outputline,offset);
+	if(new_offset!=EXIT_FAILURE){
+		if(input[new_offset]== ' '){
+			new_offset = offsetPP(new_offset, 1);
+			new_offset = parseRequestURI(input,outputline,new_offset);
+			if(new_offset!=EXIT_FAILURE){
+				if(isWhiteSpace(input[new_offset])==TRUE){
+					new_offset = offsetPP(new_offset, 1);
+					new_offset = parseHttpVersion(input,outputline,new_offset);
+					if(new_offset!=EXIT_FAILURE){
+						if(isNewLine(input[new_offset])==TRUE){
+							new_offset = offsetPP(new_offset, 1);
+							return new_offset;
+						}
+					}
+				}
+			}
+		}
+	}
+	return EXIT_FAILURE;
 	
 }
-bool parseMethod(char* input, char** outputline){
-	
+
+int parseMethod(char* input, char** outputline, int offset){
 	bool was_right = TRUE;
-	for(int i=0; i<=2; i++){
-		for(int j=0; j<=strlen(METHOD[i]); j++){
-			if(input[j]==METHOD[i][j])
-				was_right = was_right * TRUE;
-			else
-				was_right = FALSE;
-		
-		}
-		if(was_right==TRUE){
-			return TRUE;
+	if(offset == 0){
+		for(int i=0; i<=2; i++){
+			was_right = TRUE;
+			for(int j=0; j<strlen(METHOD[i]); j++){
+				if(input[j]!=METHOD[i][j]){
+					was_right = FALSE;
+					break;
+				}
+			}
+			if(was_right==TRUE){
+				selectedMETHOD[i]=TRUE;
+				offset=offsetPP(offset,3);
+				if(i>0){
+					offset=offsetPP(offset,4);
+				}
+				return offset;
+			}
 		}
 	}
 	
-	return FALSE;
-			
+	return EXIT_FAILURE;	
+}
+
+int parseHttpVersion(char* input, char** outputline, int offset){
 	
+	bool istrue = TRUE;
+	
+	for(int i=0; i<strlen(HTTPVERSION);i++){
+		if(HTTPVERSION[i]!=input[offset]){
+			istrue = FALSE;
+			break;
+		}
+		offset = offsetPP(offset,1);
+	}
+	if(istrue==TRUE){	
+		return offset;
+	}
+	else
+		return EXIT_FAILURE;
 }
-bool parseHttpVersion(char* input, char** outputline){
-	return TRUE;
+
+int parseHttpRequest(char* input, char** outputline, int offset){
+	return offset;
 }
-bool parseHttpRequest(char* input, char** outputline){
-	return FALSE;
+
+int parseRequestURI(char* input, char** outputline, int offset){
+	
+	int i=0;
+	char uri[100]; //TODO FIX this
+	char* uri_ = uri;
+	while(isWhiteSpace(input[offset])!=TRUE){
+		uri_[i]=input[offset];
+		i++;
+		offset=offsetPP(offset,1);
+	}
+	return offset;
+	
 }
 
 bool isChar(char input){
@@ -161,9 +224,16 @@ bool isWhiteSpace(char input){
 	return FALSE;
 }
 
-bool isNewLine(char input, char input2){
-	if(input=='\n' || (input=='\r' && input2=='\n'))
+bool isNewLine(char input){
+	if(input=='\n')
 		return TRUE;
 	return FALSE;
+}
+
+int offsetPP(int offset, int count){
+	if(offset+count < MAX_BUFSIZE){
+		offset= offset + count;
+	}
+	return offset;
 }
 
