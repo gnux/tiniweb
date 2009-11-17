@@ -113,6 +113,7 @@ void secFree(void *ptr) {
 void *secFindElement(void *ptr) {
     list_entry *le = 0;
     secRewind();
+    le = lep_memory_handles_first;
     while (le) {
         if (le->vp_ptr == ptr)
             break;
