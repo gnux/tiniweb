@@ -5,6 +5,7 @@
 
 #include <memory.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "secmem.h"
 #include "debug.h"
 
@@ -125,7 +126,7 @@ void *secFindElement(void *ptr) {
 
 void secProof(void *ptr){
   if(!ptr){
-    debug(1,"Got NULL-Pointer from memory call, abnormall behaviour detected, we will abort!");
+    debug(1,"Got NULL-Pointer from memory call, abnormal behaviour detected, we will abort!");
     secAbort();
   }
 }
@@ -138,10 +139,22 @@ void secRegister(void *ptr){
 }
 
 void secAbort(){
-  fprintf(stderr, "-----INTERNAL FAILURE, SERVER IS GOING TO ABORT-----");
+  fprintf(stderr, "-----INTERNAL FAILURE, SERVER IS GOING TO ABORT-----\n");
   secCleanup();
   //TODO: cleanup open files and pipes
   abort();
+}
+
+ssize_t secGetline(char** cpp_lineptr, FILE *stream){
+  size_t i_num_reads = 0;
+  ssize_t i_ret = 0;
+  if(*cpp_lineptr)
+    secFree(*cpp_lineptr);
+  *cpp_lineptr = NULL;
+  i_ret = getline(cpp_lineptr, &i_num_reads, stream);
+  secProof(*cpp_lineptr);
+  secRegister(*cpp_lineptr);
+  return i_ret;
 }
 
 //TODO: remove this function, if not needed anymore
