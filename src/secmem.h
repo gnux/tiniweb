@@ -59,6 +59,11 @@ void secRewind();
  */
 void secProof(void *ptr);
 
+/**
+ * secRegister routine, register a pointer not get by sec* functions
+ */
+void secRegister(void *ptr);
+
 //TODO: remove this function, if not needed anymore
 void sec_test();
 
