@@ -13,6 +13,7 @@ void normalizeHeader(char input[]);
 bool isChar(char input);
 bool isWhiteSpace(char input);
 bool isNewLine(char input);
+void stringToUpperCase(char* input);
 
 int parseHttpRequestHeader(char* input, char** outputline, int offset);
 int parseRequestLine(char* input, char** outputline, int offset);

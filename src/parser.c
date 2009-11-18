@@ -98,15 +98,21 @@ void parse(http_norm *hnp_info){
 
 int parseArguments(http_norm *hnp_info, char** outputline){
 	debugVerbose(3, "Parse Arguments\n");
-//	for(size_t i = 0; i < hnp_info->i_num_fields; ++i){
-//		char cp_name[] = "HTTP_";
-//		char* cp_name_to_add = hnp_info->cpp_header_field_name[i];
+	
+	
+	for(size_t i = 0; i < hnp_info->i_num_fields; ++i){
+		char cp_name_to_add[] = "HTTP_";
+		char* cp_name = secCalloc(1, sizeof(char));
+		cp_name[0] = '\0';
+		strAppend(&cp_name, cp_name_to_add);
+		strAppend(&cp_name, hnp_info->cpp_header_field_name[i]);
+		//cp_name_to_add = secMalloc(strlen(hnp_info->cpp_header_field_name[i])*sizeof(char));
+		//cp_name_to_add = hnp_info->cpp_header_field_name[i];
 		//secRealloc(cp_name_to_add, strlen(hnp_info->cpp_header_field_name[i])*sizeof(char));
 		//strncpy ( char * destination, const char * source, size_t num );
 		//strncpy(cp_name_to_add,hnp_info->cpp_header_field_name[i],strlen(hnp_info->cpp_header_field_name[i])*sizeof(char));
-//		cp_name_to_add = toupper(&cp_name_to_add);
-		//strAppend(&cp_name,cp_name_to_add);
-//		appendToEnvVarList(cp_name_to_add,hnp_info->cpp_header_field_body[i]);
+		stringToUpperCase(cp_name);
+		appendToEnvVarList(cp_name,hnp_info->cpp_header_field_body[i]);
 	}
 
 
@@ -235,5 +241,12 @@ int offsetPP(int offset, int count){
 		offset= offset + count;
 	}
 	return offset;
+}
+
+void stringToUpperCase(char* input){
+	
+	for(int i=0; i<strlen(input);i++){
+		input[i] = toupper(input[i]);
+	}	
 }
 
