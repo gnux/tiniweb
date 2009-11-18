@@ -16,6 +16,7 @@
 #include "cgi.h"
 #include "debug.h"
 #include "parser.h"
+#include "normalize.h"
 
 // default values for options, if no command line option is available
 static const int SCI_CGI_TIMEOUT = 1;
@@ -105,13 +106,15 @@ int main(int argc, char** argv) {
     debugVerbose(0, "WEB_DIR = %s \n", scp_web_dir_);
     debugVerbose(0, "CGI_DIR = %s \n", scp_cgi_dir_);
     debugVerbose(0, "CGI_TIMEOUT = %d \n", si_cgi_timeout_);
+    
+    normalizeHttp(stdin);
 
     // I am testing!
     // just to make tcp wrapper happy 
-    	char buf[8192];
-    	int ret = read(STDIN_FILENO, buf, 8192);
-    	parse(buf,8192);
-    	fprintf(stderr, "tiniweb: got %d bytes\n", ret);
+   // 	char buf[8192];
+   // 	int ret = read(STDIN_FILENO, buf, 8192);
+    //	parse(buf,8192);
+   // 	fprintf(stderr, "tiniweb: got %d bytes\n", ret);
 
 		
     // sample response
