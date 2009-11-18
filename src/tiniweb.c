@@ -17,6 +17,8 @@
 #include "debug.h"
 #include "parser.h"
 #include "normalize.h"
+#include "envvar.h"
+
 
 // default values for options, if no command line option is available
 static const int SCI_CGI_TIMEOUT = 1;
@@ -107,7 +109,9 @@ int main(int argc, char** argv) {
       si_cgi_timeout_ = SCI_CGI_TIMEOUT;
     }
     
-
+    initEnvVarList("GATEWAY_INTERFACE","CGI/1.1");
+    //appendToEnvVarList("SCRIPT_FILENAME",scp_cgi_dir_);
+	//appendToEnvVarList("DOCUMENT_ROOT",scp_web_dir_);
 
     debug(0, "Argument parsing finished\n");
     debugVerbose(0, "WEB_DIR = %s \n", scp_web_dir_);
@@ -115,7 +119,10 @@ int main(int argc, char** argv) {
     debugVerbose(0, "SECRET = %s \n", scp_secret_);
     debugVerbose(0, "CGI_TIMEOUT = %d \n", si_cgi_timeout_);
     
-    normalizeHttp(stdin);
+	http_norm *hnp_info = normalizeHttp(stdin);
+	debugVerbose(0, "Normalize finished \n");
+	parse(hnp_info);
+	debugVerbose(0, "Parsing finished \n"); 
 
     // I am testing!
     // just to make tcp wrapper happy 

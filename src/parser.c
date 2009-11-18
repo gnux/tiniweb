@@ -20,110 +20,116 @@ typedef struct body_info {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>		//??????????????????
 #include "typedef.h"
 #include "parser.h"
 #include "secmem.h"
+#include "normalize.h"
+#include "debug.h"
+#include "envvar.h"
+
 
 static const char BLANKS[] = " \t";
 static const char BLANKS_NEW_LINE[] = " \t\n";
 static const char* METHOD[] = {"GET", "POST", "HEAD"};
 static const char HTTPVERSION[] = "HTTP/1.1";
 
-int MAX_BUFSIZE=0;
+int MAX_HEADER_BUFSIZE=0;
 bool selectedMETHOD[] = {FALSE, FALSE, FALSE};
+bool foundARGUMENTS[] = {FALSE};
+/*
+ * - char* first line
+- char* normalisierte http_req/rep
+- char* body
+- char** header_fields
+- char** header_bodys
+- size_t anzahl_fields
+ */
 
-
-
-void parse(char* input, int max_bufsize){
-	MAX_BUFSIZE = max_bufsize;
-	fprintf(stderr, "tiniweb: your input %s \n", input);
-	char** outputline = NULL;
+void parse(http_norm *hnp_info){
+	
+	
+	char** outputline = NULL;	
+	MAX_HEADER_BUFSIZE = strlen(hnp_info->cp_header);
 	int offset = 0;
-	offset = parseHttpRequestHeader(input, outputline, offset);
-	if(offset != EXIT_FAILURE){
+	int arguments_valid = 0;
+	int first_line_valid =  parseHttpRequestHeader(hnp_info->cp_first_line, outputline, offset);
+	if(first_line_valid == EXIT_FAILURE){
 		//TODO: ERROR
 	}
-/*  	char* pch_get;
-  	char* pch_host;
-  	pch_get = strstr (input,"GET");
-  	pch_host = strstr (input,"Host:");
-	fprintf(stderr, "Found? %s \n", pch_get);
-	fprintf(stderr, "Found? %s \n", pch_host);
-	normalizeHeader(input);
-	if(isChar('a')==TRUE){
-		fprintf(stderr, "it was an a \n");
+	
+	if(selectedMETHOD[0]==TRUE){
+		appendToEnvVarList("REQUEST_METHOD","GET");
+		/*if(hnp_info->cpp_header_field_body != NULL){
+			arguments_valid=EXIT_FAILURE;
+			//TODO: ERROR
+		}
+		else*/
+			arguments_valid = parseArguments(hnp_info,outputline);
 	}
-*/
+	else if(selectedMETHOD[1]==TRUE){
+		appendToEnvVarList("REQUEST_METHOD","POST");
+		if(hnp_info->cpp_header_field_body == NULL){
+			arguments_valid=EXIT_FAILURE;
+			//TODO: ERROR
+		}
+		else
+			arguments_valid = parseArguments(hnp_info,outputline);
+	}
+	else if(selectedMETHOD[2]==TRUE){
+		appendToEnvVarList("REQUEST_METHOD","HEAD");
+		if(hnp_info->cpp_header_field_body != NULL){
+			arguments_valid=EXIT_FAILURE;
+			//TODO: ERROR
+		}
+		else
+			arguments_valid = parseArguments(hnp_info,outputline);
+	}
+	else{
+		//can't happen
+	}
+	
+	if(arguments_valid==EXIT_FAILURE){
+		//TODO: ERROR
+	}
+	debugVerbose(3, "Arguments valid\n");
 
 }
 
-void normalizeHeader(char* input){
-	/*fprintf(stderr, "Size of Input: %i \n", strlen(input));
-	char normalized_input[strlen(input)][strlen(input)];
-	int j=0;
-	int line_count=0;
-	for(int i=0; input[i]!='\0' && i<= strlen(input);i++){
-		if(isWhiteSpace(input[i])==TRUE){
-			//Do nothing except the sign bevor this sign wasn't a whitespace
-			// and the next sign isn't a :
-			if(i>0 && i<strlen(input)){
-				if((isWhiteSpace(input[i-1])==FALSE) && input[i+1]!=':'){
-					normalized_input[line_count][j]=' ';
-					j++;
-				}	
-			}
-		}
-		else{
-			//Check if we made a mistake and ther is an space bevor our : in the normalized_input
-			if(i>0 && i<strlen(input)){
-				if(input[i]==':' && isWhiteSpace(normalized_input[line_count][j-1])==TRUE){
-					j--;
-				}
-			}
-			//Copy input to normalized_input
-			if(isChar(input[i]==TRUE)){
-				normalized_input[line_count][j]=input[i];
-				j++;
-				//Now we have to check if after the : an whitespace is going to be written next time or not
-				if(i>0 && i<strlen(input)){
-					if(input[i]==':' && isWhiteSpace(input[i+1])==FALSE){
-						normalized_input[line_count][j]=' ';
-						j++;
-					}
-				}
-			}
-			else if(isNewLine(input[i],input[i+1])==FALSE){
-				line_count++;
-			}
-			else{
-				//we don't know this char
-			}
-			
-			
-		}
+int parseArguments(http_norm *hnp_info, char** outputline){
+	debugVerbose(3, "Parse Arguments\n");
+	
+	
+	for(size_t i = 0; i < hnp_info->i_num_fields; ++i){
+		char cp_name_to_add[] = "HTTP_";
+		char* cp_name = secCalloc(1, sizeof(char));
+		cp_name[0] = '\0';
+		strAppend(&cp_name, cp_name_to_add);
+		strAppend(&cp_name, hnp_info->cpp_header_field_name[i]);
+		//cp_name_to_add = secMalloc(strlen(hnp_info->cpp_header_field_name[i])*sizeof(char));
+		//cp_name_to_add = hnp_info->cpp_header_field_name[i];
+		//secRealloc(cp_name_to_add, strlen(hnp_info->cpp_header_field_name[i])*sizeof(char));
+		//strncpy ( char * destination, const char * source, size_t num );
+		//strncpy(cp_name_to_add,hnp_info->cpp_header_field_name[i],strlen(hnp_info->cpp_header_field_name[i])*sizeof(char));
+		stringToUpperCase(cp_name);
+		appendToEnvVarList(cp_name,hnp_info->cpp_header_field_body[i]);
 	}
-	normalized_input[line_count][j]='\0';
-	//secRealloc(normalized_input, (strlen(normalized_input) + 1) * sizeof(char));
-	for(int i=0; i<=line_count;i++){
-		fprintf(stderr, "Normalized: %s \n", normalized_input[i]);
-	}
-	//fprintf(stderr, "Normalized: %s \n", normalized_input);*/
+
+
+	return TRUE;	
 }
-
-
 
 int parseHttpRequestHeader(char* input, char** outputline, int offset){
 	
-
-	if(parseRequestLine(input,outputline,offset)!=EXIT_FAILURE){
-		fprintf(stderr, "Parser: this is an correct input \n");
+	debugVerbose(3, "Parse HttpRequestHeader\n");
+	offset = parseRequestLine(input,outputline,offset);
+	if(offset!=EXIT_FAILURE){
+		debugVerbose(3, "Method found\n");
 		return TRUE;
 	}
-	return FALSE;
-		
-	
-	
+	return EXIT_FAILURE;	
 }
+
 int parseRequestLine(char* input, char** outputline, int offset){
 	
 	int new_offset=0;
@@ -225,15 +231,22 @@ bool isWhiteSpace(char input){
 }
 
 bool isNewLine(char input){
-	if(input=='\n')
+	if(input=='\0' || input=='\n')
 		return TRUE;
 	return FALSE;
 }
 
 int offsetPP(int offset, int count){
-	if(offset+count < MAX_BUFSIZE){
+	if(offset+count < MAX_HEADER_BUFSIZE){
 		offset= offset + count;
 	}
 	return offset;
+}
+
+void stringToUpperCase(char* input){
+	
+	for(int i=0; i<strlen(input);i++){
+		input[i] = toupper(input[i]);
+	}	
 }
 
