@@ -218,7 +218,6 @@ int drainPipe(int i_source_fd, char** cpp_cgi_response)
 {
     int i_total_read_bytes = 0;
     char ca_buffer[3];
-    char* cp_newly_allocated_memory = NULL;
     bool b_first_iteration = TRUE;
     bool b_eof_reached = FALSE;
  
@@ -256,7 +255,6 @@ int drainPipe(int i_source_fd, char** cpp_cgi_response)
         { 
             //TODO: Have another look at this
             (*cpp_cgi_response) = (char*) secRealloc((*cpp_cgi_response), i_total_read_bytes);
-            cp_newly_allocated_memory = cpp_cgi_response[i_total_read_bytes - read_bytes -1];
             strncpy((*cpp_cgi_response) + (i_total_read_bytes - read_bytes), ca_buffer, read_bytes);
             debug(2, "Address of cont string: %x\n", (*cpp_cgi_response) + (i_total_read_bytes - read_bytes));
             debug(2, "Read after realloc %s\n", (*cpp_cgi_response));
