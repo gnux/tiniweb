@@ -99,6 +99,7 @@ int main(int argc, char** argv) {
       debug(0, "Mandatory parameter missing\n");
       debug(0, "usage: ./tiniweb --web-dir <path> --cgi-dir <path> --secret <secret> (--cgi-timeout <sec>)\n");
       //TODO: controlledShutdown();
+      //TODO: give answer internal server error!
     }
     
     if(si_cgi_timeout_ < 1){

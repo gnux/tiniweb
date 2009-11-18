@@ -64,6 +64,11 @@ void secProof(void *ptr);
  */
 void secRegister(void *ptr);
 
+/**
+ * secAbort routine, used to abort with controlled cleanup
+ */
+void secAbort();
+
 //TODO: remove this function, if not needed anymore
 void sec_test();
 
