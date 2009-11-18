@@ -9,7 +9,7 @@ extern unsigned char sb_flag_verbose_;
 static const char* SCCA_DEBUG_TYPES[] = {
   "MAIN", //0
   "SEC_MEM", //1
-  "NORMALISE", //2
+  "NORMALIZE", //2
   "PARSER", //3
   "ENVVAR", //4
   "CGICALL", //5

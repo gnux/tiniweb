@@ -24,11 +24,15 @@ http_norm *normalizeHttp(FILE* fp_input){
   // first char must be valid and no space
   // TODO: sec_abort!
   // TODO: What is when malloc in getline fails??? secGetline??
-  if(getline(&cp_current_line, &i_num_read, fp_input) == -1)
-    abort();
+  if(getline(&cp_current_line, &i_num_read, fp_input) == -1){
+    debugVerbose(2, "Empty input detected");
+    secAbort();
+  }
   // TODO: sec_abort!
-  if(isCharacter(cp_current_line, 0) == EXIT_FAILURE)
-    abort();
+  if(isCharacter(cp_current_line, 0) == EXIT_FAILURE){
+    debugVerbose(2, "Invalid HTTPRequest/Respone line detected");
+    secAbort();
+  }
   hnp_http_info->cp_first_line = secCalloc(i_num_read + 1, sizeof(char));
   strncpy(hnp_http_info->cp_first_line, cp_current_line, i_num_read + 1);
   // now find the first line (http request line)
@@ -39,12 +43,16 @@ http_norm *normalizeHttp(FILE* fp_input){
     // because there must be add least on header field... we will abort if we found non
     // TODO: sec_abort!
     i_num_read = 0;
-    if(getline(&cp_current_line, &i_num_read, fp_input) == -1)
-      abort();
+    if(getline(&cp_current_line, &i_num_read, fp_input) == -1){
+      debugVerbose(2, "No Header Fields detected");
+      secAbort();
+    }
     // if we find a newline on the beginning of the line, we are still missing at least one header-field
     // TODO: sec_abort!
-    if(isNewLineChars(cp_current_line, 0) == EXIT_SUCCESS)
-      abort();
+    if(isNewLineChars(cp_current_line, 0) == EXIT_SUCCESS){
+      debugVerbose(2, "No Header Fields detected");
+      secAbort();
+    }
     // we do this as long we find a char on first position
     if(isCharacter(cp_current_line, 0) == EXIT_SUCCESS)
       break;
@@ -54,8 +62,10 @@ http_norm *normalizeHttp(FILE* fp_input){
   // now hunt for header-fields
   while(1){
     //TODO: sec abort
-    if(isValidHeaderFieldStart(cp_current_line) == EXIT_FAILURE)
-      abort();
+    if(isValidHeaderFieldStart(cp_current_line) == EXIT_FAILURE){
+      debugVerbose(2, "Invalid Header Field detected: %s", cp_current_line);
+      secAbort();
+    }
     ++hnp_http_info->i_num_fields;
     hnp_http_info->cpp_header_field_name = secRealloc(hnp_http_info->cpp_header_field_name, sizeof(char*) * hnp_http_info->i_num_fields);
     getHeaderFieldName(&hnp_http_info->cpp_header_field_name[hnp_http_info->i_num_fields - 1], cp_current_line);
@@ -68,8 +78,10 @@ http_norm *normalizeHttp(FILE* fp_input){
       // TODO: sec_abort! sec getline with auto abort!
       // Header has to end with endl!
       i_num_read = 0;
-      if(getline(&cp_current_line, &i_num_read, fp_input) == -1)
-	abort();
+      if(getline(&cp_current_line, &i_num_read, fp_input) == -1){
+	debugVerbose(2, "Invalid Header delimiter detected");
+	secAbort();
+      }      
       if(isBlank(cp_current_line, 0) == EXIT_SUCCESS)
 	strAppend(&hnp_http_info->cpp_header_field_body[hnp_http_info->i_num_fields - 1], cp_current_line);
       else
@@ -154,8 +166,8 @@ void printHttpNorm(http_norm* hnp_http_info){
     debugVerbose(2, "%s: %s\n", hnp_http_info->cpp_header_field_name[i], hnp_http_info->cpp_header_field_body[i]);
   if(hnp_http_info->cp_header)
     debugVerbose(2, "complete request/response:\n%s%s", hnp_http_info->cp_header, hnp_http_info->cp_body);
-//   if(hnp_http_info->cp_body)
-//     debugVerbose(2, "complete_body:\n%s\n", hnp_http_info->cp_body);
+   if(hnp_http_info->cp_body)
+     debugVerbose(2, "complete_body:\n%s\n", hnp_http_info->cp_body);
   debugVerbose(2, "-----END HEADER STRUCT PRINTING-----\n");
 }
 
@@ -216,10 +228,11 @@ void strAppend(char** cpp_output, const char* ccp_input){
   size_t i_len_output = strlen(*cpp_output);
   size_t i_len_new = i_len_input + i_len_output + 1;
   // prevent overflow
-  // TODO: sec abort!
   // TODO: search for possible overflows!
-  if(i_len_new < i_len_input || i_len_new < i_len_output)
-    abort();
+  if(i_len_new < i_len_input || i_len_new < i_len_output){
+    debugVerbose(2, "Error in strAppend possible buffer overflow detected!");
+    secAbort();
+  }
   *cpp_output = secRealloc(*cpp_output, i_len_new);
   strncat(*cpp_output, ccp_input, i_len_input);
   // just be sure to delimit with '\0'
