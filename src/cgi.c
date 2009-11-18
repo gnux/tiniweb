@@ -217,7 +217,7 @@ int readFromCGIScript(int i_cgi_response_pipe, pid_t pid_child)
 int drainPipe(int i_source_fd, char** cpp_cgi_response) 
 {
     int i_total_read_bytes = 0;
-    char ca_buffer[256];
+    char ca_buffer[3];
     char* cp_newly_allocated_memory = NULL;
     bool b_first_iteration = TRUE;
     bool b_eof_reached = FALSE;
@@ -235,7 +235,7 @@ int drainPipe(int i_source_fd, char** cpp_cgi_response)
             return -1;        
         }
 
-        if(read_bytes < 256)
+        if(read_bytes < 3)
         {
             ca_buffer[read_bytes] = '\0';
             read_bytes++;   
@@ -248,7 +248,7 @@ int drainPipe(int i_source_fd, char** cpp_cgi_response)
         {
             (*cpp_cgi_response) = (char*)secMalloc(i_total_read_bytes);
             strncpy((*cpp_cgi_response), ca_buffer, i_total_read_bytes);
-            
+            debug(2, "Address of string: %x\n", (*cpp_cgi_response));
             debug(2, "Read %s\n", (*cpp_cgi_response));
             b_first_iteration = FALSE;
         }
@@ -258,6 +258,7 @@ int drainPipe(int i_source_fd, char** cpp_cgi_response)
             (*cpp_cgi_response) = (char*) secRealloc((*cpp_cgi_response), i_total_read_bytes);
             cp_newly_allocated_memory = cpp_cgi_response[i_total_read_bytes - read_bytes -1];
             strncpy((*cpp_cgi_response) + (i_total_read_bytes - read_bytes), ca_buffer, read_bytes);
+            debug(2, "Address of cont string: %x\n", (*cpp_cgi_response) + (i_total_read_bytes - read_bytes));
             debug(2, "Read after realloc %s\n", (*cpp_cgi_response));
             //TODO: There should be a maximum size.
         }
