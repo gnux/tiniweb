@@ -108,11 +108,7 @@ int main(int argc, char** argv) {
       debug(0, "cgi-timeout => 1 required, usind default value (%d)\n", SCI_CGI_TIMEOUT);
       si_cgi_timeout_ = SCI_CGI_TIMEOUT;
     }
-    
-    initEnvVarList("GATEWAY_INTERFACE","CGI/1.1");
-    //appendToEnvVarList("SCRIPT_FILENAME",scp_cgi_dir_);
-	//appendToEnvVarList("DOCUMENT_ROOT",scp_web_dir_);
-
+	
     debug(0, "Argument parsing finished\n");
     debugVerbose(0, "WEB_DIR = %s \n", scp_web_dir_);
     debugVerbose(0, "CGI_DIR = %s \n", scp_cgi_dir_);
@@ -120,6 +116,14 @@ int main(int argc, char** argv) {
     debugVerbose(0, "CGI_TIMEOUT = %d \n", si_cgi_timeout_);
     
 	http_norm *hnp_info = normalizeHttp(stdin);
+	
+	initEnvVarList("GATEWAY_INTERFACE","CGI/1.1");
+    //appendToEnvVarList("SCRIPT_FILENAME",scp_cgi_dir_);
+	//appendToEnvVarList("DOCUMENT_ROOT",scp_web_dir_);
+	appendToEnvVarList("SERVER_SOFTWARE","tiniweb/1.0");
+	appendToEnvVarList("CONTENT_LENGTH","0");
+	//appendToEnvVarList("QUERY_STRING",hnp_info->);
+	
 	debugVerbose(0, "Normalize finished \n");
 	parse(hnp_info);
 	debugVerbose(0, "Parsing finished \n"); 

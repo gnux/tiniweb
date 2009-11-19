@@ -20,7 +20,7 @@ typedef struct body_info {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>		//??????????????????
+#include <ctype.h>
 #include "typedef.h"
 #include "parser.h"
 #include "secmem.h"
@@ -102,15 +102,9 @@ int parseArguments(http_norm *hnp_info, char** outputline){
 	
 	for(size_t i = 0; i < hnp_info->i_num_fields; ++i){
 		char cp_name_to_add[] = "HTTP_";
-		char* cp_name = secCalloc(1, sizeof(char));
-		cp_name[0] = '\0';
+		char* cp_name = NULL;
 		strAppend(&cp_name, cp_name_to_add);
 		strAppend(&cp_name, hnp_info->cpp_header_field_name[i]);
-		//cp_name_to_add = secMalloc(strlen(hnp_info->cpp_header_field_name[i])*sizeof(char));
-		//cp_name_to_add = hnp_info->cpp_header_field_name[i];
-		//secRealloc(cp_name_to_add, strlen(hnp_info->cpp_header_field_name[i])*sizeof(char));
-		//strncpy ( char * destination, const char * source, size_t num );
-		//strncpy(cp_name_to_add,hnp_info->cpp_header_field_name[i],strlen(hnp_info->cpp_header_field_name[i])*sizeof(char));
 		stringToUpperCase(cp_name);
 		appendToEnvVarList(cp_name,hnp_info->cpp_header_field_body[i]);
 	}
@@ -138,12 +132,12 @@ int parseRequestLine(char* input, char** outputline, int offset){
 		if(input[new_offset]== ' '){
 			new_offset = offsetPP(new_offset, 1);
 			new_offset = parseRequestURI(input,outputline,new_offset);
-			if(new_offset!=EXIT_FAILURE){
+			if(new_offset!=EXIT_FAILURE && isEOF(input[new_offset])==FALSE){
 				if(isWhiteSpace(input[new_offset])==TRUE){
 					new_offset = offsetPP(new_offset, 1);
 					new_offset = parseHttpVersion(input,outputline,new_offset);
 					if(new_offset!=EXIT_FAILURE){
-						if(isNewLine(input[new_offset])==TRUE){
+						if(isEOF(input[new_offset])==TRUE){
 							new_offset = offsetPP(new_offset, 1);
 							return new_offset;
 						}
@@ -192,7 +186,8 @@ int parseHttpVersion(char* input, char** outputline, int offset){
 		}
 		offset = offsetPP(offset,1);
 	}
-	if(istrue==TRUE){	
+	if(istrue==TRUE){
+		//appendToEnvVarList("SERVER_PROTOCOL","HTTP/1.1");	
 		return offset;
 	}
 	else
@@ -205,15 +200,50 @@ int parseHttpRequest(char* input, char** outputline, int offset){
 
 int parseRequestURI(char* input, char** outputline, int offset){
 	
-	int i=0;
-	char uri[100]; //TODO FIX this
-	char* uri_ = uri;
-	while(isWhiteSpace(input[offset])!=TRUE){
-		uri_[i]=input[offset];
-		i++;
-		offset=offsetPP(offset,1);
+//##################################################################################
+	char* cp_uri = NULL;
+	char* cp_fragment = NULL;
+	char* cp_request = NULL;
+	char* my_char = NULL;
+	bool fragment_found = FALSE;
+	bool query_found = FALSE;
+	
+
+	if(input[offset]=='/'){
+		while(isWhiteSpace(input[offset])==FALSE && isEOF(input[offset])==FALSE){
+			my_char = input[offset];
+			strAppend(&cp_uri, &my_char);
+			if(input[offset]=='#'){
+				fragment_found = TRUE;
+			}
+			else if(input[offset]=='?'){
+				query_found = TRUE;
+				fragment_found = FALSE;
+			}
+			else if(fragment_found == TRUE){
+				strAppend(&cp_fragment, &my_char);
+			}
+			else if(query_found == TRUE){
+				strAppend(&cp_request, &my_char);
+			}
+			else{
+				//??
+			}
+			offset=offsetPP(offset,1);
+			
+		}
+		if(isEOF(input[offset]==TRUE)){
+			appendToEnvVarList("SERVER_PROTOCOL","HTTP/1.1");
+		}
+		
+		appendToEnvVarList("REQUEST_URI",cp_uri);
+		appendToEnvVarList("FRAGMENT",cp_fragment);
+		appendToEnvVarList("QUERY_STRING",cp_request);
+		return offset;
 	}
-	return offset;
+	else{
+		return EXIT_FAILURE;
+	}
 	
 }
 
@@ -231,7 +261,12 @@ bool isWhiteSpace(char input){
 }
 
 bool isNewLine(char input){
-	if(input=='\0' || input=='\n')
+	if(input=='\n')
+		return TRUE;
+	return FALSE;
+}
+bool isEOF(char input){
+	if(input=='\0')
 		return TRUE;
 	return FALSE;
 }
