@@ -8,12 +8,16 @@ extern unsigned char sb_flag_verbose_;
 
 static const char* SCCA_DEBUG_TYPES[] = {
   "MAIN", //0
-  "SEC_MEM", //1
-  "CGI", //2
+  "SEC_MEM", //1  
+  "NORMALISE", //2
+  "PARSER", //3
+  "ENVVAR", //4
+  "CGICALL", //5
+  "CGI", //6
   "\0"
 };
 
-void debug(int type, const char *ptr, ...){
+void debug(size_t type, const char *ptr, ...){
   va_list va;
   fprintf(stderr,"%s>> ", SCCA_DEBUG_TYPES[type]);
   va_start(va, ptr);
@@ -21,7 +25,7 @@ void debug(int type, const char *ptr, ...){
   va_end(va);
 }
 
-void debugVerbose(int type, const char *ptr, ...){
+void debugVerbose(size_t type, const char *ptr, ...){
   va_list va;
   if(!sb_flag_verbose_)
     return;
