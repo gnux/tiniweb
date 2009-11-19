@@ -119,7 +119,7 @@ int main(int argc, char** argv) {
 	
 	initEnvVarList("GATEWAY_INTERFACE","CGI/1.1");
     //appendToEnvVarList("SCRIPT_FILENAME",scp_cgi_dir_);
-	//appendToEnvVarList("DOCUMENT_ROOT",scp_web_dir_);
+	appendToEnvVarList("DOCUMENT_ROOT",scp_web_dir_);
 	appendToEnvVarList("SERVER_SOFTWARE","tiniweb/1.0");
 	appendToEnvVarList("CONTENT_LENGTH","0");
 	//appendToEnvVarList("QUERY_STRING",hnp_info->);

@@ -14,6 +14,7 @@ bool isChar(char input);
 bool isWhiteSpace(char input);
 bool isNewLine(char input);
 bool isEOF(char input);
+bool isNonEscapedChar(char input);
 
 void stringToUpperCase(char* input);
 
