@@ -19,12 +19,19 @@ int main(int argc, char** argv)
    // fprintf(stderr, "TestCGI: %s: %s\n", cp_env_var1, getenv(cp_env_var1));
    // fprintf(stderr, "TestCGI: %s: %s\n", cp_env_var2, getenv(cp_env_var2));
    // fprintf(stderr, "TestCGI: %s: %s\n", cp_env_var3, getenv(cp_env_var3));  
-        
+
+   ret = fscanf(stdin, "%256s", buf);
+   if (ret < 0) {
+        fprintf(stderr, "TestCGI: Error reading from stdin: %d\n", errno);
+    }
+    else
+        fprintf(stderr, "TestCGI: Read from stdin: %s\n", buf);
+
      if (!fgets(buf, sizeof(buf), stdin)) {
         fprintf(stderr, "TestCGI: Error reading from stdin: %d\n", errno);
     }
     else
-        fprintf(stderr, "TestCGI: Read from stdin: %s\n");
+        fprintf(stderr, "TestCGI: Read from stdin: %s\n", buf);
         
  
    // fprintf(stderr, "%s: %s\n", cp_env_var4, getenv(cp_env_var4));   

@@ -85,12 +85,22 @@ void processCGIScript(const char* cp_path, const char* cp_http_body)
     if (pipe(ia_cgi_response_pipe) || pipe(ia_cgi_post_body_pipe))
     {
         //TODO: safe exit
-        debug(2, "Creating pipes to CGI script failed.\n");
+        debug(2, "Creating pipes to CGI script failed: %d\n", errno);
     }
-    if (setNonblocking(ia_cgi_response_pipe[0]))
+    if (setNonblocking(ia_cgi_response_pipe[0]), setNonblocking(ia_cgi_post_body_pipe[0]))
     {
         //TODO safe exit
-        debug(2, "Setting pipes non-blocking failed.\n");
+        debug(2, "Setting pipes non-blocking failed: %d\n", errno);
+    }
+    
+    if(cp_http_body != NULL) 
+    {   
+        i_success = provideMessageBodyToCGIScript(ia_cgi_post_body_pipe[1], cp_http_body);
+        if(i_success == -1)
+        {
+            //TODO: safe exit
+            debug(2, "Providin message body to CGI script failed.\n");
+        }
     }
 
     /* Fork the child process */
@@ -130,7 +140,7 @@ void processCGIScript(const char* cp_path, const char* cp_http_body)
                 dup2(ia_cgi_response_pipe[1], STDOUT_FILENO) < 0)
             {
                 //TODO: safe exit
-                debug(2, "Duplication pipes failed.\n");
+                debug(2, "Duplication of pipes failed.\n");
             }
 
             // Close the pipes
@@ -158,16 +168,6 @@ void processCGIScript(const char* cp_path, const char* cp_http_body)
             close(ia_cgi_post_body_pipe[0]);
             close(ia_cgi_response_pipe[1]);
             
-            if(cp_http_body != NULL) {
-            
-                i_success = provideMessageBodyToCGIScript(ia_cgi_post_body_pipe[1], cp_http_body);
-                if(i_success == -1)
-                {
-                    //TODO: safe exit
-                    debug(2, "Providin message body to CGI script failed.\n");
-                }
-            }
-            
             i_success = readFromCGIScript(ia_cgi_response_pipe[0], pid_child);
             if(i_success == -1)
             {
@@ -178,7 +178,8 @@ void processCGIScript(const char* cp_path, const char* cp_http_body)
             closePipes(ia_cgi_post_body_pipe);
             closePipes(ia_cgi_response_pipe);
             break;
-    };  
+    };
+    
     debug(2, "Finished processing CGI script.\n");
 }
 
@@ -188,20 +189,18 @@ int readFromCGIScript(int i_cgi_response_pipe, pid_t pid_child)
     int i_poll_result = 0;
     int i_response_length = 0;
     char* cp_cgi_response = NULL;
+    bool b_read_successful = FALSE;
     
     /* Setup poll_fds for child standard output and 
      * standard error stream */
     poll_fd[0].fd = i_cgi_response_pipe;
     poll_fd[0].events = POLLIN;
     poll_fd[0].revents = 0;
-    debug(2, "Here.\n");
+
     while (!(poll_fd->revents & (POLLHUP | POLLERR)))
     {
-
-debug(2, "There.\n");
         // Poll for more events
         i_poll_result = poll(poll_fd, sizeof(poll_fd)/sizeof(poll_fd[0]), si_cgi_timeout_);
-        debug(2, "There2.\n");
         if (i_poll_result < 0)
         {
             debug(2, "Polling failed: %d\n", errno);
@@ -219,11 +218,9 @@ debug(2, "There.\n");
             
             return -1;
         }
-    debug(2, "There3.\n");
         /* Drain the standard output pipe */
         if (poll_fd[0].revents & POLLIN)
         {   
-        debug(2, "There4.\n");
             i_response_length = drainPipe(poll_fd[0].fd, &cp_cgi_response);
             if (i_response_length < 0)
             {
@@ -235,13 +232,15 @@ debug(2, "There.\n");
             
             debug(2, "Got following CGI response: %s\n", cp_cgi_response);
             //TODO: parse
-
+            b_read_successful = TRUE;
+            
             poll_fd[0].revents ^= POLLIN;
         }
 
     } 
-    
-    return 0;
+    if(b_read_successful)
+        return 0;
+    return -1;
     
 }
 
@@ -270,7 +269,6 @@ int drainPipe(int i_source_fd, char** cpp_cgi_response)
         ssize_t read_bytes;
 
         read_bytes = read(i_source_fd, ca_buffer, sizeof(ca_buffer));
-        debug(2, "There4.\n");
         
         if (read_bytes < 0) 
         {
