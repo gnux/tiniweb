@@ -16,6 +16,7 @@
 #include "cgi.h"
 #include "debug.h"
 #include "parser.h"
+#include "auth.h"
 
 // default values for options, if no command line option is available
 static const int SCI_CGI_TIMEOUT = 1;
@@ -122,8 +123,8 @@ int main(int argc, char** argv) {
     //           "\r\n"
     //           "<html><body>Hello!</body></html>\r\n");   
 
-    processCGIScript("testscript");
-   
+//     processCGIScript("testscript");
+    testPerformHMACMD5();
     
     secCleanup();
     

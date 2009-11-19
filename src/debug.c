@@ -10,6 +10,7 @@ static const char* SCCA_DEBUG_TYPES[] = {
   "MAIN", //0
   "SEC_MEM", //1
   "CGI", //2
+  "AUTH", //3
   "\0"
 };
 
