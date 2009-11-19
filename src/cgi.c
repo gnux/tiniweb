@@ -87,7 +87,8 @@ void processCGIScript(const char* cp_path, const char* cp_http_body)
         //TODO: safe exit
         debug(6, "Creating pipes to CGI script failed: %d\n", errno);
     }
-    if (setNonblocking(ia_cgi_response_pipe[0]), setNonblocking(ia_cgi_post_body_pipe[0]))
+    if (setNonblocking(ia_cgi_response_pipe[0]), setNonblocking(ia_cgi_post_body_pipe[0]),
+        setNonblocking(ia_cgi_post_body_pipe[1]))
     {
         //TODO safe exit
         debug(6, "Setting pipes non-blocking failed: %d\n", errno);
@@ -98,6 +99,7 @@ void processCGIScript(const char* cp_path, const char* cp_http_body)
         i_success = provideMessageBodyToCGIScript(ia_cgi_post_body_pipe[1], cp_http_body);
         if(i_success == -1)
         {
+            
             //TODO: safe exit
             debug(6, "Providin message body to CGI script failed.\n");
         }
