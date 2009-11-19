@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
     //           "\r\n"
     //           "<html><body>Hello!</body></html>\r\n");   
 
-    processCGIScript("testscript");
+    processCGIScript("testscript", "this is the http-body");
    
     
     secCleanup();

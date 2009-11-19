@@ -13,6 +13,8 @@
 #include "secmem.h"
 #include "typedef.h"
 
+static const int SCI_BUF_SIZE = 256;
+
 extern int si_cgi_timeout_;
 
 /**
@@ -45,7 +47,7 @@ static int setNonblocking(int i_fd)
     return fcntl(i_fd, F_SETFL, old_mode | O_NONBLOCK);
 }
 
-void processCGIScript(const char* cp_path) 
+void processCGIScript(const char* cp_path, const char* cp_http_body) 
 {
     int i_success = 0;
     int ia_cgi_response_pipe[2] = {-1, -1};
@@ -83,10 +85,12 @@ void processCGIScript(const char* cp_path)
     if (pipe(ia_cgi_response_pipe) || pipe(ia_cgi_post_body_pipe))
     {
         //TODO: safe exit
+        debug(2, "Creating pipes to CGI script failed.\n");
     }
     if (setNonblocking(ia_cgi_response_pipe[0]))
     {
         //TODO safe exit
+        debug(2, "Setting pipes non-blocking failed.\n");
     }
 
     /* Fork the child process */
@@ -101,11 +105,13 @@ void processCGIScript(const char* cp_path)
             if(i_success == -1)
             {
                 //TODO: safe exit
+                debug(2, "Clearing environment failed.\n");
             }
             i_success = applyEnvVarList();
             if(i_success == -1)
             {
                 //TODO: safe exit
+                debug(2, "Applying environment variables failed.\n");
             }
             
             secCleanup();
@@ -114,6 +120,7 @@ void processCGIScript(const char* cp_path)
             if(i_success == -1)
             {
                 //TODO: safe exit
+                debug(2, "Changing directory failed.\n");
             }
             fprintf(stderr, "before exec\n");
             
@@ -123,6 +130,7 @@ void processCGIScript(const char* cp_path)
                 dup2(ia_cgi_response_pipe[1], STDOUT_FILENO) < 0)
             {
                 //TODO: safe exit
+                debug(2, "Duplication pipes failed.\n");
             }
 
             // Close the pipes
@@ -132,7 +140,7 @@ void processCGIScript(const char* cp_path)
             // Execute the cgi script
             execv(cp_path, cpa_cgi_args);
 
-            fprintf(stderr, "exec failed, %d, %d\n", errno, ENOENT);
+            debug(2, "Executing CGI script failed.\n");
             /* Abort child "immediately" with _exit */
             _exit(EXIT_FAILURE);
             break;
@@ -150,9 +158,28 @@ void processCGIScript(const char* cp_path)
             close(ia_cgi_post_body_pipe[0]);
             close(ia_cgi_response_pipe[1]);
             
-            readFromCGIScript(ia_cgi_response_pipe[0], pid_child);
+            if(cp_http_body != NULL) {
+            
+                i_success = provideMessageBodyToCGIScript(ia_cgi_post_body_pipe[1], cp_http_body);
+                if(i_success == -1)
+                {
+                    //TODO: safe exit
+                    debug(2, "Providin message body to CGI script failed.\n");
+                }
+            }
+            
+            i_success = readFromCGIScript(ia_cgi_response_pipe[0], pid_child);
+            if(i_success == -1)
+            {
+                //TODO: safe exit
+                debug(2, "Reading response from CGI script failed.\n");
+            }
+            
+            closePipes(ia_cgi_post_body_pipe);
+            closePipes(ia_cgi_response_pipe);
             break;
     };  
+    debug(2, "Finished processing CGI script.\n");
 }
 
 int readFromCGIScript(int i_cgi_response_pipe, pid_t pid_child)
@@ -167,14 +194,17 @@ int readFromCGIScript(int i_cgi_response_pipe, pid_t pid_child)
     poll_fd[0].fd = i_cgi_response_pipe;
     poll_fd[0].events = POLLIN;
     poll_fd[0].revents = 0;
-    
+    debug(2, "Here.\n");
     while (!(poll_fd->revents & (POLLHUP | POLLERR)))
     {
 
+debug(2, "There.\n");
         // Poll for more events
         i_poll_result = poll(poll_fd, sizeof(poll_fd)/sizeof(poll_fd[0]), si_cgi_timeout_);
+        debug(2, "There2.\n");
         if (i_poll_result < 0)
         {
+            debug(2, "Polling failed: %d\n", errno);
             // TODO debug output
             return -1;
         }
@@ -183,16 +213,17 @@ int readFromCGIScript(int i_cgi_response_pipe, pid_t pid_child)
         if (i_poll_result == 0)
         {
             // Kill child
-            
+            debug(2, "Child process timed out, killing it.\n");
             kill(pid_child, 0);
             //TODO: Send 501 to http client
-            debug(2, "Child process timed out, killing it.\n");
+            
             return -1;
         }
-
+    debug(2, "There3.\n");
         /* Drain the standard output pipe */
         if (poll_fd[0].revents & POLLIN)
         {   
+        debug(2, "There4.\n");
             i_response_length = drainPipe(poll_fd[0].fd, &cp_cgi_response);
             if (i_response_length < 0)
             {
@@ -214,10 +245,22 @@ int readFromCGIScript(int i_cgi_response_pipe, pid_t pid_child)
     
 }
 
+int provideMessageBodyToCGIScript(int i_cgi_post_body_pipe, const char* cp_http_body)
+{
+    size_t written_bytes = 0;
+    size_t body_size = strlen(cp_http_body);
+    written_bytes = write(i_cgi_post_body_pipe, cp_http_body, body_size);
+    if(written_bytes < 0)
+        debug(2, "Error writing to CGI stdin: %d\n", errno);
+    else
+        debug(2, "Wrote %d bytes to CGI stdin.\n", written_bytes);
+    return written_bytes;
+}
+
 int drainPipe(int i_source_fd, char** cpp_cgi_response) 
 {
     int i_total_read_bytes = 0;
-    char ca_buffer[3];
+    char ca_buffer[SCI_BUF_SIZE];
     bool b_first_iteration = TRUE;
     bool b_eof_reached = FALSE;
  
@@ -227,6 +270,7 @@ int drainPipe(int i_source_fd, char** cpp_cgi_response)
         ssize_t read_bytes;
 
         read_bytes = read(i_source_fd, ca_buffer, sizeof(ca_buffer));
+        debug(2, "There4.\n");
         
         if (read_bytes < 0) 
         {
@@ -234,7 +278,7 @@ int drainPipe(int i_source_fd, char** cpp_cgi_response)
             return -1;        
         }
 
-        if(read_bytes < 3)
+        if(read_bytes < SCI_BUF_SIZE)
         {
             ca_buffer[read_bytes] = '\0';
             read_bytes++;   
@@ -247,17 +291,14 @@ int drainPipe(int i_source_fd, char** cpp_cgi_response)
         {
             (*cpp_cgi_response) = (char*)secMalloc(i_total_read_bytes);
             strncpy((*cpp_cgi_response), ca_buffer, i_total_read_bytes);
-            debug(2, "Address of string: %x\n", (*cpp_cgi_response));
-            debug(2, "Read %s\n", (*cpp_cgi_response));
+            debug(2, "Read from pipe: %s\n", (*cpp_cgi_response));
             b_first_iteration = FALSE;
         }
         else
         { 
-            //TODO: Have another look at this
             (*cpp_cgi_response) = (char*) secRealloc((*cpp_cgi_response), i_total_read_bytes);
             strncpy((*cpp_cgi_response) + (i_total_read_bytes - read_bytes), ca_buffer, read_bytes);
-            debug(2, "Address of cont string: %x\n", (*cpp_cgi_response) + (i_total_read_bytes - read_bytes));
-            debug(2, "Read after realloc %s\n", (*cpp_cgi_response));
+            debug(2, "Read from pipe after realloc: %s\n", (*cpp_cgi_response));
             //TODO: There should be a maximum size.
         }
 
