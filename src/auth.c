@@ -9,8 +9,44 @@
 #include "md5.h"
 #include "debug.h"
 
+#define NONCE_LEN 16
 
 static bool sb_unauthorized_message_sent = FALSE;
+static unsigned char suca_sent_nonce[NONCE_LEN];
+
+void authenticate()
+{
+    // TODO check for authentication field
+    
+    // If no authentication field is available and no unauthorized message (401) was
+    // sent, create nonce and send unauthorized message (401)
+    if (sb_unauthorized_message_sent == FALSE)
+    {
+        // TODO: Get Key from global var in tiniweb
+        unsigned char uca_key[100];
+
+        createNonce(uca_key, suca_sent_nonce);
+        
+        // TODO send 401
+    }
+    
+    // If authentication field is available and 401 was already sent -> check if response
+    // is valid
+    if (sb_unauthorized_message_sent == TRUE)
+    {
+        bool b_response_valid = FALSE;
+        // TODO: b_response_valid = verifyResponse(...);
+        
+        if (b_response_valid == FALSE)
+        {
+            //TODO Terminate Connection or
+            //     Send back Error message to client
+            //     (specify it)
+        }
+    }
+    
+    
+}
 
 bool verifyResponse(unsigned char* uca_ha1, unsigned char* uca_nonce, int i_nonce_len,
                     unsigned char* uca_http_request_method, int i_http_request_method_len,
@@ -38,7 +74,7 @@ bool verifyResponse(unsigned char* uca_ha1, unsigned char* uca_nonce, int i_nonc
     i_result = strncmp((char*)uca_expected_response, (char*)uca_response, 16);
     if (i_result != 0)
     {
-        debugVerbose(3, "The response from the client does not match the expected response!");
+        debugVerbose(3, "The response from the client does not match the expected response!\n");
         return FALSE;
     }
     
@@ -118,11 +154,9 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len, unsigned char* uca_
 
 void testPerformHMACMD5() 
 {
-    unsigned char uca_text[] = "BeispieltextHerewouldbethetimestamp";
     unsigned char uca_key[] = "SecretKeyFromCommandLine";
-    unsigned char digest[16];
-    
-    performHMACMD5(uca_text, strlen((char*)uca_text), uca_key, strlen((char*)uca_key), digest);
+    unsigned char digest[NONCE_LEN];
+
     createNonce(uca_key, digest);
 }
 
@@ -136,6 +170,6 @@ void createNonce(unsigned char* uca_key, unsigned char* uca_nonce)
     sprintf((char*)uca_text,"%s",asctime( localtime(&timestamp) ) );  
 
     performHMACMD5(uca_text, i_text_len, uca_key, i_text_len, uca_nonce);
-    debugVerboseHash(3, uca_nonce, 16, "A Nonce was created!");
+    debugVerboseHash(3, uca_nonce, NONCE_LEN, "A Nonce was created!");
 }
 

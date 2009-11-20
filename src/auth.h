@@ -9,6 +9,29 @@
 #include <sys/types.h>
 #include "typedef.h"
 
+/**
+ * TODO specify everything
+ *
+ */
+void authenticate();
+
+/**
+ * Checks the response from the client, which should be calculated in the following way:
+ *
+ *   HA1 = md5( username : realm : password )
+ *   HA2 = md5( HTTP-Request-Method : URI)
+ *   response = md5( HA1 : nonce : HA2 )
+ *
+ * @param uca_ha1
+ * @param uca_nonce Nonce
+ * @param i_nonce_len Nonce length
+ * @param uca_http_request_method HTTP Request Method
+ * @param i_http_request_method_len HTTP Request Method length
+ * @param uca_uri URI
+ * @param i_uri_len URI length
+ * @param uca_response response from the client (this will be checked)
+ * @return TRUE if the response was valid, FALSE if not
+ */
 bool verifyResponse(unsigned char* uca_ha1, unsigned char* uca_nonce, int i_nonce_len,
                     unsigned char* uca_http_request_method, int i_http_request_method_len,
                     unsigned char* uca_uri, int i_uri_len, unsigned char* uca_response);
