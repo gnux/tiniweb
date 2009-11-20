@@ -17,13 +17,14 @@
 #include "debug.h"
 #include "parser.h"
 #include "normalize.h"
+#include "auth.h"
 
 // default values for options, if no command line option is available
 static const int SCI_CGI_TIMEOUT = 1;
 unsigned char sb_flag_verbose_ = FALSE;
 static char *scp_web_dir_ = NULL;
 static char *scp_cgi_dir_ = NULL;
-static int si_cgi_timeout_ = 1;
+int si_cgi_timeout_ = 1000;
 
   
 /** tiniweb main routine
@@ -125,8 +126,8 @@ int main(int argc, char** argv) {
     //           "\r\n"
     //           "<html><body>Hello!</body></html>\r\n");   
 
-    processCGIScript("testscript");
-   
+//     processCGIScript("testscript");
+    testPerformHMACMD5();
     
     secCleanup();
     
