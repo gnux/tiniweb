@@ -17,12 +17,15 @@
 #include "debug.h"
 #include "parser.h"
 #include "normalize.h"
+#include "envvar.h"
+
 
 // default values for options, if no command line option is available
 static const int SCI_CGI_TIMEOUT = 1;
 unsigned char sb_flag_verbose_ = FALSE;
 static char *scp_web_dir_ = NULL;
 static char *scp_cgi_dir_ = NULL;
+static char *scp_secret_ = NULL;
 static int si_cgi_timeout_ = 1;
 
   
@@ -50,8 +53,8 @@ int main(int argc, char** argv) {
         static struct option long_options[] = { { "web-dir", required_argument,
                 0, 0 }, { "cgi-dir", required_argument, 0, 1 }, {
                 "cgi-timeout", required_argument, 0, 2 },
-        // maybe specify verbose options
-                { "verbose", no_argument, 0, 3 }, { 0, 0, 0, 0 } };
+		{"secret", required_argument, 0, 3},
+                { "verbose", no_argument, 0, 4 }, { 0, 0, 0, 0 } };
         i_option_index = 0;
         c = getopt_long(argc, argv, "", long_options, &i_option_index);
 
@@ -76,7 +79,12 @@ int main(int argc, char** argv) {
                     optarg);
             si_cgi_timeout_ = (int) strtol(optarg, NULL, 10);
             break;
-        case 3:
+	case 3:
+	    debugVerbose(0, "option secret used with argument: %s \n", optarg);
+	    scp_secret_ = secCalloc(strlen(optarg) + 1, sizeof(char));
+	    strncpy(scp_secret_, optarg, strlen(optarg));
+	    break;
+        case 4:
             sb_flag_verbose_ = TRUE;
             debugVerbose(0, "switching to verbose mode \n");
             break;
@@ -89,25 +97,36 @@ int main(int argc, char** argv) {
 
     // TODO: prove flags, if no arg is given use default-vals
 
-    if(!scp_cgi_dir_ || !scp_web_dir_){
+    if(!scp_cgi_dir_ || !scp_web_dir_ || !scp_secret_){
       debug(0, "Mandatory parameter missing\n");
-      debug(0, "usage: ./tiniweb --web-dir <path> --cgi-dir <path> (--cgi-timeout <sec>)\n");
+      debug(0, "usage: ./tiniweb --web-dir <path> --cgi-dir <path> --secret <secret> (--cgi-timeout <sec>)\n");
       //TODO: controlledShutdown();
+      //TODO: give answer internal server error!
     }
     
     if(si_cgi_timeout_ < 1){
       debug(0, "cgi-timeout => 1 required, usind default value (%d)\n", SCI_CGI_TIMEOUT);
       si_cgi_timeout_ = SCI_CGI_TIMEOUT;
     }
-    
-
-
+	
     debug(0, "Argument parsing finished\n");
     debugVerbose(0, "WEB_DIR = %s \n", scp_web_dir_);
     debugVerbose(0, "CGI_DIR = %s \n", scp_cgi_dir_);
+    debugVerbose(0, "SECRET = %s \n", scp_secret_);
     debugVerbose(0, "CGI_TIMEOUT = %d \n", si_cgi_timeout_);
     
-    normalizeHttp(stdin);
+	http_norm *hnp_info = normalizeHttp(stdin);
+	
+	initEnvVarList("GATEWAY_INTERFACE","CGI/1.1");
+    //appendToEnvVarList("SCRIPT_FILENAME",scp_cgi_dir_);
+	appendToEnvVarList("DOCUMENT_ROOT",scp_web_dir_);
+	appendToEnvVarList("SERVER_SOFTWARE","tiniweb/1.0");
+	appendToEnvVarList("CONTENT_LENGTH","0");
+	//appendToEnvVarList("QUERY_STRING",hnp_info->);
+	
+	debugVerbose(0, "Normalize finished \n");
+	parse(hnp_info);
+	debugVerbose(0, "Parsing finished \n"); 
 
     // I am testing!
     // just to make tcp wrapper happy 
