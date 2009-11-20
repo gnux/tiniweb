@@ -74,7 +74,7 @@ bool verifyResponse(unsigned char* uca_ha1, unsigned char* uca_nonce, int i_nonc
     i_result = strncmp((char*)uca_expected_response, (char*)uca_response, 16);
     if (i_result != 0)
     {
-        debugVerbose(3, "The response from the client does not match the expected response!\n");
+        debugVerbose(AUTH, "The response from the client does not match the expected response!\n");
         return FALSE;
     }
     
@@ -170,6 +170,6 @@ void createNonce(unsigned char* uca_key, unsigned char* uca_nonce)
     sprintf((char*)uca_text,"%s",asctime( localtime(&timestamp) ) );  
 
     performHMACMD5(uca_text, i_text_len, uca_key, i_text_len, uca_nonce);
-    debugVerboseHash(3, uca_nonce, NONCE_LEN, "A Nonce was created!");
+    debugVerboseHash(AUTH, uca_nonce, NONCE_LEN, "A Nonce was created!");
 }
 
