@@ -123,24 +123,19 @@ void testPerformHMACMD5()
     unsigned char digest[16];
     
     performHMACMD5(uca_text, strlen((char*)uca_text), uca_key, strlen((char*)uca_key), digest);
-    printHash(digest, 16);
+    createNonce(uca_key, digest);
 }
 
-void createNonce()
+void createNonce(unsigned char* uca_key, unsigned char* uca_nonce)
 {
     time_t timestamp = time(NULL);
+    int i_text_len = 30;
+    unsigned char uca_text[i_text_len];
     
+    memset(uca_text, 0, i_text_len);
+    sprintf((char*)uca_text,"%s",asctime( localtime(&timestamp) ) );  
+
+    performHMACMD5(uca_text, i_text_len, uca_key, i_text_len, uca_nonce);
+    debugVerboseHash(3, uca_nonce, 16, "A Nonce was created!");
 }
 
-void printHash(unsigned char* uca_hash, int i_hash_len)
-{
-    int i = 0;
-    fprintf(stderr, "Hash: ");
-    
-    for (i = 0; i < i_hash_len; i++)
-    {
-            fprintf(stderr, "%x", uca_hash[i]);
-    }
-    
-    fprintf(stderr, "\n");
-}

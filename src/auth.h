@@ -36,8 +36,13 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len,
                     
 void testPerformHMACMD5();
 
-void createNonce();
+/**
+ * Creates the nonce for authentication purposes
+ *
+ * @param uca_key the secret key, providied from the commandline
+ * @param uca_nonce nonce to be filled in
+ */
+void createNonce(unsigned char* uca_key, unsigned char* uca_nonce);
 
-void printHash(unsigned char* uca_hash, int i_hash_len);
 
 #endif
