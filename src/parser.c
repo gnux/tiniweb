@@ -214,23 +214,24 @@ int parseRequestURI(char* input, char** outputline, int offset){
 	
 
 	if(input[offset]=='/'){
-		
-		if(strncmp("/cgi-bin/",input+offset,9)==0){
+		//If it is an cgi request we have to build our path from the uri
+		int i_offset = input+offset;
+		if(strncmp("/cgi-bin/",i_offset,9)==0){
 			cgi_bin_found = TRUE;
 			debugVerbose(3, "CGI bin\n");
-			/*for(int i = offset+9; i< strlen(input)-1;i++){
+			for(int i = offset+9; i< strlen(input)-1;i++){
 				if(input[i]=='/'){
 					save_position = i;
 				}
 				if(isWhiteSpace(input[i])==TRUE || isEOF(input[i])==TRUE || input[i]=='#' || input[i]=='?')
 					break;
 			}
-			strncpy(cgi_path,input+offset+9,save_position);*/
+			strncpy(cgi_path,input+offset+9,save_position);
 			debugVerbose(3, "CGI path %s\n",cgi_path);
 		}
 		
 		
-		
+		//Try to find a fragment and/or the request
 		while(isWhiteSpace(input[offset])==FALSE && isEOF(input[offset])==FALSE){
 			my_char = input[offset];
 			
