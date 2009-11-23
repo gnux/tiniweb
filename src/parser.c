@@ -128,7 +128,8 @@ int parseRequestLine(char* input, char** outputline, int offset){
 	
 	int new_offset=0;
 	new_offset = parseMethod(input,outputline,offset);
-	if(new_offset!=EXIT_FAILURE){
+	parseRequestURI(input, NULL, 0);
+	/*if(new_offset!=EXIT_FAILURE){
 		if(input[new_offset]== ' '){
 			new_offset = offsetPP(new_offset, 1);
 			new_offset = parseRequestURI(input,outputline,new_offset);
@@ -145,7 +146,7 @@ int parseRequestLine(char* input, char** outputline, int offset){
 				}
 			}
 		}
-	}
+	}*/
 	return EXIT_FAILURE;
 	
 }
@@ -202,76 +203,143 @@ int parseRequestURI(char* input, char** outputline, int offset){
 	
 //##################################################################################
 	char* cp_uri = NULL;
+	char* cp_path = NULL;
 	char* cp_fragment = NULL;
-	char* cp_request = NULL;
+	char* cp_query = NULL;
 	char* my_char = NULL;
 	char* cgi_path = NULL;
 	bool fragment_found = FALSE;
 	bool query_found = FALSE;
 	bool cgi_bin_found = FALSE;
 	int save_position = 0;
-	
-	
-
-	if(input[offset]=='/'){
-		//If it is an cgi request we have to build our path from the uri
-		/*int length = strlen(input)-1;
-		if(strncmp("/cgi-bin/",input+offset,9)==0){
-			cgi_bin_found = TRUE;
-			debugVerbose(3, "CGI bin\n");
-
-			for(int i = offset+9; i< strlen(input)-1;i++){
-				if(input[i]=='/'){
-					save_position = i;
-				}
-				if(isWhiteSpace(input[i])==TRUE || isEOF(input[i])==TRUE || input[i]=='#' || input[i]=='?')
-					break;
-			}
-			strncpy(cgi_path,input+offset+9,save_position);
-			debugVerbose(3, "CGI path %s\n",cgi_path);
-		}*/
-		
-		//Try to find a fragment and/or the request
-		while(isWhiteSpace(input[offset])==FALSE && isEOF(input[offset])==FALSE){
-			my_char = input[offset];
-						
-			if(input[offset]=='#'){
-				fragment_found = TRUE;
-			}
-			else if(input[offset]=='?'){
-				query_found = TRUE;
-				fragment_found = FALSE;
-			}
-			else if(fragment_found == TRUE){
-				strAppend(&cp_fragment, &my_char);
-			}
-			else if(query_found == TRUE){
-				strAppend(&cp_request, &my_char);
-			}
-			else{
-				//??
-			}
-			
-			if(isNonEscapedChar(input[offset])==TRUE && query_found == FALSE)
-				return EXIT_FAILURE;
-			strAppend(&cp_uri, &my_char);
-			
-			offset=offsetPP(offset,1);
-			
-		}
-		if(isEOF(input[offset]==TRUE)){
-			appendToEnvVarList("SERVER_PROTOCOL","HTTP/1.1");
-		}
-		
-		appendToEnvVarList("REQUEST_URI",cp_uri);
-		appendToEnvVarList("FRAGMENT",cp_fragment);
-		appendToEnvVarList("QUERY_STRING",cp_request);
-		return offset;
+	int i_offset_st = 0;
+	int i_offset_en = 0;
+	for(i_offset_st = 0; i_offset_st < strlen(input) && input[i_offset_st] != '/'; ++i_offset_st);
+	if(i_offset_st == strlen(input))
+	  secAbort();
+	for(i_offset_en = i_offset_st; i_offset_en < strlen(input) && input[i_offset_en] != ' '; ++i_offset_en);
+	cp_uri = secGetStringPart(input, i_offset_st, i_offset_en - 1);
+	for(i_offset_st = 0; i_offset_st < strlen(cp_uri) && cp_uri[i_offset_st] != '?'; ++i_offset_st);
+	if(i_offset_st != strlen(cp_uri)){
+	  cp_path = secGetStringPart(cp_uri, 0, i_offset_st - 1);
+	  for(i_offset_en = i_offset_st; i_offset_en < strlen(cp_uri) && cp_uri[i_offset_en] != '#'; ++i_offset_en);
+	  cp_query = secGetStringPart(cp_uri, i_offset_st + 1, i_offset_en - 1);
+	  if(i_offset_en != strlen(cp_uri)){
+	    cp_fragment = secGetStringPart(cp_uri, i_offset_en + 1, strlen(cp_uri) - 1);
+	  }
 	}
 	else{
-		return EXIT_FAILURE;
+	  strAppend(&cp_path, cp_uri);
 	}
+	if(cp_uri)
+	  appendToEnvVarList("REQUEST_URI",cp_uri);
+	if(cp_path){
+	  if(validateString(cp_path) == EXIT_FAILURE)
+	    secAbort();
+	  appendToEnvVarList("REQUEST_PATH", cp_path);
+	}
+	if(cp_query){
+/*	  if(validateString(cp_query) == EXIT_FAILURE)
+	    secAbort();*/
+	    appendToEnvVarList("QUERY_STRING",cp_query);
+	}
+	if(cp_fragment){
+/*	  if(validateString(cp_fragment) == EXIT_FAILURE)
+	    secAbort();*/
+	  appendToEnvVarList("FRAGMENT",cp_fragment);  
+	}
+	return i_offset_en;
+/*	  
+	  
+	  
+	  
+	//	
+	  return i_offset_en;
 	
+	
+	if()
+	  //TODO: SET ENV!
+	  
+	//cp_path = secGetStringPart(cp_uri, 0, i_offset_st - 1);
+	
+	fprintf(stderr, "gugu!!! \n \n");
+	
+	
+	cp_query = secGetStringPart(cp_uri, i_offset_st + 1, i_offset_en - 1);
+	//for(i_offset_st = 0; i_offset_st < strlen(cp_uri) && cp_uri[i_offset_st] != ' '; ++i_offset_st);
+	if(i_offset_en == strlen(cp_uri)){
+	  //TODO: SET ENV!
+	  fprintf(stderr, "baba!!! \n \n");
+	  return i_offset_en;}
+	
+	fprintf(stderr, "gugu!!! \n \n");
+	//for(i_offset_en = i_offset_st; i_offset_en < strlen(cp_uri) && cp_uri[i_offset_en] != ' '; ++i_offset_en);
+	cp_fragment = secGetStringPart(cp_uri, i_offset_en + 1, strlen(cp_uri) - 1);
+	
+	if(validateString(cp_path) == EXIT_FAILURE && validateString(cp_query) == EXIT_FAILURE && validateString(cp_fragment) == EXIT_FAILURE)
+	  secAbort();
+	
+	
+// 	if(input[offset]=='/'){
+// 		//If it is an cgi request we have to build our path from the uri
+// 		/*int length = strlen(input)-1;
+// 		if(strncmp("/cgi-bin/",input+offset,9)==0){
+// 			cgi_bin_found = TRUE;
+// 			debugVerbose(3, "CGI bin\n");
+// 
+// 			for(int i = offset+9; i< strlen(input)-1;i++){
+// 				if(input[i]=='/'){
+// 					save_position = i;
+// 				}
+// 				if(isWhiteSpace(input[i])==TRUE || isEOF(input[i])==TRUE || input[i]=='#' || input[i]=='?')
+// 					break;
+// 			}
+// 			strncpy(cgi_path,input+offset+9,save_position);
+// 			debugVerbose(3, "CGI path %s\n",cgi_path);
+// 		}*/
+// 		
+// 		//Try to find a fragment and/or the request
+// 		while(isWhiteSpace(input[offset])==FALSE && isEOF(input[offset])==FALSE){
+// 			my_char = input[offset];
+// 						
+// 			if(input[offset]=='#'){
+// 				fragment_found = TRUE;
+// 			}
+// 			else if(input[offset]=='?'){
+// 				query_found = TRUE;
+// 				fragment_found = FALSE;
+// 			}
+// 			else if(fragment_found == TRUE){
+// 				strAppend(&cp_fragment, &my_char);
+// 			}
+// 			else if(query_found == TRUE){
+// 				strAppend(&cp_request, &my_char);
+// 			}
+// 			else{
+// 				//??
+// 			}
+// 			
+// 			if(isNonEscapedChar(input[offset])==TRUE && query_found == FALSE)
+// 				return EXIT_FAILURE;
+// 			strAppend(&cp_uri, &my_char);
+// 			
+// 			offset=offsetPP(offset,1);
+// 			
+// 		}
+// 		if(isEOF(input[offset]==TRUE)){
+// 			appendToEnvVarList("SERVER_PROTOCOL","HTTP/1.1");
+// 		}
+		
+		
+	//	appendToEnvVarList("REQUEST_PATH", cp_path);
+	//	appendToEnvVarList("FRAGMENT",cp_fragment);
+	//	appendToEnvVarList("QUERY_STRING",cp_query);
+	//	return offset;
+	//}
+//	else{
+//		return EXIT_FAILURE;
+//	}
+//	*/
 }
 
 bool isChar(char input){
@@ -281,14 +349,27 @@ bool isChar(char input){
 		return TRUE;
 }
 
-bool isNonEscapedChar(char input){
-	
-	//Ohne ?
-	if(input==' ' || input=='%' || input==';' || input==':' || input=='@')
-		return TRUE;
-	if(input=='&' || input=='=' || input=='+' || input=='$' || input==',')
-		return TRUE;
-	return FALSE;
+
+int validateString(char* cp_string){
+  int i = 0;
+  for(;i<strlen(cp_string); ++i)
+    if(isNonEscapedChar(cp_string, i) == TRUE)
+      return EXIT_FAILURE;
+  return EXIT_SUCCESS;
+}
+
+bool isNonEscapedChar(char* input, int i_offset){
+  const char* ccp_invalids = " ;?:@&=+$,#";
+  int i = 0;
+  for(; i<strlen(ccp_invalids); ++i)
+    if(input[i_offset] == ccp_invalids[i])
+      return TRUE;
+  if(input[i_offset]=='%')
+    if(strlen(input) - i_offset < 3)
+      return TRUE;
+    else if(isHexDigit(input[i_offset + 1]) == FALSE || isHexDigit(input[i_offset + 2]) == FALSE)
+      return TRUE;
+  return FALSE;
 }
 
 bool isWhiteSpace(char input){
@@ -302,6 +383,19 @@ bool isNewLine(char input){
 		return TRUE;
 	return FALSE;
 }
+
+bool isHexDigit(char input){
+  if(input>0x29 && input < 0x3A)
+    return TRUE;
+  else if(input>0x40 && input < 0x47)
+    return TRUE;
+  else if(input>0x60 && input < 0x67)
+    return TRUE;
+  else
+    return FALSE;
+}
+
+
 bool isEOF(char input){
 	if(input=='\0')
 		return TRUE;

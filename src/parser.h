@@ -14,7 +14,8 @@ bool isChar(char input);
 bool isWhiteSpace(char input);
 bool isNewLine(char input);
 bool isEOF(char input);
-bool isNonEscapedChar(char input);
+bool isNonEscapedChar(char* input, int i_offset);
+bool isHexDigit(char input);
 
 void stringToUpperCase(char* input);
 
@@ -27,6 +28,8 @@ int parseHttpRequest(char* input, char** outputline, int offset);
 int parseRequestURI(char* input, char** outputline, int offset);
 
 int offsetPP(int offset, int count);
+
+int validateString(char* cp_string);
 
 
 

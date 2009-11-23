@@ -26,33 +26,28 @@ http_norm *normalizeHttp(FILE* fp_input){
   // TODO: What is when malloc in getline fails??? secGetline??
   //if(getline(&cp_current_line, &i_num_read, fp_input) == -1){
   if(secGetline(&cp_current_line, fp_input) == -1){
-    debugVerbose(2, "Empty input detected\n");
+    debugVerbose(NORMALISE, "Empty input detected\n");
     secAbort();
   }
   // TODO: sec_abort!
   if(isCharacter(cp_current_line, 0) == EXIT_FAILURE){
-    debugVerbose(2, "Invalid HTTPRequest/Respone line detected\n");
+    debugVerbose(NORMALISE, "Invalid HTTPRequest/Respone line detected\n");
     secAbort();
   }
-  //hnp_http_info->cp_first_line = NULLsecCalloc(i_num_read + 1, sizeof(char));
-  //strncpy(hnp_http_info->cp_first_line, cp_current_line, i_num_read + 1);
   strAppend(&hnp_http_info->cp_first_line, cp_current_line);
   // now find the first line (http request line)
   while(1){
-    //if(cp_current_line)
-    //  free(cp_current_line);
-    //cp_current_line = NULL;
     // because there must be add least on header field... we will abort if we found non
     // TODO: sec_abort!
     i_num_read = 0;
     if(secGetline(&cp_current_line, fp_input) == -1){
-      debugVerbose(2, "No Header Fields detected\n");
+      debugVerbose(NORMALISE, "No Header Fields detected\n");
       secAbort();
     }
     // if we find a newline on the beginning of the line, we are still missing at least one header-field
     // TODO: sec_abort!
     if(isNewLineChars(cp_current_line, 0) == EXIT_SUCCESS){
-      debugVerbose(2, "No Header Fields detected\n");
+      debugVerbose(NORMALISE, "No Header Fields detected\n");
       secAbort();
     }
     // we do this as long we find a char on first position
@@ -65,7 +60,7 @@ http_norm *normalizeHttp(FILE* fp_input){
   while(1){
     //TODO: sec abort
     if(isValidHeaderFieldStart(cp_current_line) == EXIT_FAILURE){
-      debugVerbose(2, "Invalid Header Field detected: %s\n", cp_current_line);
+      debugVerbose(NORMALISE, "Invalid Header Field detected: %s\n", cp_current_line);
       secAbort();
     }
     ++hnp_http_info->i_num_fields;
@@ -75,13 +70,11 @@ http_norm *normalizeHttp(FILE* fp_input){
     getHeaderFieldBody(&hnp_http_info->cpp_header_field_body[hnp_http_info->i_num_fields - 1], cp_current_line);
     // eat away multirow things
     do{
-    //  if(cp_current_line)
-//	free(cp_current_line);
       // TODO: sec_abort! sec getline with auto abort!
       // Header has to end with endl!
       i_num_read = 0;
       if(secGetline(&cp_current_line, fp_input) == -1){
-	debugVerbose(2, "Invalid Header delimiter detected\n");
+	debugVerbose(NORMALISE, "Invalid Header delimiter detected\n");
 	secAbort();
       }      
       if(isBlank(cp_current_line, 0) == EXIT_SUCCESS)
@@ -101,12 +94,8 @@ http_norm *normalizeHttp(FILE* fp_input){
   i_num_read = 0;
   while(secGetline(&cp_current_line, fp_input) != -1){
     strAppend(&hnp_http_info->cp_body, cp_current_line);
-   // if(cp_current_line)
-   //   free(cp_current_line);
     i_num_read = 0;
   }
- // if(cp_current_line)
- //     free(cp_current_line);
   printHttpNorm(hnp_http_info);
   return hnp_http_info;
 }
@@ -161,14 +150,14 @@ void normalizeSingleLine(char** cpp_input){
 }
 
 void printHttpNorm(http_norm* hnp_http_info){
-  debugVerbose(2, "-----START HEADER STRUCT PRINTING-----\n");
+  debugVerbose(NORMALISE, "-----START HEADER STRUCT PRINTING-----\n");
   if(hnp_http_info->cp_first_line)
-    debugVerbose(2, "first-line: %s\n", hnp_http_info->cp_first_line);
+    debugVerbose(NORMALISE, "first-line: %s\n", hnp_http_info->cp_first_line);
   for(size_t i = 0; i < hnp_http_info->i_num_fields; ++i)
-    debugVerbose(2, "%s: %s\n", hnp_http_info->cpp_header_field_name[i], hnp_http_info->cpp_header_field_body[i]);
+    debugVerbose(NORMALISE, "%s: %s\n", hnp_http_info->cpp_header_field_name[i], hnp_http_info->cpp_header_field_body[i]);
   if(hnp_http_info->cp_header)
-    debugVerbose(2, "complete request/response:\n%s%s", hnp_http_info->cp_header, hnp_http_info->cp_body);
-  debugVerbose(2, "-----END HEADER STRUCT PRINTING-----\n");
+    debugVerbose(NORMALISE, "complete request/response:\n%s%s", hnp_http_info->cp_header, hnp_http_info->cp_body);
+  debugVerbose(NORMALISE, "-----END HEADER STRUCT PRINTING-----\n");
 }
 
 void getHeaderFieldName(char** cpp_output, const char* ccp_input){
@@ -234,7 +223,7 @@ void strAppend(char** cpp_output, const char* ccp_input){
   // prevent overflow
   // TODO: search for possible overflows!
   if(i_len_new < i_len_input || i_len_new < i_len_output){
-    debugVerbose(2, "Error in strAppend possible buffer overflow detected!\n");
+    debugVerbose(NORMALISE, "Error in strAppend possible buffer overflow detected!\n");
     secAbort();
   }
   *cpp_output = secRealloc(*cpp_output, i_len_new);
