@@ -215,10 +215,11 @@ int parseRequestURI(char* input, char** outputline, int offset){
 
 	if(input[offset]=='/'){
 		//If it is an cgi request we have to build our path from the uri
-		int i_offset = input+offset;
-		/*if(strncmp("/cgi-bin/",i_offset,9)==0){
+		/*int length = strlen(input)-1;
+		if(strncmp("/cgi-bin/",input+offset,9)==0){
 			cgi_bin_found = TRUE;
 			debugVerbose(3, "CGI bin\n");
+
 			for(int i = offset+9; i< strlen(input)-1;i++){
 				if(input[i]=='/'){
 					save_position = i;
@@ -230,15 +231,10 @@ int parseRequestURI(char* input, char** outputline, int offset){
 			debugVerbose(3, "CGI path %s\n",cgi_path);
 		}*/
 		
-		
 		//Try to find a fragment and/or the request
 		while(isWhiteSpace(input[offset])==FALSE && isEOF(input[offset])==FALSE){
 			my_char = input[offset];
-			
-			if(isNonEscapedChar(input[offset])==TRUE)
-				return EXIT_FAILURE;
-			strAppend(&cp_uri, &my_char);
-			
+						
 			if(input[offset]=='#'){
 				fragment_found = TRUE;
 			}
@@ -255,6 +251,11 @@ int parseRequestURI(char* input, char** outputline, int offset){
 			else{
 				//??
 			}
+			
+			if(isNonEscapedChar(input[offset])==TRUE && query_found == FALSE)
+				return EXIT_FAILURE;
+			strAppend(&cp_uri, &my_char);
+			
 			offset=offsetPP(offset,1);
 			
 		}
@@ -263,7 +264,7 @@ int parseRequestURI(char* input, char** outputline, int offset){
 		}
 		
 		appendToEnvVarList("REQUEST_URI",cp_uri);
-		//appendToEnvVarList("FRAGMENT",cp_fragment);
+		appendToEnvVarList("FRAGMENT",cp_fragment);
 		appendToEnvVarList("QUERY_STRING",cp_request);
 		return offset;
 	}
@@ -282,7 +283,7 @@ bool isChar(char input){
 
 bool isNonEscapedChar(char input){
 	
-	//Ohne Fragezeichen
+	//Ohne ?
 	if(input==' ' || input=='%' || input==';' || input==':' || input=='@')
 		return TRUE;
 	if(input=='&' || input=='=' || input=='+' || input=='$' || input==',')
