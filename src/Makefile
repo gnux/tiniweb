@@ -25,12 +25,14 @@ TINIWEB_SRC = \
 	md5.c \
 	debug.c \
 	parser.c \
-	normalize.c
+	normalize.c \
+    auth.c
 
 # Sources for the MD5 demo application
 MD5_SRC = \
 	md5main.c \
 	md5.c
+
 
 # Binaries to be build by default
 PROGRAMS := md5main tiniweb
@@ -64,7 +66,7 @@ md5main: $(MD5_OBJS)
 # Target to clean build output
 #
 clean:
-	-rm -f $(PROGRAMS) $(TINIWEB_OBJS) $(MD5_OBJS)
+	-rm -f $(PROGRAMS) $(TINIWEB_OBJS) $(MD5_OBJS) $(AUTH_OBJS)
 
 #----------------------------------------------------------------------
 # Compilation of source files

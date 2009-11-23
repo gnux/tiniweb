@@ -18,12 +18,12 @@
 #include "parser.h"
 #include "normalize.h"
 #include "envvar.h"
-
+#include "auth.h"
 
 // default values for options, if no command line option is available
 //static const char SCCA_WEB_DIR[] = "/";
 //static const char SCCA_CGI_DIR[] = "/cgi-bin/";
-static const uint SCUI_CGI_TIMEOUT = 1;
+static const int SCI_CGI_TIMEOUT = 1;
 
 unsigned char sb_flag_verbose_ = FALSE;
 
@@ -68,7 +68,8 @@ static char *scp_secret_ = NULL;
  return res;
   
 }*/
-static int si_cgi_timeout_ = 1;
+
+int si_cgi_timeout_ = 1000;
 
   
 /** tiniweb main routine
@@ -143,7 +144,7 @@ int main(int argc, char** argv) {
                     optarg);
 		    
 	    //TODO: controlledShutdown();
-	    sui_cgi_timeout = (int) strtol(optarg, NULL, 10);
+	    si_cgi_timeout_ = (int) strtol(optarg, NULL, 10);
             b_flag_cgi_timeout = 1;
             break;
 	case 3:
@@ -219,6 +220,7 @@ int main(int argc, char** argv) {
     //           "\r\n"
     //           "<html><body>Hello!</body></html>\r\n");   
 
+
     processCGIScript("testscript");
     
 //     sec_test();
@@ -229,6 +231,9 @@ int main(int argc, char** argv) {
 //     secProof(0);
 //     secCleanup();
    
+//     processCGIScript("testscript");
+    testPerformHMACMD5();
+
     
     secCleanup();
     
