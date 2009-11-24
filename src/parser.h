@@ -9,6 +9,7 @@
 
 /**
  * Takes the Normalized Input, and calls the functions parseHttpRequestHeader and parseArguments
+ * if something went wrong or the input is incorrect we abort
  */
 void parse(http_norm *hnp_info);
 
@@ -37,7 +38,7 @@ int parseMethod(char* input, int offset);
 /**
  * Checks if the URI looks like:
  * request-uri = abspath ["?" query-string] ["#" fragment]
- * normal chars are alloud everything else has to be has to be escaped, validateString function checks for that
+ * normal chars are alloud everything else has to be escaped, validateString function checks for that
  */
 int parseRequestURI(char* input, int offset);
 
