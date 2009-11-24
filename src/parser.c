@@ -1,6 +1,6 @@
 /** tiniweb
  * \file parser.c
- * \author Patrick Plaschzug
+ * \author Patrick Plaschzug, Georg Neubauer
  */
 
 /*typedef struct header_info {
