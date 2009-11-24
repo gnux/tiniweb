@@ -67,5 +67,13 @@ void testPerformHMACMD5();
  */
 void createNonce(unsigned char* uca_key, unsigned char* uca_nonce);
 
+/**
+ * Checks if a path/file exists
+ *
+ * @param ca_path the path/file
+ * @return TRUE if the path/file exists FALSE if not
+ */
+bool checkPath(char* ca_path);
+
 
 #endif

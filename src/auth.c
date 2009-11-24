@@ -3,6 +3,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 
 #include "auth.h"
 #include "typedef.h"
@@ -158,6 +161,11 @@ void testPerformHMACMD5()
     unsigned char digest[NONCE_LEN];
 
     createNonce(uca_key, digest);
+    checkPath("../cgi-bin");
+    checkPath("../cgi-bin/foo");
+    checkPath("..");
+    checkPath("");
+    checkPath("../src/../src/auth.c");
 }
 
 void createNonce(unsigned char* uca_key, unsigned char* uca_nonce)
@@ -171,5 +179,20 @@ void createNonce(unsigned char* uca_key, unsigned char* uca_nonce)
 
     performHMACMD5(uca_text, i_text_len, uca_key, i_text_len, uca_nonce);
     debugVerboseHash(AUTH, uca_nonce, NONCE_LEN, "A Nonce was created!");
+}
+
+bool checkPath(char* ca_path)
+{
+    struct stat buffer;
+    int i_result = stat(ca_path, &buffer);
+    
+    if (i_result == 0)
+    {
+        debugVerbose(AUTH, "Directory Checked: Directory %s is valid!\n", ca_path);
+        return TRUE;
+    }
+
+    debugVerbose(AUTH, "Directory Checked: Directory %s is NOT valid!\n", ca_path);
+    return FALSE;
 }
 
