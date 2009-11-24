@@ -6,29 +6,38 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-
 #include "auth.h"
 #include "typedef.h"
 #include "md5.h"
 #include "debug.h"
 
-#define NONCE_LEN 16
+extern char *scp_web_dir_;
+extern char *scp_cgi_dir_;
+// extern char *scp_secret_; TODO Uncomment when finished
 
+static const int NONCE_LEN = 16;
+static const int MAX_ERROR_NUM = 5;
+static int i_current_error_num = 0;
 static bool sb_unauthorized_message_sent = FALSE;
-static unsigned char suca_sent_nonce[NONCE_LEN];
+static unsigned char suca_sent_nonce[16];
 
 void authenticate()
 {
+    if (checkPath(scp_cgi_dir_) == FALSE ||
+        checkPath(scp_web_dir_) == FALSE)
+    {
+        debug(AUTH, "Something is wrong with the given SGI-BIN- or the WEB-Directory. Terminate Connection!\n");
+        // TODO Safe Shutdown
+    }
+    
     // TODO check for authentication field
     
     // If no authentication field is available and no unauthorized message (401) was
     // sent, create nonce and send unauthorized message (401)
     if (sb_unauthorized_message_sent == FALSE)
     {
-        // TODO: Get Key from global var in tiniweb
-        unsigned char uca_key[100];
-
-        createNonce(uca_key, suca_sent_nonce);
+        unsigned char uca_key[100]; // TODO remove this line!
+        createNonce(uca_key /* TODO replace with scp_secret_ */, suca_sent_nonce);
         
         // TODO send 401
     }
@@ -42,10 +51,15 @@ void authenticate()
         
         if (b_response_valid == FALSE)
         {
-            //TODO Terminate Connection or
-            //     Send back Error message to client
-            //     (specify it)
+            //TODO Send Login Error
+            i_current_error_num++;
         }
+    }
+    
+    if (i_current_error_num >= MAX_ERROR_NUM)
+    {
+        debug(AUTH, "The maximum number of errors (%i) within this session was reached. Shutdown of Connection!\n", MAX_ERROR_NUM);
+        // TODO Safe Shutdown
     }
     
     
@@ -188,11 +202,11 @@ bool checkPath(char* ca_path)
     
     if (i_result == 0)
     {
-        debugVerbose(AUTH, "Directory Checked: Directory %s is valid!\n", ca_path);
+        debugVerbose(AUTH, "Directory Checked: Directory/File %s is valid!\n", ca_path);
         return TRUE;
     }
 
-    debugVerbose(AUTH, "Directory Checked: Directory %s is NOT valid!\n", ca_path);
+    debugVerbose(AUTH, "Directory Checked: Directory/File %s is NOT valid!\n", ca_path);
     return FALSE;
 }
 
