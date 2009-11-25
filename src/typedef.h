@@ -19,6 +19,8 @@ typedef unsigned char bool;
 #define FALSE 0
 //#define NULL 0
 
+int min(int a, int b);
+
 typedef struct http_norm {
   char *cp_first_line;
   int i_num_fields;
