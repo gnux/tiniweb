@@ -7,6 +7,7 @@
 #define __SEC_MEM_H__
 
 #include <stdlib.h>
+#include <stdio.h>
 
 /** secMalloc routine, wrapper for malloc that registers allocated memory
  * \param size size of memory to allocate
@@ -63,6 +64,21 @@ void secProof(void *ptr);
  * secRegister routine, register a pointer not get by sec* functions
  */
 void secRegister(void *ptr);
+
+/**
+ * secAbort routine, used to abort with controlled cleanup
+ */
+void secAbort();
+
+/**
+ * secGetline routine, is used like getline but uses secMemory functions
+ * every given pointer is tried to free, and new pointers are registered
+ * therefor every pointer should be secure
+ */
+ssize_t secGetline(char** cpp_lineptr, FILE *stream);
+
+void *secGetStringPart(char* cpp_string, ssize_t start, ssize_t end);
+
 
 //TODO: remove this function, if not needed anymore
 void sec_test();

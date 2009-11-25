@@ -10,8 +10,8 @@
 
 void processCGIScript(const char* cp_path);
 
-int readFromCGIScript(int i_cgi_response_pipe, pid_t pid_child);
+int processCGIIO(int i_cgi_response_pipe, pid_t pid_child);
 
-int drainPipe(int i_source_fd, char** i_destination_fd);
+ssize_t drainPipe(int i_source_fd, char** i_destination_fd);
 
 #endif
