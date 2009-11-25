@@ -8,10 +8,14 @@
 
 #include <sys/types.h>
 
-void processCGIScript(const char* cp_path);
+void processCGIScript(const char* cp_path, const char* cp_http_body);
 
-int readFromCGIScript(int i_cgi_response_pipe, pid_t pid_child);
+int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, ssize_t written_bytes, 
+                 bool b_provide_http_body, pid_t pid_child, const char* cp_http_body);
 
-int drainPipe(int i_source_fd, char** i_destination_fd);
+ssize_t provideMessageBodyToCGIScript(int i_cgi_post_body_pipe, const char* cp_http_body, 
+                                  size_t i_start_index);
+
+ssize_t drainPipe(int i_source_fd, char** i_destination_fd);
 
 #endif
