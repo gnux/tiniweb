@@ -15,13 +15,6 @@
 #include "debug.h"
 #include "envvar.h"
 
-static const enum SCE_KNOWN_METHODS {
-	GET = 0,
-	POST,
-	HEAD,
-	UNKNOWN
-} SCE_METHOD;
-
 static const char* SCCA_KNOWN_METHODS[] = {"GET", "POST", "HEAD"};
 static const int SCI_NUM_KNOWN_METHODS = 3;
 static const char* SCCP_KNOWN_HTTPVERSION = "HTTP/1.1";

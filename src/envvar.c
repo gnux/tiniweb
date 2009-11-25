@@ -13,7 +13,7 @@
 
 static environment_variable* evp_first_element = NULL;
 
-int appendToEnvVarList(char* cp_name, char* cp_value)
+int appendToEnvVarList(const char* cp_name, const char* cp_value)
 {
     environment_variable* evp_var = evp_first_element;
     environment_variable* evp_new_var = NULL;
@@ -57,7 +57,7 @@ int deleteEnvVarList()
     return 0;
 }
 
-int initEnvVarList(char* cp_name, char* cp_value)
+int initEnvVarList(const char* cp_name, const char* cp_value)
 {
     evp_first_element = (environment_variable*)secMalloc(sizeof(environment_variable));
     evp_first_element->cp_name = cp_name;
