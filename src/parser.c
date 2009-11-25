@@ -25,8 +25,14 @@ static const enum SCE_KNOWN_METHODS {
 static const char* SCCA_KNOWN_METHODS[] = {"GET", "POST", "HEAD"};
 static const int SCI_NUM_KNOWN_METHODS = 3;
 static const char* SCCP_KNOWN_HTTPVERSION = "HTTP/1.1";
+static const char* SCCP_CGI_BIN ="/cgi-bin/";
 static const char* SCCP_HTTP_HEADER_FIELD_MARKER = "HTTP_";
 static enum SCE_KNOWN_METHODS se_used_method = UNKNOWN;
+
+bool B_CGI_BIN_FOUND = FALSE;
+bool B_HOST_FOUND = FALSE;
+bool B_BODY_FOUND = FALSE;
+bool B_CONTENT_LENGTH_FOUND = FALSE;
 
 int min(int a, int b){
   return a < b ? a : b;
@@ -38,6 +44,7 @@ void parse(http_norm *hnp_info){
 		secAbort();
 	if(parseArguments(hnp_info) == EXIT_FAILURE)
 		secAbort();
+	
 }
 
 int parseArguments(http_norm *hnp_info){
@@ -47,6 +54,10 @@ int parseArguments(http_norm *hnp_info){
 		strAppend(&cp_name, SCCP_HTTP_HEADER_FIELD_MARKER);
 		strAppend(&cp_name, hnp_info->cpp_header_field_name[i]);
 		stringToUpperCase(cp_name);
+		if(strlen(cp_name)>=4)
+			if(strncmp(cp_name,"HTTP_HOST",4)==0)
+				B_HOST_FOUND = TRUE;
+		
 		appendToEnvVarList(cp_name,hnp_info->cpp_header_field_body[i]);
 	}
 	// set Constants
@@ -118,6 +129,7 @@ int parseRequestURI(char* input, int offset){
 	char* cp_query = NULL;
 	int i_offset_st = 0;
 	int i_offset_en = 0;
+
 	
 	for(i_offset_st = offset; i_offset_st < strlen(input) && input[i_offset_st] != '/'; ++i_offset_st);
 	if(i_offset_st >= strlen(input)){
@@ -127,6 +139,13 @@ int parseRequestURI(char* input, int offset){
 		
 	for(i_offset_en = i_offset_st; i_offset_en < strlen(input) && input[i_offset_en] != ' '; ++i_offset_en);
 	cp_uri = secGetStringPart(input, i_offset_st, i_offset_en - 1);
+	
+	if(strlen(cp_uri)>=9){
+		if(strncmp(SCCP_CGI_BIN,cp_uri,9)==0){
+			B_CGI_BIN_FOUND = TRUE;
+			debugVerbose(PARSER, "CGI bin found\n");
+		}
+	}
 		
 	for(i_offset_st = 0; i_offset_st < strlen(cp_uri) && cp_uri[i_offset_st] != '?'; ++i_offset_st);
 	if(i_offset_st != strlen(cp_uri)){
