@@ -8,8 +8,8 @@
 
 typedef struct environment_variable_ {
     
-    char* cp_name;
-    char* cp_value;
+    const char* cp_name;
+    const char* cp_value;
     struct environment_variable_* evp_next;
     
 } environment_variable;
@@ -22,7 +22,7 @@ typedef struct environment_variable_ {
  * @return -1 in case of an error
  *          0 in case if it worked
  */
-int appendToEnvVarList(char* cp_name, char* cp_value);
+int appendToEnvVarList(const char* cp_name, const char* cp_value);
 
 /**
  * Deletes evry element inside of the evn-var list and frees the used memory.
@@ -40,7 +40,7 @@ int deleteEnvVarList();
  * @return -1 in case of an error
  *          0 in case if it worked
  */
-int initEnvVarList(char* cp_name, char* cp_value);
+int initEnvVarList(const char* cp_name, const char* cp_value);
 
 /**
  * Sets the environment variables of the current process with the elements inside
