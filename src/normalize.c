@@ -95,6 +95,7 @@ http_norm *normalizeHttp(FILE* fp_input){
 	//free(cp_current_line);
 	normalizeHeaderFields(hnp_http_info);
 	restoreNormalizedHeader(hnp_http_info);
+	// BODY!
 	hnp_http_info->cp_body = secCalloc(1,sizeof(char));
 	hnp_http_info->cp_body[0] = '\0';
 	i_num_read = 0;

@@ -139,11 +139,12 @@ void secRegister(void *ptr){
 }
 
 void secAbort(){
-	//TODO:provide error handling! error responses
+	//TODO:provide error handling! error responses, maybe get used of a secExit function that sends responses!
+	// use secAbort only for internal failures
 	fprintf(stderr, "-----INTERNAL FAILURE, SERVER IS GOING TO ABORT-----\n");
 	secCleanup();
 	//TODO: cleanup open files and pipes
-	exit(1);
+	abort();
 }
 
 ssize_t secGetline(char** cpp_lineptr, FILE *stream){
