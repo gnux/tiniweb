@@ -7,6 +7,13 @@
 #define PARSER_H_
 #include "typedef.h"
 
+static const enum SCE_KNOWN_METHODS {
+	GET = 0,
+	POST,
+	HEAD,
+	UNKNOWN
+} SCE_METHOD;
+
 /**
  * Takes the Normalized Input, and calls the functions parseHttpRequestHeader and parseArguments
  * if something went wrong or the input is incorrect we abort
