@@ -74,14 +74,14 @@ http_norm *normalizeHttp(FILE* fp_input){
 		getHeaderFieldBody(&hnp_http_info->cpp_header_field_body[hnp_http_info->i_num_fields - 1], cp_current_line);
 		// eat away multirow things
 		do{
-			// TODO: sec_abort! sec getline with auto abort!
+			// TODO: sec_abort, or error message!
 			// Header has to end with endl!
 			i_num_read = 0;
 			if(secGetline(&cp_current_line, fp_input) == -1){
 				debugVerbose(NORMALISE, "Invalid Header delimiter detected\n");
 				secAbort();
 			}
-		      
+	
 			if(isBlank(cp_current_line, 0) == EXIT_SUCCESS)
 				strAppend(&hnp_http_info->cpp_header_field_body[hnp_http_info->i_num_fields - 1], cp_current_line);
 			else
@@ -92,18 +92,17 @@ http_norm *normalizeHttp(FILE* fp_input){
 			break;
 	}
 	
-	//free(cp_current_line);
 	normalizeHeaderFields(hnp_http_info);
 	restoreNormalizedHeader(hnp_http_info);
 	// BODY!
-	hnp_http_info->cp_body = secCalloc(1,sizeof(char));
-	hnp_http_info->cp_body[0] = '\0';
-	i_num_read = 0;
+//	hnp_http_info->cp_body = secCalloc(1,sizeof(char));
+//	hnp_http_info->cp_body[0] = '\0';
+//	i_num_read = 0;
 	
-	while(secGetline(&cp_current_line, fp_input) != -1){
-		strAppend(&hnp_http_info->cp_body, cp_current_line);
-		i_num_read = 0;
-	}
+//	while(secGetline(&cp_current_line, fp_input) != -1){
+//		strAppend(&hnp_http_info->cp_body, cp_current_line);
+//		i_num_read = 0;
+//	}
 	
 	printHttpNorm(hnp_http_info);
 	return hnp_http_info;
@@ -172,7 +171,8 @@ void printHttpNorm(http_norm* hnp_http_info){
 		debugVerbose(NORMALISE, "%s: %s\n", hnp_http_info->cpp_header_field_name[i], hnp_http_info->cpp_header_field_body[i]);
 		
 	if(hnp_http_info->cp_header)
-		debugVerbose(NORMALISE, "complete request/response:\n%s%s", hnp_http_info->cp_header, hnp_http_info->cp_body);
+		debugVerbose(NORMALISE, "complete request/response:\n%s", hnp_http_info->cp_header);
+		//debugVerbose(NORMALISE, "complete request/response:\n%s%s", hnp_http_info->cp_header, hnp_http_info->cp_body);
 		
 	debugVerbose(NORMALISE, "-----END HEADER STRUCT PRINTING-----\n");
 }
