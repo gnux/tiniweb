@@ -1,3 +1,7 @@
+/** tiniweb
+ * @file auth.c
+ * @author Dieter Ladenhauf
+ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -10,6 +14,7 @@
 #include "typedef.h"
 #include "md5.h"
 #include "debug.h"
+#include "secmem.h"
 
 extern char *scp_web_dir_;
 extern char *scp_cgi_dir_;
@@ -30,39 +35,66 @@ void authenticate()
         // TODO Safe Shutdown
     }
     
+    bool b_error = FALSE;
     // TODO check for authentication field
+    bool b_auth_field_available = FALSE;
     
     // If no authentication field is available and no unauthorized message (401) was
     // sent, create nonce and send unauthorized message (401)
     if (sb_unauthorized_message_sent == FALSE)
     {
+        debugVerbose(AUTH, "No 401-Unauthorized message waas sent before.\n");
         unsigned char uca_key[100]; // TODO remove this line!
         createNonce(uca_key /* TODO replace with scp_secret_ */, suca_sent_nonce);
         
         // TODO send 401
     }
-    
-    // If authentication field is available and 401 was already sent -> check if response
-    // is valid
-    if (sb_unauthorized_message_sent == TRUE)
-    {
-        bool b_response_valid = FALSE;
-        // TODO: b_response_valid = verifyResponse(...);
-        
-        if (b_response_valid == FALSE)
+    else
+    {       
+        if (b_auth_field_available == TRUE)
         {
-            //TODO Send Login Error
+            // If authentication field is available and 401 was already sent -> check if response
+            // is valid
+        
+            debugVerbose(AUTH, "The Request contains an authentication field.\n");
+            
+            bool b_response_valid = FALSE;
+            // TODO: b_response_valid = verifyResponse(...);
+        
+            if (b_response_valid == FALSE)
+            {
+                //TODO Send Login Error
+                b_error = TRUE;
+                i_current_error_num++;
+                debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
+            }
+            else
+            {
+                debugVerbose(AUTH, "The 'response' from the auth field is valid!\n");
+            }
+        }
+        else
+        {
+            debugVerbose(AUTH, "The Request contains no authentication field.\n");
+            unsigned char uca_key[100]; // TODO remove this line!
+            createNonce(uca_key /* TODO replace with scp_secret_ */, suca_sent_nonce);
+        
+            // TODO send 401
+            
+            b_error = TRUE;
             i_current_error_num++;
         }
     }
     
+    if (b_error == TRUE)
+    {
+        // TODO Free Memory
+    }    
     if (i_current_error_num >= MAX_ERROR_NUM)
     {
         debug(AUTH, "The maximum number of errors (%i) within this session was reached. Shutdown of Connection!\n", MAX_ERROR_NUM);
         // TODO Safe Shutdown
     }
-    
-    
 }
 
 bool verifyResponse(unsigned char* uca_ha1, unsigned char* uca_nonce, int i_nonce_len,
@@ -103,6 +135,16 @@ bool unauthorizedMessageSent()
     return sb_unauthorized_message_sent;
 }
 
+//------------------------------------------------------------------------
+// Keyed-Hashing for Message Authentication Code (HMAC)
+//
+// Implementation from RFC 2104: "Appendix -- Sample Code" [1]
+// ... <more descriptive text if needed> ...
+//
+// [1] RFC2104: http://tools.ietf.org/html/rfc2104#page-8
+//
+//
+// BEGIN-FOREIGN-CODE (RFC2104)
 void performHMACMD5(unsigned char* uca_text, int i_text_len, unsigned char* uca_key, 
                     int i_key_len, unsigned char* digest)
 {
@@ -168,6 +210,8 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len, unsigned char* uca_
         md5_append(&context, digest, 16);      /* then results of 1st hash */
         md5_finish(&context, digest);          /* finish up 2nd pass */
 }
+// END-FOREIGN-CODE (RFC2104)
+//------------------------------------------------------------------------
 
 void testPerformHMACMD5() 
 {
@@ -180,6 +224,15 @@ void testPerformHMACMD5()
     checkPath("..");
     checkPath("");
     checkPath("../src/../src/auth.c");
+    
+    checkIfPathsDoNotContainEachOther("foo","foo");
+    checkIfPathsDoNotContainEachOther("foo/bin","foo/bin/toll");
+    checkIfPathsDoNotContainEachOther("foo/bin","foo/juhuuu");
+    checkIfPathsDoNotContainEachOther("foo/../foo/bin","foo/bin");
+    checkIfPathsDoNotContainEachOther("foo/bin/../../foo/bin/toll/../toll","foo/bin/toll");
+    
+    char* cp_path_1 = "/foo/../foo";
+    deleteCyclesFromPath(&cp_path_1);
 }
 
 void createNonce(unsigned char* uca_key, unsigned char* uca_nonce)
@@ -208,5 +261,90 @@ bool checkPath(char* ca_path)
 
     debugVerbose(AUTH, "Directory Checked: Directory/File %s is NOT valid!\n", ca_path);
     return FALSE;
+}
+
+bool checkIfPathsDoNotContainEachOther(char* ca_path_cgi, char* ca_path_web)
+{
+    int i_path_cgi_len = strlen(ca_path_cgi);
+    int i_path_web_len = strlen(ca_path_web);
+    int i_shortest_path_len = 0;
+    int i = 0;
+    bool b_paths_do_not_contain_each_other = FALSE;
+    
+    i_shortest_path_len = (i_path_cgi_len > i_path_web_len) ?  i_path_web_len : i_path_cgi_len;
+  
+    /* TODO check for eg: ca_path_cgi: foo/../foo
+                          ca_path_web: foo
+     */
+    
+    for (i = 0; i < i_shortest_path_len; i++)
+    {
+        int i_result = strncmp(ca_path_cgi, ca_path_web, i);
+        if (i_result != 0)
+        {
+            b_paths_do_not_contain_each_other = TRUE;
+            break;
+        }
+    }
+    
+    if (b_paths_do_not_contain_each_other)
+        debugVerbose(AUTH, "Paths %s and %s do not contain each other!\n", ca_path_cgi, ca_path_web);
+    else
+        debugVerbose(AUTH, "Paths %s and %s do contain each other!\n", ca_path_cgi, ca_path_web);
+    
+    return b_paths_do_not_contain_each_other;
+}
+
+void deleteCyclesFromPath(char** cpp_path_to_check)
+{
+    int i_path_len = strlen(*cpp_path_to_check);
+    char** cpp_path = 0;
+    int i_num_folders = 0;
+    int i_start = 0;
+    
+    // Store the path into the sorted cpp_path. The result will be e.g:
+    //
+    //   cpp_path[0] = "Juhu"
+    //   cpp_path[0][0] = 'J'
+    
+    for (int i_end = 0; i_end < i_path_len; i_end++)
+    {
+        debugVerbose(AUTH, "i_end: %i\n", i_end);
+        
+        if ((*cpp_path_to_check)[i_end] == '/')
+        {
+            debugVerbose(AUTH, "'/' Found!\n");
+            
+            if (i_num_folders == 0)  // First '/' was found
+            {
+                cpp_path = secMalloc(1);
+            }
+            else
+            {
+                (*cpp_path) = secRealloc((*cpp_path), i_num_folders + 1);
+            }
+            
+            int i_num_chars = i_end - i_start + 1;
+            cpp_path[i_num_folders] = secMalloc(i_num_chars);
+            
+            debugVerbose(AUTH, "Write from A to B: ");
+            
+            // Write all chars into new sorted array
+            for (int i = i_start; i <= i_end; i++)
+            {
+                cpp_path[i_num_folders][i] = (*cpp_path_to_check)[i];
+                fprintf(stderr, "%c", cpp_path[i_num_folders][i]);
+            }
+            
+            fprintf(stderr, "\n");
+            
+            i_start = i_end + 1;
+            i_num_folders++;
+        }
+    }
+    
+    // TODO: If cpp_path[current_folder] is "/.." delete the folder cpp[current_folder - 1]
+    //       Create new string and store it into cpp_path_to_check
+    //       Free all allocated Memory
 }
 

@@ -22,8 +22,8 @@
 // default values for options, if no command line option is available
 static const int SCI_CGI_TIMEOUT = 1;
 unsigned char sb_flag_verbose_ = FALSE;
-static char *scp_web_dir_ = NULL;
-static char *scp_cgi_dir_ = NULL;
+ char *scp_web_dir_ = NULL;
+ char *scp_cgi_dir_ = NULL;
 int si_cgi_timeout_ = 1000;
 
   

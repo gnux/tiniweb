@@ -75,5 +75,9 @@ void createNonce(unsigned char* uca_key, unsigned char* uca_nonce);
  */
 bool checkPath(char* ca_path);
 
+bool checkIfPathsDoNotContainEachOther(char* ca_path_cgi, char* ca_path_web);
+
+void deleteCyclesFromPath(char** cpp_path);
+
 
 #endif
