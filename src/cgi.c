@@ -14,8 +14,11 @@
 #include "typedef.h"
 
 static const int SCI_BUF_SIZE = 256;
+static const int SCI_MAX_CGI_RESPONSE_LENGTH = 100000;
 
 extern int si_cgi_timeout_;
+
+static size_t http_body_length_ = 0;
 
 /**
  * Helper function for safely closing a pipe pair
@@ -50,30 +53,15 @@ static int setNonblocking(int i_fd)
 void processCGIScript(const char* cp_path, const char* cp_http_body) 
 {
     int i_success = 0;
+    ssize_t written_bytes = 0;
     int ia_cgi_response_pipe[2] = {-1, -1};
     int ia_cgi_post_body_pipe[2] = {-1, -1};
     pid_t pid_child = 0;
     char* cpa_cgi_args[] = {"testscript", NULL};
-    /*
-    char* cp_test_env_var_name = NULL;
-    char* cp_test_env_var_value = NULL;
-    
-    cp_test_env_var_name = (char*)secMalloc(5);
-    cp_test_env_var_value = (char*)secMalloc(5);
-    cp_test_env_var_name[0] = 'A';
-    cp_test_env_var_name[1] = 'B';
-    cp_test_env_var_name[2] = 'C';
-    cp_test_env_var_name[3] = 'D';
-    cp_test_env_var_name[4] = '\0';
-    
-    cp_test_env_var_value[0] = 'g';
-    cp_test_env_var_value[1] = 'u';
-    cp_test_env_var_value[2] = 'g';
-    cp_test_env_var_value[3] = 'u';
-    cp_test_env_var_value[4] = '\0';
-    */
 
      
+    if(cp_http_body != NULL)
+        http_body_length_ = strlen(cp_http_body);
     printEnvVarList();
 
     initEnvVarList("TEST_VARIABLE1", "this is just a test");
@@ -87,24 +75,33 @@ void processCGIScript(const char* cp_path, const char* cp_http_body)
         //TODO: safe exit
         debug(6, "Creating pipes to CGI script failed: %d\n", errno);
     }
-    if (setNonblocking(ia_cgi_response_pipe[0]), setNonblocking(ia_cgi_post_body_pipe[0]),
-        setNonblocking(ia_cgi_post_body_pipe[1]))
+    if (setNonblocking(ia_cgi_response_pipe[0])
+        || setNonblocking(ia_cgi_post_body_pipe[1]))
     {
         //TODO safe exit
         debug(6, "Setting pipes non-blocking failed: %d\n", errno);
     }
     
-    if(cp_http_body != NULL) 
+    if((cp_http_body != NULL)) 
     {   
-        i_success = provideMessageBodyToCGIScript(ia_cgi_post_body_pipe[1], cp_http_body);
-        if(i_success == -1)
+        http_body_length_ = strlen(cp_http_body);
+        if(http_body_length_ > 0) 
         {
-            
-            //TODO: safe exit
-            debug(6, "Providin message body to CGI script failed.\n");
+       // ret = poll(fds, 2, 1000);
+
+            written_bytes = provideMessageBodyToCGIScript(ia_cgi_post_body_pipe[1], cp_http_body, 0);
+            if(i_success < 0)
+            {
+                //TODO: safe exit
+                debug(6, "Providing message body to CGI script failed.\n");
+            }
+            if(written_bytes < http_body_length_) 
+            {
+                debug(6, "Could not write whole http body at once.\n");
+            }
         }
     }
-
+    
     /* Fork the child process */
     pid_child = fork();  
 
@@ -170,11 +167,13 @@ void processCGIScript(const char* cp_path, const char* cp_http_body)
             close(ia_cgi_post_body_pipe[0]);
             close(ia_cgi_response_pipe[1]);
             
-            i_success = readFromCGIScript(ia_cgi_response_pipe[0], pid_child);
+            i_success = processCGIIO(ia_cgi_response_pipe[0], ia_cgi_post_body_pipe[1], 
+                                     written_bytes, (written_bytes < http_body_length_), 
+                                     pid_child, cp_http_body);
             if(i_success == -1)
             {
                 //TODO: safe exit
-                debug(6, "Reading response from CGI script failed.\n");
+                debug(6, "CGI IO processing failed.\n");
             }
             
             closePipes(ia_cgi_post_body_pipe);
@@ -185,31 +184,45 @@ void processCGIScript(const char* cp_path, const char* cp_http_body)
     debug(6, "Finished processing CGI script.\n");
 }
 
-int readFromCGIScript(int i_cgi_response_pipe, pid_t pid_child)
+
+int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, ssize_t written_bytes, 
+                 bool b_provide_http_body, pid_t pid_child, const char* cp_http_body)
 {
-    struct pollfd poll_fd[1];
+    struct pollfd poll_fd[(b_provide_http_body) ? 2 : 1];
     int i_poll_result = 0;
-    int i_response_length = 0;
+    ssize_t response_length = 0;
+    ssize_t total_written_bytes = written_bytes;
     char* cp_cgi_response = NULL;
     bool b_read_successful = FALSE;
+    bool b_write_successful = TRUE;
     
     /* Setup poll_fds for child standard output and 
      * standard error stream */
     poll_fd[0].fd = i_cgi_response_pipe;
     poll_fd[0].events = POLLIN;
     poll_fd[0].revents = 0;
+    
+    if(b_provide_http_body)
+    {
+        poll_fd[1].fd = i_cgi_post_body_pipe;
+        poll_fd[1].events = POLLOUT;
+        poll_fd[1].revents = 0;
+        
+        b_write_successful = FALSE;
+    }
 
-    while (!(poll_fd->revents & (POLLHUP | POLLERR)))
+    while ((!b_read_successful) || (!b_write_successful))
     {
         // Poll for more events
+
         i_poll_result = poll(poll_fd, sizeof(poll_fd)/sizeof(poll_fd[0]), si_cgi_timeout_);
+    
         if (i_poll_result < 0)
         {
-            debug(6, "Polling failed: %d\n", errno);
-            // TODO debug output
+            debug(6, "Polling for write failed: %d\n", errno);
             return -1;
         }
-
+        
         // Timeout?
         if (i_poll_result == 0)
         {
@@ -220,47 +233,216 @@ int readFromCGIScript(int i_cgi_response_pipe, pid_t pid_child)
             
             return -1;
         }
-        /* Drain the standard output pipe */
-        if (poll_fd[0].revents & POLLIN)
-        {   
-            i_response_length = drainPipe(poll_fd[0].fd, &cp_cgi_response);
-            if (i_response_length < 0)
+
+        if(b_provide_http_body && !b_write_successful) 
+        {
+            if (poll_fd[1].revents & POLLOUT)
+            {   
+                debug(6, "Here.\n");
+                written_bytes = provideMessageBodyToCGIScript(poll_fd[1].fd, cp_http_body, 
+                                                          total_written_bytes);                                           
+                if(written_bytes < 0)
+                {
+                    debug(6, "Providing message body to CGI script failed.\n");
+                    return -1;
+                }
+                total_written_bytes += written_bytes;               
+                if(total_written_bytes == http_body_length_) 
+                {
+                    debug(6, "Writing http_body completed.\n");
+                    b_write_successful = TRUE;
+                    poll_fd[1].events = 0;
+                }
+                
+                poll_fd[1].revents ^= POLLOUT;
+            }
+
+            if((poll_fd[1].revents & (POLLHUP | POLLERR)) && (!b_write_successful))
             {
-//                 fprintf(stderr, "failed to drain child standard output pipe");
-//                 goto err_join_child;
+                debug(6, "A problem occured on the post body pipe.\n");
+                return -1;
+            }
+        }
+
+        /* Drain the standard output pipe */
+        if ((poll_fd[0].revents & POLLIN) && (!b_read_successful))
+        {   
+            response_length = drainPipe(poll_fd[0].fd, &cp_cgi_response);
+            if (response_length < 0)
+            {
                 debug(6, "Could not read from pipe.\n");
                 return -1;
             }
             
-            debug(6, "Got following CGI response: %s\n", cp_cgi_response);
-            //TODO: parse
+            debug(6, "Read %d bytes as CGI response.\n", response_length);
             b_read_successful = TRUE;
             
             poll_fd[0].revents ^= POLLIN;
         }
 
+        if((poll_fd[0].revents & (POLLHUP | POLLERR)) && (!b_read_successful))
+        {
+            debug(6, "A problem occured on the cgi response pipe.\n");
+            return -1;
+        }
     } 
-    if(b_read_successful)
-        return 0;
-    return -1;
+    
+    debug(6, "Normal exit.\n");
+
+    return 0;
     
 }
 
-int provideMessageBodyToCGIScript(int i_cgi_post_body_pipe, const char* cp_http_body)
+
+/*
+int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, ssize_t written_bytes, 
+                 bool b_provide_http_body, pid_t pid_child, const char* cp_http_body)
 {
-    size_t written_bytes = 0;
-    size_t body_size = strlen(cp_http_body);
-    written_bytes = write(i_cgi_post_body_pipe, cp_http_body, body_size);
+    struct pollfd poll_fd_read[1];
+    struct pollfd poll_fd_write[1];
+    int i_poll_result_read = 0;
+    int i_poll_result_write = 0;
+    ssize_t response_length = 0;
+    ssize_t total_written_bytes = written_bytes;
+    char* cp_cgi_response = NULL;
+    bool b_read_successful = FALSE;
+    bool b_write_successful = TRUE;
+    
+    poll_fd_read[0].fd = i_cgi_response_pipe;
+    poll_fd_read[0].events = POLLIN;
+    poll_fd_read[0].revents = 0;
+    
+    if(b_provide_http_body)
+    {
+        poll_fd_write[0].fd = i_cgi_post_body_pipe;
+        poll_fd_write[0].events = POLLOUT;
+        poll_fd_write[0].revents = 0;
+        
+        b_write_successful = FALSE;
+    }
+
+    while ((!b_read_successful) || (!b_write_successful))
+    {
+        // Poll for more events
+        if(b_provide_http_body && !b_write_successful)
+        {
+            i_poll_result_write = poll(poll_fd_write, sizeof(poll_fd_write)/sizeof(poll_fd_write[0]), si_cgi_timeout_);
+        
+            if (i_poll_result_write < 0)
+            {
+                debug(6, "Polling for write failed: %d\n", errno);
+                return -1;
+            }
+            
+            // Timeout?
+            if (i_poll_result_write == 0)
+            {
+                // Kill child
+                debug(6, "Child process timed out, killing it.\n");
+                kill(pid_child, 0);
+                //TODO: Send 501 to http client
+                
+                return -1;
+            }
+            
+            if (poll_fd_write[0].revents & POLLOUT)
+            {   
+            debug(6, "Here.\n");
+                written_bytes = provideMessageBodyToCGIScript(poll_fd_write[0].fd, cp_http_body, 
+                                                          total_written_bytes);                                           
+                if(written_bytes < 0)
+                {
+                    debug(6, "Providing message body to CGI script failed.\n");
+                    return -1;
+                }
+                total_written_bytes += written_bytes;               
+                if(total_written_bytes == http_body_length_) 
+                {
+                    debug(6, "Writing http_body completed.\n");
+                    b_write_successful = TRUE;
+                }
+                
+                poll_fd_write[0].revents ^= POLLOUT;
+            }
+            
+            if((poll_fd_write[0].revents & (POLLHUP | POLLERR)) && (!b_write_successful))
+            {
+                debug(6, "A problem occured on the post body pipe.\n");
+                return -1;
+            }
+        }
+        
+        i_poll_result_read = poll(poll_fd_read, sizeof(poll_fd_read)/sizeof(poll_fd_read[0]), si_cgi_timeout_);
+
+        if (i_poll_result_read < 0)
+        {
+            debug(6, "Polling for read failed: %d\n", errno);
+            return -1;
+        }
+
+        // Timeout?
+        if (i_poll_result_read == 0)
+        {
+            // Kill child
+            debug(6, "Child process timed out, killing it.\n");
+            kill(pid_child, 0);
+            //TODO: Send 501 to http client
+            
+            return -1;
+        }
+        if ((poll_fd_read[0].revents & POLLIN) && (!b_read_successful))
+        {   
+            response_length = drainPipe(poll_fd_read[0].fd, &cp_cgi_response);
+            if (response_length < 0)
+            {
+                debug(6, "Could not read from pipe.\n");
+                return -1;
+            }
+            
+            debug(6, "Read %d bytes as CGI response.\n", response_length);
+            //TODO: parse
+            b_read_successful = TRUE;
+            
+            poll_fd_read[0].revents ^= POLLIN;
+        }
+
+        if((poll_fd_read[0].revents & (POLLHUP | POLLERR)) && (!b_read_successful))
+        {
+            debug(6, "A problem occured on the cgi response pipe.\n");
+            return -1;
+        }
+    } 
+    
+    debug(6, "Normal exit.\n");
+
+    return 0;
+    
+}
+*/
+
+
+ssize_t provideMessageBodyToCGIScript(int i_cgi_post_body_pipe, const char* cp_http_body, 
+                                  size_t start_index)
+{
+    ssize_t written_bytes = 0;
+    debug(6, "Starting write at: %d\n", start_index);
+    written_bytes = write(i_cgi_post_body_pipe, cp_http_body + start_index, 
+                          http_body_length_ - start_index);
+
     if(written_bytes < 0)
+    {
         debug(6, "Error writing to CGI stdin: %d\n", errno);
-    else
-        debug(6, "Wrote %d bytes to CGI stdin.\n", written_bytes);
+        return -1;
+    }
+    
+    debug(6, "Wrote %d bytes to CGI stdin.\n", written_bytes);
+    
     return written_bytes;
 }
 
-int drainPipe(int i_source_fd, char** cpp_cgi_response) 
+ssize_t drainPipe(int i_source_fd, char** cpp_cgi_response) 
 {
-    int i_total_read_bytes = 0;
+    ssize_t total_read_bytes = 0;
     char ca_buffer[SCI_BUF_SIZE];
     bool b_first_iteration = TRUE;
     bool b_eof_reached = FALSE;
@@ -285,25 +467,32 @@ int drainPipe(int i_source_fd, char** cpp_cgi_response)
             b_eof_reached = TRUE;
         }
         
-        i_total_read_bytes += read_bytes;
+        total_read_bytes += read_bytes;
         
         if (b_first_iteration == TRUE)
         {
-            (*cpp_cgi_response) = (char*)secMalloc(i_total_read_bytes);
-            strncpy((*cpp_cgi_response), ca_buffer, i_total_read_bytes);
+            (*cpp_cgi_response) = (char*)secMalloc(total_read_bytes);
+            strncpy((*cpp_cgi_response), ca_buffer, total_read_bytes);
             debug(6, "Read from pipe: %s\n", (*cpp_cgi_response));
             b_first_iteration = FALSE;
         }
         else
         { 
-            (*cpp_cgi_response) = (char*) secRealloc((*cpp_cgi_response), i_total_read_bytes);
-            strncpy((*cpp_cgi_response) + (i_total_read_bytes - read_bytes), ca_buffer, read_bytes);
+            (*cpp_cgi_response) = (char*) secRealloc((*cpp_cgi_response), total_read_bytes);
+            strncpy((*cpp_cgi_response) + (total_read_bytes - read_bytes), ca_buffer, read_bytes);
             debug(6, "Read from pipe after realloc: %s\n", (*cpp_cgi_response));
-            //TODO: There should be a maximum size.
+            
+            //Check maximum size.
+            if(total_read_bytes > SCI_MAX_CGI_RESPONSE_LENGTH)
+            {
+                debug(6, "CGI response exceeds maximum size.\n");
+                return -1;
+            }
+            
         }
 
     } while (!b_eof_reached);
     
-    return i_total_read_bytes;
+    return total_read_bytes;
 }
 

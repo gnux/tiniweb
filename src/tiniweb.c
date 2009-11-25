@@ -125,8 +125,7 @@ int main(int argc, char** argv) {
     //           "\r\n"
     //           "<html><body>Hello!</body></html>\r\n");   
 
-    processCGIScript("testscript", "this is the http-body");
-   
+    processCGIScript("testscript", "Testbody"); 
     
     secCleanup();
     
@@ -151,3 +150,4 @@ int main(int argc, char** argv) {
     memset(result,0,16);
     md5_finish(&my_md5_state, &result[0]);
 */
+
