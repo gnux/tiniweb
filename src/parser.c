@@ -144,7 +144,7 @@ int parseRequestURI(char* input, int offset){
 	for(i_offset_en = i_offset_st; i_offset_en < strlen(input) && input[i_offset_en] != ' '; ++i_offset_en);
 	cp_uri = secGetStringPart(input, i_offset_st, i_offset_en - 1);
 	
-	if(strncmp(SCCP_CGI_BIN,cp_uri,min(strlen(SCCP_CGI_BIN), strlen(cp_uri))==0){
+	if(strncmp(SCCP_CGI_BIN,cp_uri,min(strlen(SCCP_CGI_BIN), strlen(cp_uri))==0)){
 		B_CGI_BIN_FOUND = TRUE;
 		debugVerbose(PARSER, "CGI bin found\n");
 	}
