@@ -224,6 +224,9 @@ void testPerformHMACMD5()
     checkPath("..");
     checkPath("");
     checkPath("../src/../src/auth.c");
+    checkPath("/etc/");
+    checkPath("/etc/foooooooo");
+    checkPath("/..");
     
     checkIfPathsDoNotContainEachOther("foo","foo");
     checkIfPathsDoNotContainEachOther("foo/bin","foo/bin/toll");
@@ -231,8 +234,11 @@ void testPerformHMACMD5()
     checkIfPathsDoNotContainEachOther("foo/../foo/bin","foo/bin");
     checkIfPathsDoNotContainEachOther("foo/bin/../../foo/bin/toll/../toll","foo/bin/toll");
     
-    char* cp_path_1 = "/foo/../foo";
-    deleteCyclesFromPath(&cp_path_1);
+//     char* cp_path_1 = "/foo/../foo";
+//     int i_path_len = 11;
+//     char* cp_with_sec_allocated_memory = secMalloc(i_path_len);
+//     strncpy(cp_with_sec_allocated_memory, "/foo/../foo", i_path_len);
+//     deleteCyclesFromPath(&cp_with_sec_allocated_memory);
 }
 
 void createNonce(unsigned char* uca_key, unsigned char* uca_nonce)
@@ -299,6 +305,9 @@ void deleteCyclesFromPath(char** cpp_path_to_check)
 {
     int i_path_len = strlen(*cpp_path_to_check);
     char** cpp_path = 0;
+    char* cp_result_path = 0;
+    bool b_malloc_performed = FALSE;
+    int i_alloc_result_path_len = 0;
     int i_num_folders = 0;
     int i_start = 0;
     
@@ -311,40 +320,113 @@ void deleteCyclesFromPath(char** cpp_path_to_check)
     {
         debugVerbose(AUTH, "i_end: %i\n", i_end);
         
-        if ((*cpp_path_to_check)[i_end] == '/')
+        if ((*cpp_path_to_check)[i_end] == '/' || i_end == i_path_len - 1)
         {
             debugVerbose(AUTH, "'/' Found!\n");
+            i_num_folders++;
             
-            if (i_num_folders == 0)  // First '/' was found
+            if (i_num_folders == 1)  // First '/' was found
             {
                 cpp_path = secMalloc(1);
             }
             else
             {
-                (*cpp_path) = secRealloc((*cpp_path), i_num_folders + 1);
+                (*cpp_path) = secRealloc((*cpp_path), i_num_folders);
             }
             
             int i_num_chars = i_end - i_start + 1;
-            cpp_path[i_num_folders] = secMalloc(i_num_chars);
+            debugVerbose(AUTH, "  i_num_chars = %i\n", i_num_chars);
             
-            debugVerbose(AUTH, "Write from A to B: ");
+            cpp_path[i_num_folders - 1] = secMalloc(i_num_chars);
             
             // Write all chars into new sorted array
-            for (int i = i_start; i <= i_end; i++)
-            {
-                cpp_path[i_num_folders][i] = (*cpp_path_to_check)[i];
-                fprintf(stderr, "%c", cpp_path[i_num_folders][i]);
-            }
+            strncpy(cpp_path[i_num_folders - 1], (*cpp_path_to_check) + i_start, i_num_chars);
             
-            fprintf(stderr, "\n");
+            cpp_path[i_num_folders - 1][i_num_chars] = '\0';
+            debugVerbose(AUTH, "Write from A to B: %s\n", cpp_path[i_num_folders - 1]);
             
             i_start = i_end + 1;
-            i_num_folders++;
         }
     }
     
     // TODO: If cpp_path[current_folder] is "/.." delete the folder cpp[current_folder - 1]
     //       Create new string and store it into cpp_path_to_check
     //       Free all allocated Memory
+    
+    debugVerbose(AUTH, "Hier 1\n");
+    
+    for (int i_current_folder = 0; i_current_folder < i_num_folders; i_current_folder++)
+    {
+        for (int i = 0; i < i_num_folders; i++) {
+            debugVerbose(AUTH, "BEFORE: i_current_folder: %i, String: %s\n", i, cpp_path[i]);
+        }
+        
+        if (strncmp(cpp_path[i_current_folder], "../", 3) == 0 ||
+            strncmp(cpp_path[i_current_folder], "..", 2) == 0)
+        {
+            secRealloc(cpp_path[i_current_folder], 1);
+            cpp_path[i_current_folder][0] = '\0';
+            if (i_current_folder > 0)
+            {
+                secRealloc(cpp_path[i_current_folder - 1], 1);
+                cpp_path[i_current_folder - 1][0] = '\0';
+            }
+        }
+        else if ( strncmp(cpp_path[i_current_folder], "./", 2) == 0 || 
+                ( cpp_path[i_current_folder][0] == '.' && cpp_path[i_current_folder][1] == '\0' ) )
+        {
+            secRealloc(cpp_path[i_current_folder], 1);
+            cpp_path[i_current_folder][0] = '\0';
+        }
+        
+        for (int i = 0; i < i_num_folders; i++) {
+            debugVerbose(AUTH, "AFTER:  i_current_folder: %i, String: %s\n", i, cpp_path[i]);
+        }
+    }
+    
+    debugVerbose(AUTH, "Hier 2\n");
+    
+    for (int i_current_folder = 0; i_current_folder < i_num_folders; i_current_folder++)
+    {
+        if (cpp_path[i_current_folder][0] != '\0')
+        {
+            int i_str_len = strlen(cpp_path[i_current_folder]);
+            
+            if (b_malloc_performed == FALSE)
+            {
+                cp_result_path = secMalloc(i_str_len);
+                b_malloc_performed = TRUE;
+            }
+            else
+                cp_result_path = secRealloc(cp_result_path, i_alloc_result_path_len + i_str_len);
+            
+            strncpy(cp_result_path + (i_alloc_result_path_len), cpp_path[i_current_folder], i_str_len);
+            i_alloc_result_path_len += i_str_len;
+        }
+        
+        debugVerbose(AUTH, "Currentfolder: %i, Resultstring: %s\n", i_current_folder, cp_result_path);
+    }
+    cp_result_path[i_alloc_result_path_len] = '\0';
+    
+    debugVerbose(AUTH, "Hier 3\n");
+    
+    // Free Memory
+    for (int i_current_folder = 0; i_current_folder < i_num_folders; i_current_folder++)
+        secFree(cpp_path[i_current_folder]);
+    
+    //secFree(cpp_path);
+    // TODO ?? secFree(cpp_path_to_check);
+    
+    debugVerbose(AUTH, "Removed All cycles from %s\n", (*cpp_path_to_check));
+    debugVerbose(AUTH, "    Result Path: %s\n", cp_result_path);
+    (*cpp_path_to_check) = cp_result_path;
+    debugVerbose(AUTH, "    Result: %s\n", (*cpp_path_to_check));
 }
+
+void getSortedPath(char* cp_path_to_sort, char** cpp_path)
+{
+    
+    
+}
+
 

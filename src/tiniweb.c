@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
 //     processCGIScript("testscript");
     testPerformHMACMD5();
     
-    secCleanup();
+//     secCleanup();
     
     
     return EXIT_SUCCESS;
