@@ -232,7 +232,7 @@ int main(int argc, char** argv) {
 //     secCleanup();
    
 //     processCGIScript("testscript");
-    testPerformHMACMD5();
+  //  testPerformHMACMD5();
 
     
     secCleanup();

@@ -77,7 +77,7 @@ void secAbort();
  */
 ssize_t secGetline(char** cpp_lineptr, FILE *stream);
 
-void *secGetStringPart(char* cpp_string, ssize_t start, ssize_t end);
+void *secGetStringPart(const char* ccp_string, ssize_t start, ssize_t end);
 
 
 //TODO: remove this function, if not needed anymore
