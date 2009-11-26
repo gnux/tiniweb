@@ -9,6 +9,7 @@
 #include <signal.h>
 
 #include "parser.h"
+#include "normalize.h"
 #include "debug.h"
 #include "cgi.h"
 #include "envvar.h"
@@ -79,8 +80,6 @@ void processCGIScript(const char* cp_path)
         //TODO safe exit
         debug(CGICALL, "Setting pipes non-blocking failed: %d\n", errno);
     }
-
-    debug(CGICALL, "Http-Method: %d\n", e_used_method);
     
     if(e_used_method == POST)
     {
@@ -104,7 +103,7 @@ void processCGIScript(const char* cp_path)
     }
     
     
-    /* Fork the child process */
+    //Fork the child process
     pid_child = fork();  
 
     switch (pid_child) {
@@ -297,6 +296,7 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
         /* Drain the standard output pipe */
         if ((poll_fd[0].revents & POLLIN) && (!b_read_successful))
         {   
+        
             response_length = drainPipe(poll_fd[0].fd, &cp_cgi_response);
             if (response_length < 0)
             {
@@ -305,6 +305,10 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
             }
             
             debug(CGICALL, "Read %d bytes as CGI response.\n", response_length);
+            
+            
+            //http_norm* hnp_info = normalizeHttp(poll_fd[0].fd);
+            //i_success = parseCgiResponseHeader(hnp_info);
             b_read_successful = TRUE;
             
             poll_fd[0].revents ^= POLLIN;
@@ -345,10 +349,10 @@ int drainPipeTo(int i_source_fd, int i_dest_fd)
         written_bytes = write(i_dest_fd, io_buffer, strlen(io_buffer));
         debug(CGICALL, "Wrote %d bytes to cgi pipe.\n", written_bytes);
         if (written_bytes < 0) 
-        {
-            debug(CGICALL, "Error while writing.\n");
+        {    
             if(errno == EAGAIN)
                 return 1;
+            debug(CGICALL, "Error while writing.\n");
             return -1;
 
         } else if (written_bytes < read_bytes) 
