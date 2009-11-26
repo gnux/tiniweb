@@ -38,6 +38,12 @@ int parseHttpRequestHeader(char* input);
 int parseRequestLine(char* input);
 
 /**
+ * IF we don't now the Method we try to check if we got an Response
+ * http-response-header = status-line header-field* NEWLINE
+ */
+int parserResponseHeaderLine(char* input, int offset);
+
+/**
  * Checks if  the Method is one out of our supported methods "GET","POST","HEAD"
  */
 int parseMethod(char* input, int offset);

@@ -38,5 +38,12 @@ typedef struct http_autorization{
 	char *response;
 }http_autorization;
 
+typedef struct http_response{
+	char *status_code;
+	char *reason_phrase;
+	char *version;
+	char *content_length;
+	char *connection;
+}http_response;
 
 #endif /*TYPEDEF_*/
