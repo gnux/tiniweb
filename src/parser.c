@@ -30,6 +30,7 @@ bool B_SEARCH_AUTORIZATION = FALSE;
 bool B_AUTORIZATION_FOUND = FALSE;
 //TODO: really use global variable???
 http_autorization* http_autorization_ = NULL;
+http_response *http_response_;
 
 int min(int a, int b){
 	return a < b ? a : b;
@@ -37,8 +38,18 @@ int min(int a, int b){
 
 void parse(http_norm *hnp_info){
  	//TODO: BETTER ERROR HANDLING
-	if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE)
-		secAbort();
+ 	http_response_ = secCalloc(1, sizeof(http_response));
+	http_response_->connection = NULL;
+	http_response_->content_length = NULL;
+	http_response_->reason_phrase = NULL;
+	http_response_->status_code = NULL;
+	http_response_->version = NULL;
+ 	
+ 	
+	if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE){
+		if(B_RESPONSE_HEADER == FALSE)
+			secAbort();
+	}
 //	if(parseRequiredArguments(hnp_info) == EXIT_FAILURE)
 //		secAbort();
 	B_SEARCH_AUTORIZATION = TRUE;
@@ -48,9 +59,7 @@ void parse(http_norm *hnp_info){
 	http_autorization_->response = NULL;
 	http_autorization_->uri = NULL;
 	http_autorization_->username = NULL;
-	
-	
-	
+
 	if(parseArguments(hnp_info) == EXIT_FAILURE)
 		secAbort();
 }
@@ -235,7 +244,13 @@ int parseRequestLine(char* input){
 			appendToEnvVarList("REQUEST_METHOD",SCCA_KNOWN_METHODS[e_used_method]);
 			break;
 		default:
-			debugVerbose(PARSER, "Unknown request Method detected, next step is to abort\n");
+			debugVerbose(PARSER, "Unknown request Method detected, check for Response Header\n");
+			i_offset = parseHttpVersion(input, 0);
+			if(i_offset == EXIT_FAILURE)
+				return EXIT_FAILURE;
+			if(parserResponseHeaderLine(input, 8)==EXIT_FAILURE)
+				return EXIT_FAILURE;
+			B_RESPONSE_HEADER = TRUE;
 			return EXIT_FAILURE;
 			break;
 	};
@@ -266,6 +281,34 @@ int parseMethod(char* input, int offset){
 			return i_offset_en + 1;
 		}
 		return EXIT_FAILURE;
+}
+
+int parserResponseHeaderLine(char* input, int offset){
+	int i_offset_st = offset;
+	int i_offset_en = i_offset_st;
+	char* cp_statuscode = NULL;
+	char* cp_reason_phrase = NULL;
+
+	if(input[offset]==' '){
+		i_offset_st++;
+		i_offset_en++;
+		debugVerbose(PARSER, "Check response header\n");
+		//Find StatusCode
+		for(; i_offset_en < strlen(input) && input[i_offset_en] != ' '; ++i_offset_en);
+		cp_statuscode = secGetStringPart(input, i_offset_st, i_offset_en - 1);
+		strAppend(&http_response_->status_code, cp_statuscode);	
+		debugVerbose(PARSER, "Statuscode: %s\n",http_response_->status_code);
+		//Finde ReasonPhrase
+		for(i_offset_st = i_offset_en; i_offset_en < strlen(input); ++i_offset_en);
+		cp_reason_phrase = secGetStringPart(input, i_offset_st, i_offset_en - 1);
+		strAppend(&http_response_->reason_phrase,cp_reason_phrase);
+		debugVerbose(PARSER, "Reason-Phrase: %s\n",http_response_->reason_phrase);
+		return EXIT_SUCCESS;
+	}
+	else
+		return EXIT_FAILURE;
+		
+	
 }
 
 int parseRequestURI(char* input, int offset){
