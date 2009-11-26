@@ -28,7 +28,8 @@ bool B_BODY_FOUND = FALSE;
 bool B_CONTENT_LENGTH_FOUND = FALSE;
 bool B_SEARCH_AUTORIZATION = FALSE;
 bool B_AUTORIZATION_FOUND = FALSE;
-http_autorization *http_autorization_;
+//TODO: really use global variable???
+http_autorization* http_autorization_ = NULL;
 
 int min(int a, int b){
 	return a < b ? a : b;
@@ -55,6 +56,7 @@ void parse(http_norm *hnp_info){
 }
 
 int parseArguments(http_norm *hnp_info){
+	char* cp_name = NULL;
 	// search for required Arguments
 	switch(e_used_method){
 		case POST:
@@ -72,8 +74,14 @@ int parseArguments(http_norm *hnp_info){
 			break;
 	};
 	
+	//search for authorization field
+	cp_name = parseFindExplicitHeaderField(hnp_info, "Authorization");
+	if(cp_name != NULL)
+		if(parseAuthorizationInfos(cp_name) == EXIT_FAILURE)
+			//TODO: ERROR handling, invalid authorization request
+			secAbort();
 	
-	for(size_t i = 0; i < hnp_info->i_num_fields; ++i){
+	for(ssize_t i = 0; i < hnp_info->i_num_fields; ++i){
 		char* cp_name = NULL;
 		strAppend(&cp_name, SCCP_HTTP_HEADER_FIELD_MARKER);
 		strAppend(&cp_name, hnp_info->cpp_header_field_name[i]);
@@ -85,7 +93,7 @@ int parseArguments(http_norm *hnp_info){
 				B_HOST_FOUND = TRUE;
 		
 		
-		if(B_SEARCH_AUTORIZATION==TRUE ){
+/*		if(B_SEARCH_AUTORIZATION==TRUE ){
 			if(strlen(cp_name)>=17)
 				if(strncmp(cp_name,"HTTP_AUTORIZATION",17)==0)
 					B_AUTORIZATION_FOUND = TRUE;
@@ -115,7 +123,7 @@ int parseArguments(http_norm *hnp_info){
 					debugVerbose(PARSER, "RESPONSE found!\n");
 				}
 		
-		}
+		}*/
 		
 		if(B_CGI_BIN_FOUND == TRUE)
 			appendToEnvVarList(cp_name,hnp_info->cpp_header_field_body[i]);
@@ -139,6 +147,77 @@ int parseArguments(http_norm *hnp_info){
 	
 	}
 	return EXIT_SUCCESS;	
+}
+
+char* parseFindExplicitHeaderField(http_norm* hnp_info, const char* ccp_what){
+	ssize_t i = 0;
+	for(; i < hnp_info->i_num_fields; ++i)
+		if(strncasecmp(hnp_info->cpp_header_field_name[i], ccp_what, min(strlen(ccp_what), strlen(hnp_info->cpp_header_field_name[i]))) == 0)
+			return hnp_info->cpp_header_field_body[i];
+	return NULL;
+}
+
+int parseAuthorizationInfos(const char* ccp_authstr){
+	char* cp_helper = NULL;
+	//Must start with Digest
+	if(strncasecmp("Digest", ccp_authstr, min(strlen(ccp_authstr), strlen("Digest"))) != 0)
+		return EXIT_FAILURE;
+	http_autorization_ = secCalloc(1, sizeof(http_autorization));
+	cp_helper = parserSubstringByDelimStrings(ccp_authstr, "username=\"", "\"");
+	if(cp_helper == NULL)
+		return EXIT_FAILURE;
+	http_autorization_->username = cp_helper;
+	cp_helper = parserSubstringByDelimStrings(ccp_authstr, "realm=\"", "\"");
+	if(cp_helper == NULL)
+		return EXIT_FAILURE;
+	http_autorization_->realm = cp_helper;
+	cp_helper = parserSubstringByDelimStrings(ccp_authstr, "nonce=\"", "\"");
+	if(cp_helper == NULL)
+		return EXIT_FAILURE;
+	http_autorization_->nonce = cp_helper;
+	cp_helper = parserSubstringByDelimStrings(ccp_authstr, "uri=\"", "\"");
+	if(cp_helper == NULL)
+		return EXIT_FAILURE;
+	http_autorization_->uri = cp_helper;
+	cp_helper = parserSubstringByDelimStrings(ccp_authstr, "response=\"", "\"");
+	if(cp_helper == NULL)
+		return EXIT_FAILURE;
+	http_autorization_->response = cp_helper;
+	return EXIT_SUCCESS;
+}
+
+char* parserSubstringByDelimStrings(const char* ccp_string, const char* ccp_stdelim, const char* ccp_endelim){
+	ssize_t i_st = 0;
+	ssize_t i_en = 0;
+	ssize_t i_len_in = strlen(ccp_string);
+	ssize_t i_len_st = strlen(ccp_stdelim);
+	ssize_t i_len_en = strlen(ccp_endelim);
+	char* cp_helper = NULL;
+	debugVerbose(PARSER, "parserSubstringByDelimStrings: search for string delmited by %s and %s\n", ccp_stdelim, ccp_endelim);
+	for(; i_st < i_len_in; ++i_st){
+		cp_helper = secGetStringPart(ccp_string, i_st, i_st + i_len_st);
+		if(cp_helper == NULL)
+			return NULL;
+		if(strncasecmp(cp_helper, ccp_stdelim, i_len_st) == 0)
+			break;
+		secFree(cp_helper);
+	}
+	secFree(cp_helper);
+	if(i_st == i_len_in)
+		return NULL;
+	for(i_en = i_st + i_len_st; i_en < i_len_in; ++i_en){
+		cp_helper = secGetStringPart(ccp_string, i_en, i_en + i_len_en - 1);
+		if(cp_helper == NULL)
+			return NULL;
+		//fprintf(stderr, "i_en %d: %s \n", i_en, cp_helper);
+		if(strncasecmp(cp_helper, ccp_endelim, i_len_st) == 0)
+			break;
+		secFree(cp_helper);
+	}
+	secFree(cp_helper);
+	cp_helper = secGetStringPart(ccp_string, i_st + i_len_st, i_en - 1);
+	debugVerbose(PARSER, "parserSubstringByDelimStrings: we found %s\n", cp_helper);
+	return cp_helper;
 }
 
 int parseHttpRequestHeader(char* input){

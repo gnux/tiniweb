@@ -74,6 +74,21 @@ bool isHexDigit(char input);
  */
 void stringToUpperCase(char* input);
 
+/**
+ *
+ */
+char* parseFindExplicitHeaderField(http_norm* hnp_info, const char* ccp_what);
+
+/**
+ *
+ */
+char* parserSubstringByDelimStrings(const char* ccp_string, const char* ccp_stdelim, const char* ccp_endelim);
+
+/**
+ *
+ */
+int parseAuthorizationInfos(const char* ccp_authstr);
+
 
 
 //void normalizeHeader(char input[]);
