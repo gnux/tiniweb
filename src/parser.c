@@ -41,8 +41,8 @@ int min(int a, int b){
 
 void parse(http_norm *hnp_info){
  	//TODO: BETTER ERROR HANDLING
- 	parseCgiResponseHeader(hnp_info);
-	/*if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE){
+ 	//parseCgiResponseHeader(hnp_info);
+	if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE){
 			secAbort();
 	}
 //	if(parseRequiredArguments(hnp_info) == EXIT_FAILURE)
@@ -56,7 +56,7 @@ void parse(http_norm *hnp_info){
 //	http_autorization_->cp_username = NULL;
 
 	if(parseArguments(hnp_info) == EXIT_FAILURE)
-		secAbort();*/
+		secAbort();
 	
 	parsePrintStructures();
 }
