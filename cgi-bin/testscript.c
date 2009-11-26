@@ -11,7 +11,7 @@ int main(int argc, char** argv)
   //  char* cp_env_var1 = "TEST_VARIABLE1";
   //  char* cp_env_var2 = "TEST_VARIABLE2";
     char buf[800];
-    char buf2[100000];
+    char buf2[10000];
   //  char* cp_env_var3 = "TEST_VARIABLE3";
     int ret = 0;
  //   char* cp_env_var4 = "ABCD";
@@ -46,7 +46,7 @@ int main(int argc, char** argv)
     
 */
     fprintf(stdout, "Hello World!\n");
-    fflush(stdout);
+    //fflush(stdout);
 
     if(!fgets(buf2, sizeof(buf2), stdin)) {
         fprintf(stderr, "Error while reading: %d!\n", errno);
