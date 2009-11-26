@@ -28,7 +28,7 @@ static const int NONCE_LEN = 16;
 static bool sb_unauthorized_message_sent = FALSE;
 static unsigned char suca_sent_nonce[16];
 
-bool authenticate(char** cp_path, bool *b_static)
+bool authenticate(char** cp_path, bool *cb_static)
 {
     bool b_auth_field_available = FALSE;
     
@@ -60,8 +60,13 @@ bool authenticate(char** cp_path, bool *b_static)
             {
             
                 char* cp_password = NULL;
+                char* cp_mapped_path = NULL;
                 bool b_response_valid = FALSE;
-                bool b_htdigest_file_available = isHTDigestFileAvailable(http_request_->cp_path, 
+                
+                if (mapRequestPath(http_request_->cp_path, &cp_mapped_path, cb_static) == FALSE)
+                    return FALSE;
+                
+                bool b_htdigest_file_available = isHTDigestFileAvailable(cp_mapped_path,
                                                                          http_autorization_->cp_realm, 
                                                                          http_autorization_->cp_username, 
                                                                          &cp_password);
@@ -94,49 +99,66 @@ bool authenticate(char** cp_path, bool *b_static)
     return TRUE;
 }
 
-bool isHTDigestFileAvailable(char* cp_relative_path, char* cp_realm, char* cp_username, char** cpp_password)
+bool mapRequestPath(char* cp_relative_path, char** cpp_final_path, bool *cb_static)
 {
-    char* cp_final_path = NULL;
-    char** cpp_sorted_final_path = NULL;
     char* cp_cgi_bin = "/cgi-bin";
     char* cp_web_dir = "/";
-    int i_num_folders = 0;
-    int i_relative_path_len = strlen(cp_relative_path);
     int i_cgi_bin_len = strlen(cp_cgi_bin);
     int i_web_dir_len = strlen(cp_web_dir);
-    
-    // TODO:
-    // pfad anschauen
-    //   '/' für web-dir, cgi-bin für cgi-bin (von commandline)
-    //   check ob datei wirklich existiert
-    // get sorted path
-    //   pfad durchgehen
-    //     nach .htdigest file suchen, wenn dort -> merken
-    //     wenn 2. file im pfad -> abbruch (Protected fehler)
+    int i_relative_path_len = strlen(cp_relative_path);
     
     if (i_relative_path_len >= i_cgi_bin_len && strncmp(cp_relative_path, cp_cgi_bin, i_cgi_bin_len))
     {
-        strAppend(&cp_final_path, scp_cgi_dir_);
-        strAppend(&cp_final_path, "/");
-        strAppend(&cp_final_path, cp_relative_path);
-        
+        strAppend(cpp_final_path, scp_cgi_dir_);
+        strAppend(cpp_final_path, "/");
+        strAppend(cpp_final_path, cp_relative_path);
+        (*cb_static) = FALSE;
         // TODO inform somebody because dynamic?
     }
     else
     {
         if (i_relative_path_len >= i_web_dir_len && strncmp(cp_relative_path, cp_web_dir, i_web_dir_len))
         {
-            strAppend(&cp_final_path, scp_web_dir_);
-            strAppend(&cp_final_path, "/");
-            strAppend(&cp_final_path, cp_relative_path);
-            
+            strAppend(cpp_final_path, scp_web_dir_);
+            strAppend(cpp_final_path, "/");
+            strAppend(cpp_final_path, cp_relative_path);
+            (*cb_static) = TRUE;
             // TODO inform somebody because static?
         }
         else
         {
-            debugVerbose(AUTH, "ERROR, Final!\n");
+            debugVerbose(AUTH, "ERROR, mapping request-path to filesystem path did not work!\n");
             return FALSE;
         }
+    }
+    
+    return TRUE;
+}
+
+bool isHTDigestFileAvailable(char* cp_path, char* cp_realm, char* cp_username, char** cpp_password)
+{
+    char** cpp_sorted_final_path = NULL;
+   
+    int i_num_folders = 0;
+
+    // TODO:
+    // pfad anschauen                                               OK
+    //   '/' für web-dir, cgi-bin für cgi-bin (von commandline)     OK
+    //   check ob datei wirklich existiert                          OK
+    // get sorted path                                              OK
+    //   pfad durchgehen                                            OK
+    //     nach .htdigest file suchen, wenn dort -> merken
+    //     wenn 2. file im pfad -> abbruch (Protected fehler)
+
+    if (checkPath(cp_path) == FALSE)
+        return FALSE;
+    
+    i_num_folders = (cp_path, &cpp_sorted_final_path);
+    
+    for (int i_current_folder = 0; i_current_folder < i_num_folders; i_current_folder+++)
+    {
+        
+        
     }
     
     return TRUE;

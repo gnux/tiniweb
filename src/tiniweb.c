@@ -220,7 +220,7 @@ int main(int argc, char** argv) {
    
 //     processCGIScript("testscript");
   //  testPerformHMACMD5();
-    testPathChecking();
+    //testPathChecking();
     
 //     secCleanup();
     secCleanup();
