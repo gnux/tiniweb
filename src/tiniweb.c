@@ -28,9 +28,9 @@ static const int SCI_CGI_TIMEOUT = 1;
 unsigned char sb_flag_verbose_ = FALSE;
 
 
-static char *scp_web_dir_ = NULL;
-static char *scp_cgi_dir_ = NULL;
-static char *scp_secret_ = NULL;
+char *scp_web_dir_ = NULL;
+char *scp_cgi_dir_ = NULL;
+char *scp_secret_ = NULL;
 
 /*char *generateHexString(char* ptr, int size){
   int i;
@@ -233,7 +233,6 @@ int main(int argc, char** argv) {
    
 //     processCGIScript("testscript");
     testPerformHMACMD5();
-
     
 //     secCleanup();
     secCleanup();

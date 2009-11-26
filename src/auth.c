@@ -15,10 +15,11 @@
 #include "md5.h"
 #include "debug.h"
 #include "secmem.h"
+#include "normalize.h"
 
 extern char *scp_web_dir_;
 extern char *scp_cgi_dir_;
-// extern char *scp_secret_; TODO Uncomment when finished
+extern char *scp_secret_;
 
 static const int NONCE_LEN = 16;
 static const int MAX_ERROR_NUM = 5;
@@ -44,8 +45,7 @@ void authenticate()
     if (sb_unauthorized_message_sent == FALSE)
     {
         debugVerbose(AUTH, "No 401-Unauthorized message waas sent before.\n");
-        unsigned char uca_key[100]; // TODO remove this line!
-        createNonce(uca_key /* TODO replace with scp_secret_ */, suca_sent_nonce);
+        createNonce((unsigned char*)scp_secret_, suca_sent_nonce);
         
         // TODO send 401
     }
@@ -76,8 +76,7 @@ void authenticate()
         else
         {
             debugVerbose(AUTH, "The Request contains no authentication field.\n");
-            unsigned char uca_key[100]; // TODO remove this line!
-            createNonce(uca_key /* TODO replace with scp_secret_ */, suca_sent_nonce);
+            createNonce((unsigned char*)scp_secret_, suca_sent_nonce);
         
             // TODO send 401
             
@@ -228,17 +227,15 @@ void testPerformHMACMD5()
     checkPath("/etc/foooooooo");
     checkPath("/..");
     
-    checkIfPathsDoNotContainEachOther("foo","foo");
-    checkIfPathsDoNotContainEachOther("foo/bin","foo/bin/toll");
-    checkIfPathsDoNotContainEachOther("foo/bin","foo/juhuuu");
-    checkIfPathsDoNotContainEachOther("foo/../foo/bin","foo/bin");
-    checkIfPathsDoNotContainEachOther("foo/bin/../../foo/bin/toll/../toll","foo/bin/toll");
+    fprintf(stderr, "###########################################\n");
     
-//     char* cp_path_1 = "/foo/../foo";
-//     int i_path_len = 11;
-//     char* cp_with_sec_allocated_memory = secMalloc(i_path_len);
-//     strncpy(cp_with_sec_allocated_memory, "/foo/../foo", i_path_len);
-//     deleteCyclesFromPath(&cp_with_sec_allocated_memory);
+    char* cp_path_1 = "/foo/../foo";
+    char* cp_path_2 = "/../foo/../foo/././juhu";
+    performPathChecking(&cp_path_1,&cp_path_2);
+    
+    char* cp_path_3 = "../../"; // TODO BUG!!!
+    char* cp_path_4 = "/.";
+    performPathChecking(&cp_path_3,&cp_path_4);
 }
 
 void createNonce(unsigned char* uca_key, unsigned char* uca_nonce)
@@ -254,6 +251,27 @@ void createNonce(unsigned char* uca_key, unsigned char* uca_nonce)
     debugVerboseHash(AUTH, uca_nonce, NONCE_LEN, "A Nonce was created!");
 }
 
+bool performPathChecking(char** cpp_path_cgi, char** cpp_path_web)
+{
+    constructAbsolutePath(cpp_path_cgi);
+    constructAbsolutePath(cpp_path_web);
+    deleteCyclesFromPath(cpp_path_cgi);
+    deleteCyclesFromPath(cpp_path_web);
+    
+    if (checkPath(*cpp_path_cgi) == FALSE || checkPath(*cpp_path_web) == FALSE)
+    {
+        return FALSE;
+    }
+    
+    if (checkIfCGIDirContainsWebDir(*cpp_path_cgi, *cpp_path_web) == TRUE)
+    {
+        return FALSE;
+    }
+    
+    debug(AUTH, "Success: Path checking finished! No error ocurred!\n");
+    return TRUE;
+}
+
 bool checkPath(char* ca_path)
 {
     struct stat buffer;
@@ -261,15 +279,15 @@ bool checkPath(char* ca_path)
     
     if (i_result == 0)
     {
-        debugVerbose(AUTH, "Directory Checked: Directory/File %s is valid!\n", ca_path);
+        debugVerbose(AUTH, "Success: Directory Checked: Directory/File %s is valid!\n", ca_path);
         return TRUE;
     }
 
-    debugVerbose(AUTH, "Directory Checked: Directory/File %s is NOT valid!\n", ca_path);
+    debugVerbose(AUTH, "ERROR: Directory Checked: Directory/File %s is NOT valid!\n", ca_path);
     return FALSE;
 }
 
-bool checkIfPathsDoNotContainEachOther(char* ca_path_cgi, char* ca_path_web)
+bool checkIfCGIDirContainsWebDir(char* ca_path_cgi, char* ca_path_web)
 {
     int i_path_cgi_len = strlen(ca_path_cgi);
     int i_path_web_len = strlen(ca_path_web);
@@ -277,26 +295,25 @@ bool checkIfPathsDoNotContainEachOther(char* ca_path_cgi, char* ca_path_web)
     int i = 0;
     bool b_paths_do_not_contain_each_other = FALSE;
     
-    i_shortest_path_len = (i_path_cgi_len > i_path_web_len) ?  i_path_web_len : i_path_cgi_len;
-  
-    /* TODO check for eg: ca_path_cgi: foo/../foo
-                          ca_path_web: foo
-     */
-    
-    for (i = 0; i < i_shortest_path_len; i++)
+    if (i_path_web_len >= i_path_cgi_len)
     {
-        int i_result = strncmp(ca_path_cgi, ca_path_web, i);
-        if (i_result != 0)
+        i_shortest_path_len = (i_path_cgi_len > i_path_web_len) ?  i_path_web_len : i_path_cgi_len;
+    
+        for (i = 0; i < i_shortest_path_len; i++)
         {
-            b_paths_do_not_contain_each_other = TRUE;
-            break;
+            int i_result = strncmp(ca_path_cgi, ca_path_web, i);
+            if (i_result != 0)
+            {
+                b_paths_do_not_contain_each_other = TRUE;
+                break;
+            }
         }
     }
     
-    if (b_paths_do_not_contain_each_other)
-        debugVerbose(AUTH, "Paths %s and %s do not contain each other!\n", ca_path_cgi, ca_path_web);
+    if (!b_paths_do_not_contain_each_other)
+        debugVerbose(AUTH, "Success: CGI-Dir: '%s' does not contain WEB-Dir: '%s'!\n", ca_path_cgi, ca_path_web);
     else
-        debugVerbose(AUTH, "Paths %s and %s do contain each other!\n", ca_path_cgi, ca_path_web);
+        debugVerbose(AUTH, "ERROR: CGI-Dir: '%s' contains WEB-Dir: '%s'!\n", ca_path_cgi, ca_path_web);
     
     return b_paths_do_not_contain_each_other;
 }
@@ -304,129 +321,165 @@ bool checkIfPathsDoNotContainEachOther(char* ca_path_cgi, char* ca_path_web)
 void deleteCyclesFromPath(char** cpp_path_to_check)
 {
     int i_path_len = strlen(*cpp_path_to_check);
-    char** cpp_path = 0;
-    char* cp_result_path = 0;
-    bool b_malloc_performed = FALSE;
+    char** cpp_path = NULL;
+    char* cp_result_path = NULL;
     int i_alloc_result_path_len = 0;
     int i_num_folders = 0;
     int i_start = 0;
     
-    // Store the path into the sorted cpp_path. The result will be e.g:
-    //
-    //   cpp_path[0] = "Juhu"
-    //   cpp_path[0][0] = 'J'
-    
+    /**
+     *  Store the path into the sorted cpp_path. The result will be e.g:
+     *
+     *   cpp_path[0] = "Juhu"
+     *   cpp_path[0][0] = 'J'
+     */
     for (int i_end = 0; i_end < i_path_len; i_end++)
     {
-        debugVerbose(AUTH, "i_end: %i\n", i_end);
+//         debugVerbose(AUTH, "i_end: %i\n", i_end);
         
         if ((*cpp_path_to_check)[i_end] == '/' || i_end == i_path_len - 1)
         {
-            debugVerbose(AUTH, "'/' Found!\n");
-            i_num_folders++;
-            
-            if (i_num_folders == 1)  // First '/' was found
-            {
-                cpp_path = secMalloc(1);
-            }
-            else
-            {
-                (*cpp_path) = secRealloc((*cpp_path), i_num_folders);
-            }
-            
+//             debugVerbose(AUTH, "'/' Found!\n");
+
             int i_num_chars = i_end - i_start + 1;
-            debugVerbose(AUTH, "  i_num_chars = %i\n", i_num_chars);
+//             debugVerbose(AUTH, "  i_num_chars = %i\n", i_num_chars);
+
+            if (i_num_folders == 0)
+                cpp_path = (char**) secMalloc((i_num_folders + 1) * sizeof(char*));
+            else
+                cpp_path = (char**) secRealloc(cpp_path, (i_num_folders + 1) * sizeof(char*));
             
-            cpp_path[i_num_folders - 1] = secMalloc(i_num_chars);
+            cpp_path[i_num_folders] = (char*) secMalloc((i_num_chars + 1) * sizeof(char));
+            
+//             debugVerbose(AUTH, "nach malloc!\n");
             
             // Write all chars into new sorted array
-            strncpy(cpp_path[i_num_folders - 1], (*cpp_path_to_check) + i_start, i_num_chars);
-            
-            cpp_path[i_num_folders - 1][i_num_chars] = '\0';
-            debugVerbose(AUTH, "Write from A to B: %s\n", cpp_path[i_num_folders - 1]);
+            strncpy(cpp_path[i_num_folders], (*cpp_path_to_check) + i_start, i_num_chars);
+            cpp_path[i_num_folders][i_num_chars] = '\0';
+//             debugVerbose(AUTH, "Write from A to B: %s\n", cpp_path[i_num_folders]);
             
             i_start = i_end + 1;
+            i_num_folders++;
         }
     }
     
-    // TODO: If cpp_path[current_folder] is "/.." delete the folder cpp[current_folder - 1]
-    //       Create new string and store it into cpp_path_to_check
-    //       Free all allocated Memory
-    
-    debugVerbose(AUTH, "Hier 1\n");
-    
+    /**
+     *  Perform the checking if '../' or './' are in the path
+     *   
+     *   
+     */
     for (int i_current_folder = 0; i_current_folder < i_num_folders; i_current_folder++)
     {
-        for (int i = 0; i < i_num_folders; i++) {
-            debugVerbose(AUTH, "BEFORE: i_current_folder: %i, String: %s\n", i, cpp_path[i]);
-        }
+//         for (int i = 0; i < i_num_folders; i++) {
+//             debugVerbose(AUTH, "BEFORE: i_current_folder: %i, String: %s\n", i, cpp_path[i]);
+//         }
         
         if (strncmp(cpp_path[i_current_folder], "../", 3) == 0 ||
             strncmp(cpp_path[i_current_folder], "..", 2) == 0)
         {
-            secRealloc(cpp_path[i_current_folder], 1);
+            secRealloc(cpp_path[i_current_folder], 1 * sizeof(char));
             cpp_path[i_current_folder][0] = '\0';
             if (i_current_folder > 0)
             {
-                secRealloc(cpp_path[i_current_folder - 1], 1);
-                cpp_path[i_current_folder - 1][0] = '\0';
+
+                // Check recursive for the last folder
+                for (int i_folder_reverse = i_current_folder - 1; i_folder_reverse >= 0; i_folder_reverse--)
+                {
+                    if (cpp_path[i_folder_reverse][0] != '\0')
+                    {
+                        secRealloc(cpp_path[i_folder_reverse], 1 * sizeof(char));
+                        cpp_path[i_folder_reverse][0] = '\0';
+                        break;
+                    }
+                }
             }
         }
         else if ( strncmp(cpp_path[i_current_folder], "./", 2) == 0 || 
                 ( cpp_path[i_current_folder][0] == '.' && cpp_path[i_current_folder][1] == '\0' ) )
         {
-            secRealloc(cpp_path[i_current_folder], 1);
+            secRealloc(cpp_path[i_current_folder], 1 * sizeof(char));
             cpp_path[i_current_folder][0] = '\0';
         }
         
-        for (int i = 0; i < i_num_folders; i++) {
-            debugVerbose(AUTH, "AFTER:  i_current_folder: %i, String: %s\n", i, cpp_path[i]);
-        }
+//         for (int i = 0; i < i_num_folders; i++) {
+//             debugVerbose(AUTH, "AFTER:  i_current_folder: %i, String: %s\n", i, cpp_path[i]);
+//         }
     }
     
-    debugVerbose(AUTH, "Hier 2\n");
-    
+    /**
+     *  Store the result into the resultstring.
+     */
     for (int i_current_folder = 0; i_current_folder < i_num_folders; i_current_folder++)
     {
         if (cpp_path[i_current_folder][0] != '\0')
         {
             int i_str_len = strlen(cpp_path[i_current_folder]);
-            
-            if (b_malloc_performed == FALSE)
-            {
-                cp_result_path = secMalloc(i_str_len);
-                b_malloc_performed = TRUE;
-            }
-            else
-                cp_result_path = secRealloc(cp_result_path, i_alloc_result_path_len + i_str_len);
+            cp_result_path = secRealloc(cp_result_path, i_alloc_result_path_len + i_str_len);
             
             strncpy(cp_result_path + (i_alloc_result_path_len), cpp_path[i_current_folder], i_str_len);
             i_alloc_result_path_len += i_str_len;
         }
         
-        debugVerbose(AUTH, "Currentfolder: %i, Resultstring: %s\n", i_current_folder, cp_result_path);
+//         debugVerbose(AUTH, "Currentfolder: %i, Resultstring: %s\n", i_current_folder, cp_result_path);
     }
     cp_result_path[i_alloc_result_path_len] = '\0';
     
-    debugVerbose(AUTH, "Hier 3\n");
-    
-    // Free Memory
+    /**
+     *  Free Allocated Memory
+     */
     for (int i_current_folder = 0; i_current_folder < i_num_folders; i_current_folder++)
-        secFree(cpp_path[i_current_folder]);
-    
-    //secFree(cpp_path);
-    // TODO ?? secFree(cpp_path_to_check);
+        secFree(&(cpp_path[i_current_folder]));
+    secFree(cpp_path);
     
     debugVerbose(AUTH, "Removed All cycles from %s\n", (*cpp_path_to_check));
-    debugVerbose(AUTH, "    Result Path: %s\n", cp_result_path);
     (*cpp_path_to_check) = cp_result_path;
-    debugVerbose(AUTH, "    Result: %s\n", (*cpp_path_to_check));
+//     debugVerbose(AUTH, "    Result: %s\n", (*cpp_path_to_check));
 }
 
 void getSortedPath(char* cp_path_to_sort, char** cpp_path)
 {
     
     
+}
+
+bool isAbsolutePath(char * cp_path)
+{
+    int i_path_len = strlen(cp_path);
+    if (i_path_len >= 1)
+    {
+        if (cp_path[0] == '/')
+            return TRUE;
+    }
+    
+    return FALSE;
+}
+
+void constructAbsolutePath(char** cpp_path)
+{
+    if (!isAbsolutePath(*cpp_path))
+    {
+        char* cp_buffer = NULL;
+        int i_buffer_len = 20;
+//         int i_path_len = strlen(*cpp_path);
+        cp_buffer = secMalloc(i_buffer_len * sizeof(char));
+        char* cp_result = getcwd(cp_buffer, i_buffer_len);
+        
+        while (cp_result == NULL)
+        {
+            i_buffer_len += 1;
+            cp_buffer = secRealloc(cp_buffer, i_buffer_len * sizeof(char));
+            cp_result = getcwd(cp_buffer, i_buffer_len);
+        }
+        
+        strAppend(&cp_result, "/");
+        strAppend(&cp_result, *cpp_path);
+        secFree(cpp_path);
+        (*cpp_path) = cp_result;
+        
+        debugVerbose(AUTH, "Absolute Path %s constructed.\n", (*cpp_path));
+        return;
+    }
+    debugVerbose(AUTH, "Path %s is already an absolute path.\n", (*cpp_path));
 }
 
 
