@@ -23,8 +23,6 @@ extern char *scp_cgi_dir_;
 extern char *scp_secret_;
 
 static const int NONCE_LEN = 16;
-static const int MAX_ERROR_NUM = 5;
-static int i_current_error_num = 0;
 static bool sb_unauthorized_message_sent = FALSE;
 static unsigned char suca_sent_nonce[16];
 
@@ -36,8 +34,7 @@ void authenticate()
         debug(AUTH, "Something is wrong with the given SGI-BIN- or the WEB-Directory. Terminate Connection!\n");
         // TODO Safe Shutdown
     }
-    
-    bool b_error = FALSE;
+
     // TODO check for authentication field
     bool b_auth_field_available = FALSE;
     
@@ -65,8 +62,6 @@ void authenticate()
             if (b_response_valid == FALSE)
             {
                 //TODO Send Login Error
-                b_error = TRUE;
-                i_current_error_num++;
                 debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
             }
             else
@@ -81,20 +76,9 @@ void authenticate()
         
             // TODO send 401
             
-            b_error = TRUE;
-            i_current_error_num++;
         }
     }
     
-    if (b_error == TRUE)
-    {
-        // TODO Free Memory
-    }    
-    if (i_current_error_num >= MAX_ERROR_NUM)
-    {
-        debug(AUTH, "The maximum number of errors (%i) within this session was reached. Shutdown of Connection!\n", MAX_ERROR_NUM);
-        // TODO Safe Shutdown
-    }
 }
 
 bool verifyResponse(unsigned char* uca_ha1, unsigned char* uca_nonce, int i_nonce_len,

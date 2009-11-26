@@ -52,7 +52,7 @@ bool checkIfCGIDirContainsWebDir(char* ca_path_cgi, char* ca_path_web)
     int i_path_web_len = strlen(ca_path_web);
     int i_shortest_path_len = 0;
     int i = 0;
-    bool b_cgi_dir_contains_web_dir = TRUE;
+    bool b_cgi_dir_contains_web_dir = FALSE;
     
     if (i_path_web_len >= i_path_cgi_len)
     {
@@ -61,7 +61,11 @@ bool checkIfCGIDirContainsWebDir(char* ca_path_cgi, char* ca_path_web)
         for (i = 0; i < i_shortest_path_len; i++)
         {
             int i_result = strncmp(ca_path_cgi, ca_path_web, i);
-            if (i_result != 0)
+            if (i_result == 0)
+            {
+                b_cgi_dir_contains_web_dir = TRUE;
+            }
+            else
             {
                 b_cgi_dir_contains_web_dir = FALSE;
                 break;

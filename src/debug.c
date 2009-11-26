@@ -31,6 +31,9 @@ char* getTypeString(int type)
         case PATH:
             return "PATH";
             break;
+        case MAIN:
+            return "MAIN";
+            break;
         default:
             return "UNSPECIFIED";
     }    
