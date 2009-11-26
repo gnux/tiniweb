@@ -28,9 +28,10 @@ bool B_BODY_FOUND = FALSE;
 bool B_CONTENT_LENGTH_FOUND = FALSE;
 bool B_SEARCH_AUTORIZATION = FALSE;
 bool B_AUTORIZATION_FOUND = FALSE;
+bool B_RESPONSE_HEADER = FALSE;
 //TODO: really use global variable???
 http_autorization* http_autorization_ = NULL;
-http_response *http_response_;
+http_response *http_response_ = NULL;
 
 int min(int a, int b){
 	return a < b ? a : b;
@@ -38,16 +39,8 @@ int min(int a, int b){
 
 void parse(http_norm *hnp_info){
  	//TODO: BETTER ERROR HANDLING
- 	http_response_ = secCalloc(1, sizeof(http_response));
-	http_response_->connection = NULL;
-	http_response_->content_length = NULL;
-	http_response_->reason_phrase = NULL;
-	http_response_->status_code = NULL;
-	http_response_->version = NULL;
- 	
- 	
 	if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE){
-		if(B_RESPONSE_HEADER == FALSE)
+		//if(parseHttpRespHeader(hnp_info->cp_first_line) == FALSE)
 			secAbort();
 	}
 //	if(parseRequiredArguments(hnp_info) == EXIT_FAILURE)
@@ -172,30 +165,30 @@ int parseAuthorizationInfos(const char* ccp_authstr){
 	if(strncasecmp("Digest", ccp_authstr, min(strlen(ccp_authstr), strlen("Digest"))) != 0)
 		return EXIT_FAILURE;
 	http_autorization_ = secCalloc(1, sizeof(http_autorization));
-	cp_helper = parserSubstringByDelimStrings(ccp_authstr, "username=\"", "\"");
+	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "username=\"", "\"");
 	if(cp_helper == NULL)
 		return EXIT_FAILURE;
 	http_autorization_->username = cp_helper;
-	cp_helper = parserSubstringByDelimStrings(ccp_authstr, "realm=\"", "\"");
+	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "realm=\"", "\"");
 	if(cp_helper == NULL)
 		return EXIT_FAILURE;
 	http_autorization_->realm = cp_helper;
-	cp_helper = parserSubstringByDelimStrings(ccp_authstr, "nonce=\"", "\"");
+	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "nonce=\"", "\"");
 	if(cp_helper == NULL)
 		return EXIT_FAILURE;
 	http_autorization_->nonce = cp_helper;
-	cp_helper = parserSubstringByDelimStrings(ccp_authstr, "uri=\"", "\"");
+	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "uri=\"", "\"");
 	if(cp_helper == NULL)
 		return EXIT_FAILURE;
 	http_autorization_->uri = cp_helper;
-	cp_helper = parserSubstringByDelimStrings(ccp_authstr, "response=\"", "\"");
+	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "response=\"", "\"");
 	if(cp_helper == NULL)
 		return EXIT_FAILURE;
 	http_autorization_->response = cp_helper;
 	return EXIT_SUCCESS;
 }
 
-char* parserSubstringByDelimStrings(const char* ccp_string, const char* ccp_stdelim, const char* ccp_endelim){
+char* parseSubstringByDelimStrings(const char* ccp_string, const char* ccp_stdelim, const char* ccp_endelim){
 	ssize_t i_st = 0;
 	ssize_t i_en = 0;
 	ssize_t i_len_in = strlen(ccp_string);
@@ -248,7 +241,7 @@ int parseRequestLine(char* input){
 			i_offset = parseHttpVersion(input, 0);
 			if(i_offset == EXIT_FAILURE)
 				return EXIT_FAILURE;
-			if(parserResponseHeaderLine(input, 8)==EXIT_FAILURE)
+			if(parseResponseLine(input, 8)==EXIT_FAILURE)
 				return EXIT_FAILURE;
 			B_RESPONSE_HEADER = TRUE;
 			return EXIT_FAILURE;
@@ -283,11 +276,19 @@ int parseMethod(char* input, int offset){
 		return EXIT_FAILURE;
 }
 
-int parserResponseHeaderLine(char* input, int offset){
+//TODO: We schould respond, so is it really neccessary to parse our own output???
+int parseResponseLine(char* input, int offset){
 	int i_offset_st = offset;
 	int i_offset_en = i_offset_st;
 	char* cp_statuscode = NULL;
 	char* cp_reason_phrase = NULL;
+	
+	http_response_ = secCalloc(1, sizeof(http_response));
+	http_response_->connection = NULL;
+	http_response_->content_length = NULL;
+	http_response_->reason_phrase = NULL;
+	http_response_->status_code = NULL;
+	http_response_->version = NULL;
 
 	if(input[offset]==' '){
 		i_offset_st++;

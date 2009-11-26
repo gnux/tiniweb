@@ -41,7 +41,7 @@ int parseRequestLine(char* input);
  * IF we don't now the Method we try to check if we got an Response
  * http-response-header = status-line header-field* NEWLINE
  */
-int parserResponseHeaderLine(char* input, int offset);
+int parseResponseLine(char* input, int offset);
 
 /**
  * Checks if  the Method is one out of our supported methods "GET","POST","HEAD"
@@ -88,7 +88,7 @@ char* parseFindExplicitHeaderField(http_norm* hnp_info, const char* ccp_what);
 /**
  *
  */
-char* parserSubstringByDelimStrings(const char* ccp_string, const char* ccp_stdelim, const char* ccp_endelim);
+char* parseSubstringByDelimStrings(const char* ccp_string, const char* ccp_stdelim, const char* ccp_endelim);
 
 /**
  *
