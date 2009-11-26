@@ -46,7 +46,7 @@ int parseResponseLine(char* input, int offset);
 /**
  * Checks if  the Method is one out of our supported methods "GET","POST","HEAD"
  */
-int parseMethod(char* input, int offset);
+int parseRequestMethod(char* input, int offset);
 
 /**
  * Checks if the URI looks like:
@@ -95,6 +95,10 @@ char* parseSubstringByDelimStrings(const char* ccp_string, const char* ccp_stdel
  */
 int parseAuthorizationInfos(const char* ccp_authstr);
 
+/**
+ *
+ */
+void parsePrintStructures();
 
 
 //void normalizeHeader(char input[]);

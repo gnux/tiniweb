@@ -23,15 +23,17 @@ static const char* SCCP_HTTP_HEADER_FIELD_MARKER = "HTTP_";
 enum SCE_KNOWN_METHODS e_used_method = UNKNOWN;
 
 bool B_CGI_BIN_FOUND = FALSE;
-bool B_HOST_FOUND = FALSE;
+//bool B_HOST_FOUND = FALSE;
 bool B_BODY_FOUND = FALSE;
 bool B_CONTENT_LENGTH_FOUND = FALSE;
 bool B_SEARCH_AUTORIZATION = FALSE;
 bool B_AUTORIZATION_FOUND = FALSE;
 bool B_RESPONSE_HEADER = FALSE;
+bool B_REQUEST_HEADER = FALSE;
 //TODO: really use global variable???
 http_autorization* http_autorization_ = NULL;
 http_response *http_response_ = NULL;
+http_request *http_request_ = NULL;
 
 int min(int a, int b){
 	return a < b ? a : b;
@@ -45,21 +47,30 @@ void parse(http_norm *hnp_info){
 	}
 //	if(parseRequiredArguments(hnp_info) == EXIT_FAILURE)
 //		secAbort();
-	B_SEARCH_AUTORIZATION = TRUE;
-	http_autorization_ = secCalloc(1, sizeof(http_autorization));
-	http_autorization_->nonce = NULL;
-	http_autorization_->realm = NULL;
-	http_autorization_->response = NULL;
-	http_autorization_->uri = NULL;
-	http_autorization_->username = NULL;
+//	B_SEARCH_AUTORIZATION = TRUE;
+//	http_autorization_ = secCalloc(1, sizeof(http_autorization));
+//	http_autorization_->cp_nonce = NULL;
+//	http_autorization_->cp_realm = NULL;
+//	http_autorization_->cp_response = NULL;
+//	http_autorization_->cp_uri = NULL;
+//	http_autorization_->cp_username = NULL;
 
 	if(parseArguments(hnp_info) == EXIT_FAILURE)
 		secAbort();
+	
+	parsePrintStructures();
 }
 
 int parseArguments(http_norm *hnp_info){
 	char* cp_name = NULL;
 	// search for required Arguments
+	
+	// we need a HOST field!
+	cp_name = parseFindExplicitHeaderField(hnp_info, "Host");
+	if(cp_name == NULL)
+		//TODO: ERROR handling, no host field!
+		return EXIT_FAILURE;
+	
 	switch(e_used_method){
 		case POST:
 			debugVerbose(PARSER, "Post Method found, go on!\n");
@@ -78,24 +89,50 @@ int parseArguments(http_norm *hnp_info){
 	
 	//search for authorization field
 	cp_name = parseFindExplicitHeaderField(hnp_info, "Authorization");
-	if(cp_name != NULL)
+	if(cp_name != NULL){
 		if(parseAuthorizationInfos(cp_name) == EXIT_FAILURE)
 			//TODO: ERROR handling, invalid authorization request
-			secAbort();
+			return EXIT_FAILURE;
+		else
+			B_AUTORIZATION_FOUND = TRUE;
+	}
 	
-	for(ssize_t i = 0; i < hnp_info->i_num_fields; ++i){
-		char* cp_name = NULL;
-		strAppend(&cp_name, SCCP_HTTP_HEADER_FIELD_MARKER);
-		strAppend(&cp_name, hnp_info->cpp_header_field_name[i]);
-		stringToUpperCase(cp_name);
+	// in case of cgi we would need to setup our envvars
+	if(B_CGI_BIN_FOUND == TRUE){
+		for(ssize_t i = 0; i < hnp_info->i_num_fields; ++i){
+			cp_name = NULL;
+			strAppend(&cp_name, SCCP_HTTP_HEADER_FIELD_MARKER);
+			strAppend(&cp_name, hnp_info->cpp_header_field_name[i]);
+			stringToUpperCase(cp_name);
+			appendToEnvVarList(cp_name,hnp_info->cpp_header_field_body[i]);
+		}
+		appendToEnvVarList("GATEWAY_INTERFACE", "CGI/1.1");
+		appendToEnvVarList("SERVER_SOFTWARE", "tiniweb/1.0");
+		//TODO: What does it mean???? Which Content, body???
+		// Just set content length in case of POST, header field must exist
+		//WHERE to get???
+		if(e_used_method == POST)
+			appendToEnvVarList("CONTENT_LENGHT", "000");
+		//TODO:Where to get???
+		if(B_AUTORIZATION_FOUND == TRUE)
+			appendToEnvVarList("REMOTE_USER",http_autorization_->cp_username);
+		//TODO:Where to get???
+		appendToEnvVarList("SCRIPT_FILENAME","0");
+		//TODO:Where to get???
+		appendToEnvVarList("DOCUMENT_ROOT","0");
+	}
+	return EXIT_SUCCESS;
+}
+	
+/*	//
+	
+//		//TODO: provide own function, for req. header field searches!
+//		if(strlen(cp_name)>=4)
+//			if(strncmp(cp_name,"HTTP_HOST",4)==0)
+//				B_HOST_FOUND = TRUE;
 		
-		//TODO: provide own function, for req. header field searches!
-		if(strlen(cp_name)>=4)
-			if(strncmp(cp_name,"HTTP_HOST",4)==0)
-				B_HOST_FOUND = TRUE;
 		
-		
-/*		if(B_SEARCH_AUTORIZATION==TRUE ){
+		if(B_SEARCH_AUTORIZATION==TRUE ){
 			if(strlen(cp_name)>=17)
 				if(strncmp(cp_name,"HTTP_AUTORIZATION",17)==0)
 					B_AUTORIZATION_FOUND = TRUE;
@@ -125,31 +162,31 @@ int parseArguments(http_norm *hnp_info){
 					debugVerbose(PARSER, "RESPONSE found!\n");
 				}
 		
-		}*/
+		}
 		
-		if(B_CGI_BIN_FOUND == TRUE)
-			appendToEnvVarList(cp_name,hnp_info->cpp_header_field_body[i]);
-	}
+//		if(B_CGI_BIN_FOUND == TRUE)
+			
+//	}
 	// set Constants
-	if(B_CGI_BIN_FOUND == TRUE){
-		appendToEnvVarList("GATEWAY_INTERFACE", "CGI/1.1");
-		appendToEnvVarList("SERVER_SOFTWARE", "tiniweb/1.0");
+//	if(B_CGI_BIN_FOUND == TRUE){
+//		appendToEnvVarList("GATEWAY_INTERFACE", "CGI/1.1");
+//		appendToEnvVarList("SERVER_SOFTWARE", "tiniweb/1.0");
 		//TODO: What does it mean???? Which Content, body???
 		//Just set envvar in case of cgi_bin_found
 		// Just set content length in case of POST, header field must exist
-		appendToEnvVarList("CONTENT_LENGHT", "0");
+//		appendToEnvVarList("CONTENT_LENGHT", "0");
 		//TODO:Where to get???
-		appendToEnvVarList("REMOTE_USER","0");
+//		appendToEnvVarList("REMOTE_USER","0");
 		//TODO:Where to get???
-		appendToEnvVarList("SCRIPT_FILENAME","0");
-		//TODO:Where to get???
-		appendToEnvVarList("DOCUMENT_ROOT","0");
-	}
-	else{
-	
-	}
-	return EXIT_SUCCESS;	
-}
+//		appendToEnvVarList("SCRIPT_FILENAME","0");
+//		//TODO:Where to get???
+//		appendToEnvVarList("DOCUMENT_ROOT","0");
+//	}
+//	else{
+//	
+//	}
+//	return EXIT_SUCCESS:	
+//}*/
 
 char* parseFindExplicitHeaderField(http_norm* hnp_info, const char* ccp_what){
 	ssize_t i = 0;
@@ -168,23 +205,23 @@ int parseAuthorizationInfos(const char* ccp_authstr){
 	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "username=\"", "\"");
 	if(cp_helper == NULL)
 		return EXIT_FAILURE;
-	http_autorization_->username = cp_helper;
+	http_autorization_->cp_username = cp_helper;
 	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "realm=\"", "\"");
 	if(cp_helper == NULL)
 		return EXIT_FAILURE;
-	http_autorization_->realm = cp_helper;
+	http_autorization_->cp_realm = cp_helper;
 	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "nonce=\"", "\"");
 	if(cp_helper == NULL)
 		return EXIT_FAILURE;
-	http_autorization_->nonce = cp_helper;
+	http_autorization_->cp_nonce = cp_helper;
 	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "uri=\"", "\"");
 	if(cp_helper == NULL)
 		return EXIT_FAILURE;
-	http_autorization_->uri = cp_helper;
+	http_autorization_->cp_uri = cp_helper;
 	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "response=\"", "\"");
 	if(cp_helper == NULL)
 		return EXIT_FAILURE;
-	http_autorization_->response = cp_helper;
+	http_autorization_->cp_response = cp_helper;
 	return EXIT_SUCCESS;
 }
 
@@ -228,25 +265,11 @@ int parseHttpRequestHeader(char* input){
 }
 
 int parseRequestLine(char* input){
-	int i_offset = parseMethod(input, 0);
-	
-	switch (e_used_method){
-		case POST: // TODO: provide BODY Field in this case!
-		case GET:
-		case HEAD:
-			appendToEnvVarList("REQUEST_METHOD",SCCA_KNOWN_METHODS[e_used_method]);
-			break;
-		default:
-			debugVerbose(PARSER, "Unknown request Method detected, check for Response Header\n");
-			i_offset = parseHttpVersion(input, 0);
-			if(i_offset == EXIT_FAILURE)
-				return EXIT_FAILURE;
-			if(parseResponseLine(input, 8)==EXIT_FAILURE)
-				return EXIT_FAILURE;
-			B_RESPONSE_HEADER = TRUE;
-			return EXIT_FAILURE;
-			break;
-	};
+	ssize_t i_offset = parseRequestMethod(input, 0);
+	// no suitable method? so we break here!
+	if(i_offset == EXIT_FAILURE)
+		return EXIT_FAILURE;
+	http_request_ = secCalloc(1, sizeof(http_request));
 	
 	i_offset = parseRequestURI(input, i_offset);
 	if( i_offset == EXIT_FAILURE){
@@ -257,10 +280,33 @@ int parseRequestLine(char* input){
 		debugVerbose(PARSER, "Unknown server protocol, next step is to abort\n");
 		return EXIT_FAILURE;
 	}
+	
+	switch (e_used_method){
+		case POST: // TODO: provide BODY Field in this case and setup envvars here!
+		case GET:
+		case HEAD:
+			http_request_->cp_method = secGetStringPart(SCCA_KNOWN_METHODS[e_used_method], 0, strlen(SCCA_KNOWN_METHODS[e_used_method]));
+			//appendToEnvVarList("REQUEST_METHOD",SCCA_KNOWN_METHODS[e_used_method]);
+			break;
+		default:
+			debugVerbose(PARSER, "Something went wrong, we schould never ever reach this line, shit happens\n");
+			//debugVerbose(PARSER, "Unknown request Method detected, check for Response Header\n");
+			//TODO: really, i don't think so?????
+			i_offset = parseHttpVersion(input, 0);
+			if(i_offset == EXIT_FAILURE)
+				return EXIT_FAILURE;
+			if(parseResponseLine(input, 8)==EXIT_FAILURE)
+				return EXIT_FAILURE;
+			B_RESPONSE_HEADER = TRUE;
+			return EXIT_FAILURE;
+			break;
+	};
+	
+
 	return EXIT_SUCCESS;
 }
 
-int parseMethod(char* input, int offset){
+int parseRequestMethod(char* input, int offset){
 	int i_offset_en = 0;
 	int i = offset;
 	char* cp_method = NULL;
@@ -330,7 +376,7 @@ int parseRequestURI(char* input, int offset){
 	for(i_offset_en = i_offset_st; i_offset_en < strlen(input) && input[i_offset_en] != ' '; ++i_offset_en);
 	cp_uri = secGetStringPart(input, i_offset_st, i_offset_en - 1);
 	
-	if(strncmp(SCCP_CGI_BIN,cp_uri,min(strlen(SCCP_CGI_BIN), strlen(cp_uri))==0)){
+	if(strncmp(SCCP_CGI_BIN,cp_uri,min(strlen(SCCP_CGI_BIN), strlen(cp_uri)))==0){
 		B_CGI_BIN_FOUND = TRUE;
 		debugVerbose(PARSER, "CGI bin found\n");
 	}
@@ -345,21 +391,18 @@ int parseRequestURI(char* input, int offset){
 	}
 	else
 		strAppend(&cp_path, cp_uri);
-	
-	if(cp_uri)
-		appendToEnvVarList("REQUEST_URI",cp_uri);
+
 	if(cp_path){
 		if(validateString(cp_path) == EXIT_FAILURE){
 			debugVerbose(PARSER, "Invalid char detected in URI Path\n");
 			return EXIT_FAILURE;
 		}
-		appendToEnvVarList("REQUEST_PATH", cp_path);
 	}
-	if(cp_query)
-		appendToEnvVarList("QUERY_STRING",cp_query);
-	if(cp_fragment)
-		appendToEnvVarList("FRAGMENT",cp_fragment);
-	
+	// Fill up struct, remember it could contain NULL-pointers!
+	http_request_->cp_uri = cp_uri;
+	http_request_->cp_path = cp_path;
+	http_request_->cp_query = cp_query;
+	http_request_->cp_fragment = cp_fragment;
 	return offset + strlen(cp_uri);
 }
 
@@ -424,6 +467,24 @@ void stringToUpperCase(char* input){
 	}	
 }
 
+void parsePrintStructures(){
+	debugVerbose(PARSER, "Here we show our structs...\n");
+	if(http_request_){
+		debugVerbose(PARSER, "http_request_->cp_method = %s\n", http_request_->cp_method);
+		debugVerbose(PARSER, "http_request_->cp_uri = %s\n", http_request_->cp_uri);
+		debugVerbose(PARSER, "http_request_->cp_path = %s\n", http_request_->cp_path);
+		debugVerbose(PARSER, "http_request_->cp_query = %s\n", http_request_->cp_query);
+		debugVerbose(PARSER, "http_request_->cp_fragment = %s\n", http_request_->cp_fragment);
+	}
+	if(http_autorization_){
+		debugVerbose(PARSER, "http_authorization_->cp_username = %s\n", http_autorization_->cp_username);
+		debugVerbose(PARSER, "http_authorization_->cp_realm = %s\n", http_autorization_->cp_realm);
+		debugVerbose(PARSER, "http_authorization_->cp_nonce = %s\n", http_autorization_->cp_nonce);
+		debugVerbose(PARSER, "http_authorization_->cp_uri = %s\n", http_autorization_->cp_uri);
+		debugVerbose(PARSER, "http_authorization_->cp_response = %s\n", http_autorization_->cp_response);
+	}
+	debugVerbose(PARSER, "...shown\n");
+}
 
 /*bool was_right = TRUE;
 if(offset == 0){
