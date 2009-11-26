@@ -439,9 +439,4 @@ if(HTTPVERSION[i]!=input[offset]){
    // 	}
    // 	return offset;*/
    // }*/
-<<<<<<< HEAD
-   
-   
-   
-=======
->>>>>>> parser
+

@@ -1,4 +1,4 @@
-GET 			     
+POST 			     
   
   /cgi-bin/lallaa/index.html?name=sase#lolo%20lolo      HTTP/1.1
 Test: Test1
