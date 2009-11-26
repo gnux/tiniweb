@@ -24,8 +24,6 @@ bool checkIfCGIDirContainsWebDir(char* ca_path_cgi, char* ca_path_web);
 
 void deleteCyclesFromPath(char** cpp_path);
 
-void getSortedPath(char* cp_path_to_sort, char** cpp_path);
-
 bool isAbsolutePath(char * cp_path);
 
 void constructAbsolutePath(char** cpp_path);

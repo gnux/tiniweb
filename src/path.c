@@ -52,29 +52,29 @@ bool checkIfCGIDirContainsWebDir(char* ca_path_cgi, char* ca_path_web)
     int i_path_web_len = strlen(ca_path_web);
     int i_shortest_path_len = 0;
     int i = 0;
-    bool b_paths_do_not_contain_each_other = FALSE;
+    bool b_cgi_dir_contains_web_dir = TRUE;
     
     if (i_path_web_len >= i_path_cgi_len)
     {
-        i_shortest_path_len = (i_path_cgi_len > i_path_web_len) ?  i_path_web_len : i_path_cgi_len;
+        i_shortest_path_len = i_path_cgi_len;
     
         for (i = 0; i < i_shortest_path_len; i++)
         {
             int i_result = strncmp(ca_path_cgi, ca_path_web, i);
             if (i_result != 0)
             {
-                b_paths_do_not_contain_each_other = TRUE;
+                b_cgi_dir_contains_web_dir = FALSE;
                 break;
             }
         }
     }
     
-    if (!b_paths_do_not_contain_each_other)
+    if (!b_cgi_dir_contains_web_dir)
         debugVerbose(PATH, "Success: CGI-Dir: '%s' does not contain WEB-Dir: '%s'!\n", ca_path_cgi, ca_path_web);
     else
         debugVerbose(PATH, "ERROR: CGI-Dir: '%s' contains WEB-Dir: '%s'!\n", ca_path_cgi, ca_path_web);
     
-    return b_paths_do_not_contain_each_other;
+    return b_cgi_dir_contains_web_dir;
 }
 
 void deleteCyclesFromPath(char** cpp_path_to_check)
@@ -124,8 +124,8 @@ void deleteCyclesFromPath(char** cpp_path_to_check)
     
     /**
      *  Perform the checking if '../' or './' are in the path
-     *   
-     *   
+     *   if there is a '..' search for the folder before and delete it
+     *   if there is a '.' delete it
      */
     for (int i_current_folder = 0; i_current_folder < i_num_folders; i_current_folder++)
     {
@@ -133,6 +133,7 @@ void deleteCyclesFromPath(char** cpp_path_to_check)
 //             debugVerbose(PATH, "BEFORE: i_current_folder: %i, String: %s\n", i, cpp_path[i]);
 //         }
         
+        // handle the '..'
         if (strncmp(cpp_path[i_current_folder], "../", 3) == 0 ||
             strncmp(cpp_path[i_current_folder], "..", 2) == 0)
         {
@@ -144,6 +145,15 @@ void deleteCyclesFromPath(char** cpp_path_to_check)
                 // Check recursive for the last folder
                 for (int i_folder_reverse = i_current_folder - 1; i_folder_reverse >= 0; i_folder_reverse--)
                 {
+                    
+                    // If first folder just contains '/' do nothing
+                    if (i_folder_reverse == 0 && cpp_path[i_folder_reverse][0] == '/' && 
+                        strlen(cpp_path[i_folder_reverse]) == 1)
+                    {
+                        break;
+                    }
+                    
+                    // Erase the Folder before the '..'
                     if (cpp_path[i_folder_reverse][0] != '\0')
                     {
                         secRealloc(cpp_path[i_folder_reverse], 1 * sizeof(char));
@@ -153,6 +163,8 @@ void deleteCyclesFromPath(char** cpp_path_to_check)
                 }
             }
         }
+        
+        // handle the '.'
         else if ( strncmp(cpp_path[i_current_folder], "./", 2) == 0 || 
                 ( cpp_path[i_current_folder][0] == '.' && cpp_path[i_current_folder][1] == '\0' ) )
         {
@@ -190,15 +202,8 @@ void deleteCyclesFromPath(char** cpp_path_to_check)
         secFree(&(cpp_path[i_current_folder]));
     secFree(cpp_path);
     
-    debugVerbose(PATH, "Removed All cycles from %s\n", (*cpp_path_to_check));
     (*cpp_path_to_check) = cp_result_path;
-//     debugVerbose(PATH, "    Result: %s\n", (*cpp_path_to_check));
-}
-
-void getSortedPath(char* cp_path_to_sort, char** cpp_path)
-{
-    
-    
+    debugVerbose(PATH, "Removed All cycles from %s\n", (*cpp_path_to_check));
 }
 
 bool isAbsolutePath(char * cp_path)
@@ -243,7 +248,7 @@ void constructAbsolutePath(char** cpp_path)
 
 void testPathChecking()
 {
-        checkPath("../cgi-bin");
+    checkPath("../cgi-bin");
     checkPath("../cgi-bin/foo");
     checkPath("..");
     checkPath("");
@@ -252,14 +257,22 @@ void testPathChecking()
     checkPath("/etc/foooooooo");
     checkPath("/..");
     
-    fprintf(stderr, "###########################################\n");
+    debugVerbose(PATH, "-----------------------------------\n");
     
     char* cp_path_1 = "/foo/../foo";
     char* cp_path_2 = "/../foo/../foo/././juhu";
     performPathChecking(&cp_path_1,&cp_path_2);
     
-    char* cp_path_3 = "../../"; // TODO BUG!!!
-    char* cp_path_4 = "/.";
+    debugVerbose(PATH, "-----------------------------------\n");
+    
+    char* cp_path_3 = "../../";
+    char* cp_path_4 = ".";
     performPathChecking(&cp_path_3,&cp_path_4);
+    
+    debugVerbose(PATH, "-----------------------------------\n");
+    
+    char* cp_path_5 = "/../../";
+    char* cp_path_6 = "/.";
+    performPathChecking(&cp_path_5,&cp_path_6);
 }
 
