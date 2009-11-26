@@ -95,7 +95,11 @@ void processCGIScript(const char* cp_path)
             //TODO safe exit
             debug(CGICALL, "Setting pipes non-blocking failed: %d\n", errno);
         }
-        signal(SIGPIPE, SIG_IGN);
+        if(signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+        {
+            //TODO safe exit
+            debug(CGICALL, "Setting signal handler failed.\n");
+        }
         
     }
     
@@ -278,7 +282,7 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
             }
         }
 
-        if((poll_fd[0].revents & (POLLHUP | POLLERR)) && (!b_read_successful))
+        if((poll_fd[0].revents & (POLLERR)) && (!b_read_successful))
         {
             debug(CGICALL, "A problem occured on the cgi response pipe.\n");
             //return -1;
@@ -315,7 +319,7 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
     
 }
 
-int drainPipeTo(int source_fd, int dest_fd)
+int drainPipeTo(int i_source_fd, int i_dest_fd)
 {
     char io_buffer[2048];
  
@@ -325,25 +329,20 @@ int drainPipeTo(int source_fd, int dest_fd)
         ssize_t written_bytes = 0;
         ssize_t read_bytes = 0;
 
-        if(!fgets(io_buffer, sizeof(io_buffer), stdin)) {
-            return 0; 
-        } else {
-            debug(CGICALL, "Read %d bytes from stdin.\n", strlen(io_buffer));
-        }
+        read_bytes = read(i_source_fd, io_buffer, sizeof(io_buffer));
         
-        /*
         if (read_bytes <= 0) {
-             debug(CGICALL, "Wrote nothing to cgi pipe.\n");
+             debug(CGICALL, "Read nothing from source.\n");
             if (read_bytes == 0 || errno == EAGAIN) {            
                 return 0;
             }
 
             debug(CGICALL, "Error while reading.\n"); 
             return -1;      
-        }  */      
+        }     
 
 
-        written_bytes = write(dest_fd, io_buffer, strlen(io_buffer));
+        written_bytes = write(i_dest_fd, io_buffer, strlen(io_buffer));
         debug(CGICALL, "Wrote %d bytes to cgi pipe.\n", written_bytes);
         if (written_bytes < 0) 
         {

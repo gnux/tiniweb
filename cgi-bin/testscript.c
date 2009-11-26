@@ -11,7 +11,7 @@ int main(int argc, char** argv)
   //  char* cp_env_var1 = "TEST_VARIABLE1";
   //  char* cp_env_var2 = "TEST_VARIABLE2";
     char buf[800];
-    char buf2[10000];
+    char buf2[100000];
   //  char* cp_env_var3 = "TEST_VARIABLE3";
     int ret = 0;
  //   char* cp_env_var4 = "ABCD";
@@ -52,6 +52,13 @@ int main(int argc, char** argv)
         fprintf(stderr, "Error while reading: %d!\n", errno);
     } else {
         fprintf(stderr, "CgiScript: Read %d bytes.\n", strlen(buf2));
+        fprintf(stderr, "CgiScript: Read '%c'.\n", buf2[strlen(buf2)-2]);
+    }
+    if(!fgets(buf2, sizeof(buf2), stdin)) {
+        fprintf(stderr, "Error while reading: %d!\n", errno);
+    } else {
+        fprintf(stderr, "CgiScript: Read %d bytes.\n", strlen(buf2));
+        fprintf(stderr, "CgiScript: Read '%c'.\n", buf2[strlen(buf2)]);
     }
 
     // fprintf(stderr, "%s: %s\n", cp_env_var4, getenv(cp_env_var4)); 
