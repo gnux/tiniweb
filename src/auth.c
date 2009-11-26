@@ -1,50 +1,83 @@
+/** tiniweb
+ * @file auth.c
+ * @author Dieter Ladenhauf
+ */
 
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "auth.h"
 #include "typedef.h"
 #include "md5.h"
 #include "debug.h"
+#include "secmem.h"
+#include "normalize.h"
+#include "path.h"
 
-#define NONCE_LEN 16
+extern char *scp_web_dir_;
+extern char *scp_cgi_dir_;
+extern char *scp_secret_;
 
+static const int NONCE_LEN = 16;
 static bool sb_unauthorized_message_sent = FALSE;
-static unsigned char suca_sent_nonce[NONCE_LEN];
+static unsigned char suca_sent_nonce[16];
 
 void authenticate()
 {
+    if (checkPath(scp_cgi_dir_) == FALSE ||
+        checkPath(scp_web_dir_) == FALSE)
+    {
+        debug(AUTH, "Something is wrong with the given SGI-BIN- or the WEB-Directory. Terminate Connection!\n");
+        // TODO Safe Shutdown
+    }
+
     // TODO check for authentication field
+    bool b_auth_field_available = FALSE;
     
     // If no authentication field is available and no unauthorized message (401) was
     // sent, create nonce and send unauthorized message (401)
     if (sb_unauthorized_message_sent == FALSE)
     {
-        // TODO: Get Key from global var in tiniweb
-        unsigned char uca_key[100];
-
-        createNonce(uca_key, suca_sent_nonce);
+        debugVerbose(AUTH, "No 401-Unauthorized message waas sent before.\n");
+        createNonce((unsigned char*)scp_secret_, suca_sent_nonce);
         
         // TODO send 401
     }
-    
-    // If authentication field is available and 401 was already sent -> check if response
-    // is valid
-    if (sb_unauthorized_message_sent == TRUE)
-    {
-        bool b_response_valid = FALSE;
-        // TODO: b_response_valid = verifyResponse(...);
-        
-        if (b_response_valid == FALSE)
+    else
+    {       
+        if (b_auth_field_available == TRUE)
         {
-            //TODO Terminate Connection or
-            //     Send back Error message to client
-            //     (specify it)
+            // If authentication field is available and 401 was already sent -> check if response
+            // is valid
+        
+            debugVerbose(AUTH, "The Request contains an authentication field.\n");
+            
+            bool b_response_valid = FALSE;
+            // TODO: b_response_valid = verifyResponse(...);
+        
+            if (b_response_valid == FALSE)
+            {
+                //TODO Send Login Error
+                debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
+            }
+            else
+            {
+                debugVerbose(AUTH, "The 'response' from the auth field is valid!\n");
+            }
+        }
+        else
+        {
+            debugVerbose(AUTH, "The Request contains no authentication field.\n");
+            createNonce((unsigned char*)scp_secret_, suca_sent_nonce);
+        
+            // TODO send 401
+            
         }
     }
-    
     
 }
 
@@ -86,6 +119,16 @@ bool unauthorizedMessageSent()
     return sb_unauthorized_message_sent;
 }
 
+//------------------------------------------------------------------------
+// Keyed-Hashing for Message Authentication Code (HMAC)
+//
+// Implementation from RFC 2104: "Appendix -- Sample Code" [1]
+// ... <more descriptive text if needed> ...
+//
+// [1] RFC2104: http://tools.ietf.org/html/rfc2104#page-8
+//
+//
+// BEGIN-FOREIGN-CODE (RFC2104)
 void performHMACMD5(unsigned char* uca_text, int i_text_len, unsigned char* uca_key, 
                     int i_key_len, unsigned char* digest)
 {
@@ -151,6 +194,8 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len, unsigned char* uca_
         md5_append(&context, digest, 16);      /* then results of 1st hash */
         md5_finish(&context, digest);          /* finish up 2nd pass */
 }
+// END-FOREIGN-CODE (RFC2104)
+//------------------------------------------------------------------------
 
 void testPerformHMACMD5() 
 {
@@ -172,4 +217,7 @@ void createNonce(unsigned char* uca_key, unsigned char* uca_nonce)
     performHMACMD5(uca_text, i_text_len, uca_key, i_text_len, uca_nonce);
     debugVerboseHash(AUTH, uca_nonce, NONCE_LEN, "A Nonce was created!");
 }
+
+
+
 
