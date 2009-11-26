@@ -21,6 +21,11 @@ static const enum SCE_KNOWN_METHODS {
 void parse(http_norm *hnp_info);
 
 /**
+ * Takes the Normalized Input from an CGI-Respons, Parser for Contetn-Type and Status
+ * Return EXIT_SUCESS or EXIT_FAILURE
+ */
+int parseCgiResponseHeader(http_norm *hnp_info);
+/**
  * Iterate to the hole Arguments providet from the Normalizer, add to all Headerfieldnames an HTTP_
  * an make them to upper Case by calling the stringToUpperCase funktion
  */
@@ -37,10 +42,11 @@ int parseHttpRequestHeader(char* input);
  */
 int parseRequestLine(char* input);
 
+
 /**
  * Checks if  the Method is one out of our supported methods "GET","POST","HEAD"
  */
-int parseMethod(char* input, int offset);
+int parseRequestMethod(char* input, int offset);
 
 /**
  * Checks if the URI looks like:
@@ -74,6 +80,25 @@ bool isHexDigit(char input);
  */
 void stringToUpperCase(char* input);
 
+/**
+ *
+ */
+char* parseFindExplicitHeaderField(http_norm* hnp_info, const char* ccp_what);
+
+/**
+ *
+ */
+char* parseSubstringByDelimStrings(const char* ccp_string, const char* ccp_stdelim, const char* ccp_endelim);
+
+/**
+ *
+ */
+int parseAuthorizationInfos(const char* ccp_authstr);
+
+/**
+ *
+ */
+void parsePrintStructures();
 
 
 //void normalizeHeader(char input[]);

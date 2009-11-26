@@ -30,5 +30,25 @@ typedef struct http_norm {
   char *cp_body;
 } http_norm;
 
+typedef struct http_autorization{
+	char *cp_username;
+	char *cp_realm;
+	char *cp_nonce;
+	char *cp_uri;
+	char *cp_response;
+}http_autorization;
+
+typedef struct http_cgi_response{
+	char *content_type;
+	char *status;
+}http_cgi_response;
+
+typedef struct http_request{
+	char *cp_method;
+	char *cp_uri;
+	char *cp_query;
+	char *cp_fragment;
+	char *cp_path;
+}http_request;
 
 #endif /*TYPEDEF_*/
