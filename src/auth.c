@@ -21,15 +21,20 @@
 extern char *scp_web_dir_;
 extern char *scp_cgi_dir_;
 extern char *scp_secret_;
+extern http_autorization* http_autorization_;
+extern http_request *http_request_;
 
 static const int NONCE_LEN = 16;
 static bool sb_unauthorized_message_sent = FALSE;
 static unsigned char suca_sent_nonce[16];
 
-bool authenticate(char* cp_path)
+bool authenticate(char** cp_path, bool *b_static)
 {
-    // TODO check for authentication field
     bool b_auth_field_available = FALSE;
+    
+    if (http_autorization_ != NULL)
+        b_auth_field_available = TRUE;
+    
     
     // If no authentication field is available and no unauthorized message (401) was
     // sent, create nonce and send unauthorized message (401)
@@ -49,34 +54,97 @@ bool authenticate(char* cp_path)
         
             debugVerbose(AUTH, "The Request contains an authentication field.\n");
             
-            bool b_response_valid = FALSE;
-            // TODO: b_response_valid = verifyResponse(...);
-        
-            if (b_response_valid == FALSE)
+            if (http_autorization_->cp_nonce && http_autorization_->cp_realm &&
+                http_autorization_->cp_response && http_autorization_->cp_uri &&
+                http_autorization_->cp_username && http_request_->cp_path)
             {
-                //TODO Send Login Error
-                debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
+            
+                char* cp_password = NULL;
+                bool b_response_valid = FALSE;
+                bool b_htdigest_file_available = isHTDigestFileAvailable(http_request_->cp_path, 
+                                                                         http_autorization_->cp_realm, 
+                                                                         http_autorization_->cp_username, 
+                                                                         &cp_password);
+                // TODO: b_response_valid = verifyResponse(...);
+        
+                if (b_response_valid == FALSE)
+                {
+                    //TODO Send Login Error
+                    debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
+                }
+                else
+                {
+                    debugVerbose(AUTH, "The 'response' from the auth field is valid!\n");
+                }
             }
             else
             {
-                debugVerbose(AUTH, "The 'response' from the auth field is valid!\n");
+                // TODO send Login Error
             }
         }
         else
         {
             debugVerbose(AUTH, "The Request contains no authentication field.\n");
-            createNonce((unsigned char*)scp_secret_, suca_sent_nonce);
-        
-            // TODO send 401
+            
+            // TODO send Login Error
             
         }
     }
     
+    return TRUE;
 }
 
-bool getHTDigestFileInfo(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_response)
+bool isHTDigestFileAvailable(char* cp_relative_path, char* cp_realm, char* cp_username, char** cpp_password)
 {
+    char* cp_final_path = NULL;
+    char** cpp_sorted_final_path = NULL;
+    char* cp_cgi_bin = "/cgi-bin";
+    char* cp_web_dir = "/";
+    int i_num_folders = 0;
+    int i_relative_path_len = strlen(cp_relative_path);
+    int i_cgi_bin_len = strlen(cp_cgi_bin);
+    int i_web_dir_len = strlen(cp_web_dir);
     
+    // TODO:
+    // pfad anschauen
+    //   '/' für web-dir, cgi-bin für cgi-bin (von commandline)
+    //   check ob datei wirklich existiert
+    // get sorted path
+    //   pfad durchgehen
+    //     nach .htdigest file suchen, wenn dort -> merken
+    //     wenn 2. file im pfad -> abbruch (Protected fehler)
+    
+    if (i_relative_path_len >= i_cgi_bin_len && strncmp(cp_relative_path, cp_cgi_bin, i_cgi_bin_len))
+    {
+        strAppend(&cp_final_path, scp_cgi_dir_);
+        strAppend(&cp_final_path, "/");
+        strAppend(&cp_final_path, cp_relative_path);
+        
+        // TODO inform somebody because dynamic?
+    }
+    else
+    {
+        if (i_relative_path_len >= i_web_dir_len && strncmp(cp_relative_path, cp_web_dir, i_web_dir_len))
+        {
+            strAppend(&cp_final_path, scp_web_dir_);
+            strAppend(&cp_final_path, "/");
+            strAppend(&cp_final_path, cp_relative_path);
+            
+            // TODO inform somebody because static?
+        }
+        else
+        {
+            debugVerbose(AUTH, "ERROR, Final!\n");
+            return FALSE;
+        }
+    }
+    
+    return TRUE;
+}
+
+bool getHTDigestFileInfo(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_password)
+{
+    return TRUE;
 }
 
 bool verifyResponse(unsigned char* uca_ha1, unsigned char* uca_nonce, int i_nonce_len,
@@ -194,14 +262,6 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len, unsigned char* uca_
 }
 // END-FOREIGN-CODE (RFC2104)
 //------------------------------------------------------------------------
-
-void testPerformHMACMD5() 
-{
-    unsigned char uca_key[] = "SecretKeyFromCommandLine";
-    unsigned char digest[NONCE_LEN];
-
-    createNonce(uca_key, digest);
-}
 
 void createNonce(unsigned char* uca_key, unsigned char* uca_nonce)
 {

@@ -10,11 +10,7 @@
 #include "normalize.h"
 #include "secmem.h"
 
-/**
- *  Helper Function:
- *
- *
- */
+
 int getSortedPath(char* cp_path, char*** cppp_sorted_path)
 {
     
@@ -62,11 +58,6 @@ int getSortedPath(char* cp_path, char*** cppp_sorted_path)
     return i_num_folders;
 }
 
-/**
- *  Helper Function:
- *
- *
- */
 void freeSortedPath(char** cpp_path, int i_num_folders)
 {
     for (int i_current_folder = 0; i_current_folder < i_num_folders; i_current_folder++)

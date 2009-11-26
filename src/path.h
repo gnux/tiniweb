@@ -9,6 +9,10 @@
 #include <sys/types.h>
 #include "typedef.h"
 
+int getSortedPath(char* cp_path, char*** cppp_sorted_path);
+
+void freeSortedPath(char** cpp_path, int i_num_folders);
+
 /**
  * 
  *

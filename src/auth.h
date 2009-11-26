@@ -13,9 +13,11 @@
  * TODO specify everything
  *
  */
-bool authenticate(char* cp_path);
+bool authenticate(char** cp_path, bool* b_static);
 
-bool getHTDigestFileInfo(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_response);
+bool isHTDigestFileAvailable(char* cp_relative_path, char* cp_realm, char* cp_username, char** cpp_password);
+
+bool getHTDigestFileInfo(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_password);
 
 /**
  * Checks the response from the client, which should be calculated in the following way:
@@ -58,8 +60,6 @@ bool unauthorizedMessageSent();
 void performHMACMD5(unsigned char* uca_text, int i_text_len, 
                     unsigned char* uca_key, int i_key_len, unsigned char* digest);
                     
-                    
-void testPerformHMACMD5();
 
 /**
  * Creates the nonce for authentication purposes
