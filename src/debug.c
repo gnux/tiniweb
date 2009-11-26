@@ -28,6 +28,12 @@ char* getTypeString(int type)
         case CGICALL:
             return "CGICALL";
             break;
+        case PATH:
+            return "PATH";
+            break;
+        case MAIN:
+            return "MAIN";
+            break;
         default:
             return "UNSPECIFIED";
     }    

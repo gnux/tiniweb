@@ -68,4 +68,6 @@ void testPerformHMACMD5();
 void createNonce(unsigned char* uca_key, unsigned char* uca_nonce);
 
 
+
+
 #endif

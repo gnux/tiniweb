@@ -26,7 +26,8 @@ TINIWEB_SRC = \
 	debug.c \
 	parser.c \
 	normalize.c \
-    auth.c
+    auth.c \
+    path.c
 
 # Sources for the MD5 demo application
 MD5_SRC = \
