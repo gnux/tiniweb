@@ -26,15 +26,8 @@ static const int NONCE_LEN = 16;
 static bool sb_unauthorized_message_sent = FALSE;
 static unsigned char suca_sent_nonce[16];
 
-void authenticate()
+bool authenticate(char* cp_path)
 {
-    if (checkPath(scp_cgi_dir_) == FALSE ||
-        checkPath(scp_web_dir_) == FALSE)
-    {
-        debug(AUTH, "Something is wrong with the given SGI-BIN- or the WEB-Directory. Terminate Connection!\n");
-        // TODO Safe Shutdown
-    }
-
     // TODO check for authentication field
     bool b_auth_field_available = FALSE;
     
@@ -78,6 +71,11 @@ void authenticate()
             
         }
     }
+    
+}
+
+bool getHTDigestFileInfo(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_response)
+{
     
 }
 

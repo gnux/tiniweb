@@ -13,7 +13,9 @@
  * TODO specify everything
  *
  */
-void authenticate();
+bool authenticate(char* cp_path);
+
+bool getHTDigestFileInfo(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_response);
 
 /**
  * Checks the response from the client, which should be calculated in the following way:
