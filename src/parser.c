@@ -170,9 +170,9 @@ int parseRequestLine(char* input){
 			i_offset = parseHttpVersion(input, 0);
 			if(i_offset == EXIT_FAILURE)
 				return EXIT_FAILURE;
-			if(parserResponseHeaderLine(input, 8)==EXIT_FAILURE);
+			if(parserResponseHeaderLine(input, 8)==EXIT_FAILURE)
 				return EXIT_FAILURE;
-				B_RESPONSE_HEADER = TRUE;
+			B_RESPONSE_HEADER = TRUE;
 			return EXIT_FAILURE;
 			break;
 	};
@@ -206,24 +206,25 @@ int parseMethod(char* input, int offset){
 }
 
 int parserResponseHeaderLine(char* input, int offset){
-	int i_offset_st = 0;
-	int i_offset_en = 0;
+	int i_offset_st = offset;
+	int i_offset_en = i_offset_st;
 	char* cp_statuscode = NULL;
 	char* cp_reason_phrase = NULL;
 
 	if(input[offset]==' '){
-		offset++;
+		i_offset_st++;
+		i_offset_en++;
 		debugVerbose(PARSER, "Check response header\n");
 		//Find StatusCode
-		for(i_offset_st = offset; i_offset_en < strlen(input) && input[i_offset_en] != ' '; ++i_offset_en);
+		for(; i_offset_en < strlen(input) && input[i_offset_en] != ' '; ++i_offset_en);
 		cp_statuscode = secGetStringPart(input, i_offset_st, i_offset_en - 1);
 		strAppend(&http_response_->status_code, cp_statuscode);	
-		debugVerbose(PARSER, "Statuscode %s\n",http_response_->status_code);
+		debugVerbose(PARSER, "Statuscode: %s\n",http_response_->status_code);
 		//Finde ReasonPhrase
 		for(i_offset_st = i_offset_en; i_offset_en < strlen(input); ++i_offset_en);
 		cp_reason_phrase = secGetStringPart(input, i_offset_st, i_offset_en - 1);
 		strAppend(&http_response_->reason_phrase,cp_reason_phrase);
-		debugVerbose(PARSER, "Reason Phrase %s\n",http_response_->reason_phrase);
+		debugVerbose(PARSER, "Reason-Phrase: %s\n",http_response_->reason_phrase);
 		return EXIT_SUCCESS;
 	}
 	else
