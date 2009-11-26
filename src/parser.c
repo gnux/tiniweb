@@ -26,6 +26,9 @@ bool B_CGI_BIN_FOUND = FALSE;
 bool B_HOST_FOUND = FALSE;
 bool B_BODY_FOUND = FALSE;
 bool B_CONTENT_LENGTH_FOUND = FALSE;
+bool B_SEARCH_AUTORIZATION = FALSE;
+bool B_AUTORIZATION_FOUND = FALSE;
+http_autorization *http_autorization_;
 
 int min(int a, int b){
 	return a < b ? a : b;
@@ -37,20 +40,34 @@ void parse(http_norm *hnp_info){
 		secAbort();
 //	if(parseRequiredArguments(hnp_info) == EXIT_FAILURE)
 //		secAbort();
+	B_SEARCH_AUTORIZATION = TRUE;
+	http_autorization_ = secCalloc(1, sizeof(http_autorization));
+	http_autorization_->nonce = NULL;
+	http_autorization_->realm = NULL;
+	http_autorization_->response = NULL;
+	http_autorization_->uri = NULL;
+	http_autorization_->username = NULL;
+	
+	
+	
 	if(parseArguments(hnp_info) == EXIT_FAILURE)
 		secAbort();
-	
 }
 
 int parseArguments(http_norm *hnp_info){
 	// search for required Arguments
 	switch(e_used_method){
 		case POST:
+			debugVerbose(PARSER, "Post Method found, go on!\n");
+			break;
 		case GET:
+			debugVerbose(PARSER, "GET Method found, go on!\n");
+			break;
 		case HEAD:
+			debugVerbose(PARSER, "HEAD Method found, go on!\n");
 			break;
 		default:
-			debug(PARSER, "shit happens, this line should NEVER be reached!\n");
+			debugVerbose(PARSER, "This line should NEVER be reached!\n");
 			secAbort();
 			break;
 	};
@@ -66,22 +83,61 @@ int parseArguments(http_norm *hnp_info){
 		if(strlen(cp_name)>=4)
 			if(strncmp(cp_name,"HTTP_HOST",4)==0)
 				B_HOST_FOUND = TRUE;
-			
+		
+		
+		if(B_SEARCH_AUTORIZATION==TRUE ){
+			if(strlen(cp_name)>=17)
+				if(strncmp(cp_name,"HTTP_AUTORIZATION",17)==0)
+					B_AUTORIZATION_FOUND = TRUE;
+			if(strlen(cp_name)>=13)
+				if(strncmp(cp_name,"HTTP_USERNAME",13)==0){
+					strAppend(&http_autorization_->username, hnp_info->cpp_header_field_body[i]);
+					debugVerbose(PARSER, "Username found!\n");
+				}
+			if(strlen(cp_name)>=10)
+				if(strncmp(cp_name,"HTTP_REALM",10)==0){
+					strAppend(&http_autorization_->realm, hnp_info->cpp_header_field_body[i]);
+					debugVerbose(PARSER, "REALM found!\n");	
+				}
+			if(strlen(cp_name)>=10)
+				if(strncmp(cp_name,"HTTP_NONCE",10)==0){
+					strAppend(&http_autorization_->nonce, hnp_info->cpp_header_field_body[i]);
+					debugVerbose(PARSER, "NONCE found!\n");
+				}
+			if(strlen(cp_name)>=8)
+				if(strncmp(cp_name,"HTTP_URI",8)==0){
+					strAppend(&http_autorization_->uri,hnp_info->cpp_header_field_body[i]);
+					debugVerbose(PARSER, "URI found!\n");
+				}
+			if(strlen(cp_name)>=13)
+				if(strncmp(cp_name,"HTTP_RESPONSE",13)==0){
+					strAppend(&http_autorization_->response,hnp_info->cpp_header_field_body[i]);
+					debugVerbose(PARSER, "RESPONSE found!\n");
+				}
+		
+		}
+		
+		if(B_CGI_BIN_FOUND == TRUE)
 			appendToEnvVarList(cp_name,hnp_info->cpp_header_field_body[i]);
 	}
 	// set Constants
-	appendToEnvVarList("GATEWAY_INTERFACE", "CGI/1.1");
-	appendToEnvVarList("SERVER_SOFTWARE", "tiniweb/1.0");
-	//TODO: What does it mean???? Which Content, body???
-	//Just set envvar in case of cgi_bin_found
-	// Just set content length in case of POST, header field must exist
-	appendToEnvVarList("CONTENT_LENGHT", "0");
-	//TODO:Where to get???
-	appendToEnvVarList("REMOTE_USER","0");
-	//TODO:Where to get???
-	appendToEnvVarList("SCRIPT_FILENAME","0");
-	//TODO:Where to get???
-	appendToEnvVarList("DOCUMENT_ROOT","0");
+	if(B_CGI_BIN_FOUND == TRUE){
+		appendToEnvVarList("GATEWAY_INTERFACE", "CGI/1.1");
+		appendToEnvVarList("SERVER_SOFTWARE", "tiniweb/1.0");
+		//TODO: What does it mean???? Which Content, body???
+		//Just set envvar in case of cgi_bin_found
+		// Just set content length in case of POST, header field must exist
+		appendToEnvVarList("CONTENT_LENGHT", "0");
+		//TODO:Where to get???
+		appendToEnvVarList("REMOTE_USER","0");
+		//TODO:Where to get???
+		appendToEnvVarList("SCRIPT_FILENAME","0");
+		//TODO:Where to get???
+		appendToEnvVarList("DOCUMENT_ROOT","0");
+	}
+	else{
+	
+	}
 	return EXIT_SUCCESS;	
 }
 
