@@ -9,7 +9,13 @@
 #include <sys/types.h>
 #include "typedef.h"
 
-
+/**
+ * 
+ *
+ * @param cpp_path_cgi 
+ * @param cpp_path_web 
+ * @return 
+ */
 bool performPathChecking(char** cpp_path_cgi, char** cpp_path_web);
 
 /**
@@ -20,12 +26,36 @@ bool performPathChecking(char** cpp_path_cgi, char** cpp_path_web);
  */
 bool checkPath(char* ca_path);
 
+/**
+ * 
+ *
+ * @param cpp_path_cgi 
+ * @param cpp_path_web 
+ * @return 
+ */
 bool checkIfCGIDirContainsWebDir(char* ca_path_cgi, char* ca_path_web);
 
+/**
+ * 
+ *
+ * @param cpp_path
+ */
 void deleteCyclesFromPath(char** cpp_path);
 
+/**
+ * 
+ *
+ * @param cpp_path
+ * @return 
+ */
 bool isAbsolutePath(char * cp_path);
 
+/**
+ * 
+ *
+ * @param cpp_path
+ * @return 
+ */
 void constructAbsolutePath(char** cpp_path);
 
 void testPathChecking();

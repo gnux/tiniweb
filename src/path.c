@@ -10,6 +10,70 @@
 #include "normalize.h"
 #include "secmem.h"
 
+/**
+ *  Helper Function:
+ *
+ *
+ */
+int getSortedPath(char* cp_path, char*** cppp_sorted_path)
+{
+    
+    /**
+     *  Store the path into the sorted cpp_path. The result will be e.g:
+     *
+     *   cpp_path[0] = "Juhu"
+     *   cpp_path[0][0] = 'J'
+     */
+    
+    int i_path_len = strlen(cp_path);
+    int i_num_folders = 0;
+    int i_start = 0;
+    
+    for (int i_end = 0; i_end < i_path_len; i_end++)
+    {
+//         debugVerbose(PATH, "i_end: %i\n", i_end);
+        
+        if (cp_path[i_end] == '/' || i_end == i_path_len - 1)
+        {
+//             debugVerbose(PATH, "'/' Found!\n");
+
+            int i_num_chars = i_end - i_start + 1;
+//             debugVerbose(PATH, "  i_num_chars = %i\n", i_num_chars);
+
+            if (i_num_folders == 0)
+                (*cppp_sorted_path) = (char**) secMalloc((i_num_folders + 1) * sizeof(char*));
+            else
+                (*cppp_sorted_path) = (char**) secRealloc((*cppp_sorted_path), (i_num_folders + 1) * sizeof(char*));
+            
+            (*cppp_sorted_path)[i_num_folders] = (char*) secMalloc((i_num_chars + 1) * sizeof(char));
+            
+//             debugVerbose(PATH, "nach malloc!\n");
+            
+            // Write all chars into new sorted array
+            strncpy((*cppp_sorted_path)[i_num_folders], cp_path + i_start, i_num_chars);
+            (*cppp_sorted_path)[i_num_folders][i_num_chars] = '\0';
+//             debugVerbose(PATH, "Write from A to B: %s\n", cpp_path[i_num_folders]);
+            
+            i_start = i_end + 1;
+            i_num_folders++;
+        }
+    }
+    
+    return i_num_folders;
+}
+
+/**
+ *  Helper Function:
+ *
+ *
+ */
+void freeSortedPath(char** cpp_path, int i_num_folders)
+{
+    for (int i_current_folder = 0; i_current_folder < i_num_folders; i_current_folder++)
+        secFree(&(cpp_path[i_current_folder]));
+    secFree(cpp_path);
+}
+
 bool performPathChecking(char** cpp_path_cgi, char** cpp_path_web)
 {
     constructAbsolutePath(cpp_path_cgi);
@@ -83,49 +147,13 @@ bool checkIfCGIDirContainsWebDir(char* ca_path_cgi, char* ca_path_web)
 
 void deleteCyclesFromPath(char** cpp_path_to_check)
 {
-    int i_path_len = strlen(*cpp_path_to_check);
     char** cpp_path = NULL;
     char* cp_result_path = NULL;
     int i_alloc_result_path_len = 0;
     int i_num_folders = 0;
-    int i_start = 0;
-    
-    /**
-     *  Store the path into the sorted cpp_path. The result will be e.g:
-     *
-     *   cpp_path[0] = "Juhu"
-     *   cpp_path[0][0] = 'J'
-     */
-    for (int i_end = 0; i_end < i_path_len; i_end++)
-    {
-//         debugVerbose(PATH, "i_end: %i\n", i_end);
-        
-        if ((*cpp_path_to_check)[i_end] == '/' || i_end == i_path_len - 1)
-        {
-//             debugVerbose(PATH, "'/' Found!\n");
 
-            int i_num_chars = i_end - i_start + 1;
-//             debugVerbose(PATH, "  i_num_chars = %i\n", i_num_chars);
+    i_num_folders = getSortedPath((*cpp_path_to_check), &cpp_path);
 
-            if (i_num_folders == 0)
-                cpp_path = (char**) secMalloc((i_num_folders + 1) * sizeof(char*));
-            else
-                cpp_path = (char**) secRealloc(cpp_path, (i_num_folders + 1) * sizeof(char*));
-            
-            cpp_path[i_num_folders] = (char*) secMalloc((i_num_chars + 1) * sizeof(char));
-            
-//             debugVerbose(PATH, "nach malloc!\n");
-            
-            // Write all chars into new sorted array
-            strncpy(cpp_path[i_num_folders], (*cpp_path_to_check) + i_start, i_num_chars);
-            cpp_path[i_num_folders][i_num_chars] = '\0';
-//             debugVerbose(PATH, "Write from A to B: %s\n", cpp_path[i_num_folders]);
-            
-            i_start = i_end + 1;
-            i_num_folders++;
-        }
-    }
-    
     /**
      *  Perform the checking if '../' or './' are in the path
      *   if there is a '..' search for the folder before and delete it
@@ -202,9 +230,7 @@ void deleteCyclesFromPath(char** cpp_path_to_check)
     /**
      *  Free Allocated Memory
      */
-    for (int i_current_folder = 0; i_current_folder < i_num_folders; i_current_folder++)
-        secFree(&(cpp_path[i_current_folder]));
-    secFree(cpp_path);
+    freeSortedPath(cpp_path, i_num_folders);
     
     (*cpp_path_to_check) = cp_result_path;
     debugVerbose(PATH, "Removed All cycles from %s\n", (*cpp_path_to_check));
