@@ -161,17 +161,19 @@ ssize_t secGetline(char** cpp_lineptr, FILE *stream){
 	return i_ret;
 }
 
-void *secGetStringPart(char* cpp_string, ssize_t start, ssize_t end){
-	if(end < start && end > strlen(cpp_string))
-		secAbort();
+void *secGetStringPart(const char* ccp_string, ssize_t start, ssize_t end){
+	if(end < start || end > strlen(ccp_string))
+		//TODO: something went wrong we would return NULL
+		return NULL;
+		//secAbort();
 	ssize_t len = end - start + 2;
 	ssize_t i;
-	char *cpp_fragment = secCalloc(len, sizeof(char));
-	cpp_fragment[len - 1] = '\0';
+	char *cp_fragment = secCalloc(len, sizeof(char));
+	cp_fragment[len - 1] = '\0';
 	for(i=0; i < len - 1; ++i)
-	cpp_fragment[i] = cpp_string[start + i];
+	cp_fragment[i] = ccp_string[start + i];
 	
-	return cpp_fragment;
+	return cp_fragment;
 }
 
 //TODO: remove this function, if not needed anymore
