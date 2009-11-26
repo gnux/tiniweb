@@ -221,7 +221,7 @@ int main(int argc, char** argv) {
     //           "<html><body>Hello!</body></html>\r\n");   
 
 
-    processCGIScript("testscript", "Testbody");
+    processCGIScript("testscript");
     
 //     sec_test();
 //     sec_test();
