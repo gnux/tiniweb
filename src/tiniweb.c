@@ -19,6 +19,7 @@
 #include "normalize.h"
 #include "envvar.h"
 #include "auth.h"
+#include "path.h"
 
 // default values for options, if no command line option is available
 //static const char SCCA_WEB_DIR[] = "/";
@@ -233,6 +234,7 @@ int main(int argc, char** argv) {
    
 //     processCGIScript("testscript");
     testPerformHMACMD5();
+    testPathChecking();
     
 //     secCleanup();
     secCleanup();
