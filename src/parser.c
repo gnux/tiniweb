@@ -32,15 +32,29 @@ int min(int a, int b){
 }
 
 void parse(http_norm *hnp_info){
-	//TODO: ERROR HANDLING
+ 	//TODO: BETTER ERROR HANDLING
 	if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE)
 		secAbort();
+//	if(parseRequiredArguments(hnp_info) == EXIT_FAILURE)
+//		secAbort();
 	if(parseArguments(hnp_info) == EXIT_FAILURE)
 		secAbort();
 	
 }
 
 int parseArguments(http_norm *hnp_info){
+	// search for required Arguments
+	switch(e_used_method){
+		case POST:
+		case GET:
+		case HEAD:
+			break;
+		default:
+			debug(PARSER, "shit happens, this line should NEVER be reached!\n");
+			secAbort();
+			break;
+	};
+	
 	
 	for(size_t i = 0; i < hnp_info->i_num_fields; ++i){
 		char* cp_name = NULL;
@@ -181,6 +195,7 @@ int parseHttpVersion(char* input, int offset){
 	if(strncmp(cp_http_version, SCCP_KNOWN_HTTPVERSION, min(strlen(SCCP_KNOWN_HTTPVERSION), strlen(cp_http_version))) != 0)
 		return EXIT_FAILURE;
 	appendToEnvVarList("SERVER_PROTOCOL",cp_http_version);
+	return EXIT_SUCCESS;
 }
 
 int validateString(char* cp_string){
@@ -424,6 +439,9 @@ if(HTTPVERSION[i]!=input[offset]){
    // 	}
    // 	return offset;*/
    // }*/
+<<<<<<< HEAD
    
    
    
+=======
+>>>>>>> parser
