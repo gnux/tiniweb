@@ -21,6 +21,11 @@ static const enum SCE_KNOWN_METHODS {
 void parse(http_norm *hnp_info);
 
 /**
+ * Takes the Normalized Input from an CGI-Respons, Parser for Contetn-Type and Status
+ * Return EXIT_SUCESS or EXIT_FAILURE
+ */
+int parseCgiResponseHeader(http_norm *hnp_info);
+/**
  * Iterate to the hole Arguments providet from the Normalizer, add to all Headerfieldnames an HTTP_
  * an make them to upper Case by calling the stringToUpperCase funktion
  */
@@ -37,11 +42,6 @@ int parseHttpRequestHeader(char* input);
  */
 int parseRequestLine(char* input);
 
-/**
- * IF we don't now the Method we try to check if we got an Response
- * http-response-header = status-line header-field* NEWLINE
- */
-int parseResponseLine(char* input, int offset);
 
 /**
  * Checks if  the Method is one out of our supported methods "GET","POST","HEAD"

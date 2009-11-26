@@ -38,13 +38,10 @@ typedef struct http_autorization{
 	char *cp_response;
 }http_autorization;
 
-typedef struct http_response{
-	char *status_code;
-	char *reason_phrase;
-	char *version;
-	char *content_length;
-	char *connection;
-}http_response;
+typedef struct http_cgi_response{
+	char *content_type;
+	char *status;
+}http_cgi_response;
 
 typedef struct http_request{
 	char *cp_method;

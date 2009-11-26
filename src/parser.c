@@ -32,7 +32,7 @@ bool B_RESPONSE_HEADER = FALSE;
 bool B_REQUEST_HEADER = FALSE;
 //TODO: really use global variable???
 http_autorization* http_autorization_ = NULL;
-http_response *http_response_ = NULL;
+http_cgi_response *http_cgi_response_ = NULL;
 http_request *http_request_ = NULL;
 
 int min(int a, int b){
@@ -41,8 +41,8 @@ int min(int a, int b){
 
 void parse(http_norm *hnp_info){
  	//TODO: BETTER ERROR HANDLING
-	if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE){
-		//if(parseHttpRespHeader(hnp_info->cp_first_line) == FALSE)
+ 	parseCgiResponseHeader(hnp_info);
+	/*if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE){
 			secAbort();
 	}
 //	if(parseRequiredArguments(hnp_info) == EXIT_FAILURE)
@@ -56,10 +56,56 @@ void parse(http_norm *hnp_info){
 //	http_autorization_->cp_username = NULL;
 
 	if(parseArguments(hnp_info) == EXIT_FAILURE)
-		secAbort();
+		secAbort();*/
 	
 	parsePrintStructures();
 }
+
+int parseCgiResponseHeader(http_norm *hnp_info){
+	char* cp_content = NULL;
+	char* cp_status = NULL;
+	bool content_found =FALSE;
+	bool status_found = FALSE;
+	http_cgi_response_ = secCalloc(1, sizeof(http_cgi_response));
+	http_cgi_response_->content_type = NULL;
+	http_cgi_response_->status = NULL;
+
+
+	debugVerbose(PARSER, "Check CGI response\n");
+	
+	//Find Content-Type
+	ssize_t i = 0;
+	for(; i < hnp_info->i_num_fields; ++i){
+
+		if(i==0 && strlen(hnp_info->cpp_header_field_name[i])>=12)
+			if(strncasecmp("Content-Type",hnp_info->cpp_header_field_name[i],12)==0){
+				cp_content = hnp_info->cpp_header_field_body[i];
+				strAppend(&http_cgi_response_->content_type, cp_content);
+				content_found = TRUE;
+			}
+		if(i==1 && strlen(hnp_info->cpp_header_field_name[i])>=6)
+			if(strncasecmp("Status",hnp_info->cpp_header_field_name[i],6)==0){
+				cp_status = hnp_info->cpp_header_field_body[i];
+				strAppend(&http_cgi_response_->status, cp_status);
+				status_found = TRUE;
+			}
+
+	}
+	if(i==1 && content_found == TRUE && status_found == FALSE){
+		strAppend(&http_cgi_response_->status, "200 OK");
+		status_found = TRUE;
+	}
+
+	debugVerbose(PARSER, "CGI Content: %s\n",http_cgi_response_->content_type);
+	debugVerbose(PARSER, "CGI Status: %s\n",http_cgi_response_->status);
+	
+	if(status_found == TRUE && content_found == TRUE)
+		return EXIT_SUCCESS;
+	else
+		return EXIT_FAILURE;
+
+}
+
 
 int parseArguments(http_norm *hnp_info){
 	char* cp_name = NULL;
@@ -292,12 +338,6 @@ int parseRequestLine(char* input){
 			debugVerbose(PARSER, "Something went wrong, we schould never ever reach this line, shit happens\n");
 			//debugVerbose(PARSER, "Unknown request Method detected, check for Response Header\n");
 			//TODO: really, i don't think so?????
-			i_offset = parseHttpVersion(input, 0);
-			if(i_offset == EXIT_FAILURE)
-				return EXIT_FAILURE;
-			if(parseResponseLine(input, 8)==EXIT_FAILURE)
-				return EXIT_FAILURE;
-			B_RESPONSE_HEADER = TRUE;
 			return EXIT_FAILURE;
 			break;
 	};
@@ -320,42 +360,6 @@ int parseRequestMethod(char* input, int offset){
 			return i_offset_en + 1;
 		}
 		return EXIT_FAILURE;
-}
-
-//TODO: We schould respond, so is it really neccessary to parse our own output???
-int parseResponseLine(char* input, int offset){
-	int i_offset_st = offset;
-	int i_offset_en = i_offset_st;
-	char* cp_statuscode = NULL;
-	char* cp_reason_phrase = NULL;
-	
-	http_response_ = secCalloc(1, sizeof(http_response));
-	http_response_->connection = NULL;
-	http_response_->content_length = NULL;
-	http_response_->reason_phrase = NULL;
-	http_response_->status_code = NULL;
-	http_response_->version = NULL;
-
-	if(input[offset]==' '){
-		i_offset_st++;
-		i_offset_en++;
-		debugVerbose(PARSER, "Check response header\n");
-		//Find StatusCode
-		for(; i_offset_en < strlen(input) && input[i_offset_en] != ' '; ++i_offset_en);
-		cp_statuscode = secGetStringPart(input, i_offset_st, i_offset_en - 1);
-		strAppend(&http_response_->status_code, cp_statuscode);	
-		debugVerbose(PARSER, "Statuscode: %s\n",http_response_->status_code);
-		//Finde ReasonPhrase
-		for(i_offset_st = i_offset_en; i_offset_en < strlen(input); ++i_offset_en);
-		cp_reason_phrase = secGetStringPart(input, i_offset_st, i_offset_en - 1);
-		strAppend(&http_response_->reason_phrase,cp_reason_phrase);
-		debugVerbose(PARSER, "Reason-Phrase: %s\n",http_response_->reason_phrase);
-		return EXIT_SUCCESS;
-	}
-	else
-		return EXIT_FAILURE;
-		
-	
 }
 
 int parseRequestURI(char* input, int offset){
