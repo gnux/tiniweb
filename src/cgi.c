@@ -8,6 +8,7 @@
 #include <string.h>
 #include <signal.h>
 
+#include "httpresponse.h"
 #include "parser.h"
 #include "normalize.h"
 #include "debug.h"
@@ -17,7 +18,6 @@
 #include "typedef.h"
 
 static const int SCI_BUF_SIZE = 256;
-static const int SCI_MAX_CGI_RESPONSE_LENGTH = 100000;
 
 extern int si_cgi_timeout_;
 extern const enum SCE_KNOWN_METHODS e_used_method;
@@ -272,7 +272,7 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
             /* Drain the standard output pipe */
             if ((poll_fd[1].revents & POLLOUT) && (!b_write_successful))
             {   
-                i_success = drainPipeTo(STDIN_FILENO, poll_fd[1].fd);
+                i_success = provideBodyToCGIScript(STDIN_FILENO, poll_fd[1].fd);
                 if (i_success < 0)
                 {
                     debug(CGICALL, "An error occurred while writing.\n");
@@ -309,20 +309,26 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
         /* Drain the standard output pipe */
         if ((poll_fd[0].revents & POLLIN) && (!b_read_successful))
         {   
-        
+        /*
             http_norm *hpn_info = normalizeHttp(response_stream);
             i_success = parseCgiResponseHeader(hpn_info);
+            fclose(response_stream);
+            */
+            
+            i_success = provideCGIBodyToHTTPClient(poll_fd[0].fd, STDOUT_FILENO); 
             
             if(i_success == EXIT_SUCCESS)
-            {
+            {                
                 //TODO: send http_response header
-                //TODO: send body    
+                
             }
             else
             {
-            
+                debug(CGICALL, "Error while parsing cgi response header.\n");
+                return -1;
             }
             
+            /*
             response_length = drainPipe(poll_fd[0].fd, &cp_cgi_response);
             if (response_length < 0)
             {
@@ -331,6 +337,7 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
             }
             
             debug(CGICALL, "Read %d bytes as CGI response.\n", response_length);
+            */
             b_read_successful = TRUE;
             
             poll_fd[0].revents ^= POLLIN;
@@ -343,7 +350,7 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
     
 }
 
-int drainPipeTo(int i_source_fd, int i_dest_fd)
+int provideBodyToCGIScript(int i_source_fd, int i_dest_fd)
 {
     char ca_buffer[2048];
  
@@ -354,9 +361,11 @@ int drainPipeTo(int i_source_fd, int i_dest_fd)
 
         read_bytes = read(i_source_fd, ca_buffer, sizeof(ca_buffer));
         
-        if (read_bytes <= 0) {
+        if (read_bytes <= 0) 
+        {
              debug(CGICALL, "Read nothing from source.\n");
-            if (read_bytes == 0) {            
+            if (read_bytes == 0) 
+            {            
                 return 0;
             }
 
@@ -365,7 +374,7 @@ int drainPipeTo(int i_source_fd, int i_dest_fd)
         }     
 
 
-        written_bytes = write(i_dest_fd, ca_buffer, strlen(ca_buffer));
+        written_bytes = write(i_dest_fd, ca_buffer, read_bytes);
         debug(CGICALL, "Wrote %d bytes to cgi pipe.\n", written_bytes);
         if (written_bytes < 0) 
         {       
@@ -381,7 +390,46 @@ int drainPipeTo(int i_source_fd, int i_dest_fd)
     } while(1);
 }
 
-ssize_t drainPipe(int i_source_fd, char** cpp_cgi_response) 
+int provideCGIBodyToHTTPClient(int i_source_fd, int i_dest_fd) 
+{
+    char ca_buffer[SCI_BUF_SIZE];
+ 
+    do 
+    {
+        // Read data from input pipe
+        ssize_t read_bytes;
+        ssize_t written_bytes;
+
+        read_bytes = read(i_source_fd, ca_buffer, sizeof(ca_buffer));
+        
+        if (read_bytes <= 0) 
+        {
+            
+            if (read_bytes == 0 || errno == EAGAIN) 
+            {            
+                debug(CGICALL, "Read nothing from cgi: %d\n", errno);
+                return EXIT_SUCCESS;
+            }
+
+            debug(CGICALL, "Error while reading.\n"); 
+            return EXIT_FAILURE;      
+        }
+        
+        written_bytes = write(i_dest_fd, ca_buffer, read_bytes);
+        debug(CGICALL, "Wrote %d bytes to http client.\n", written_bytes);
+        if (written_bytes < 0) 
+        {       
+            return EXIT_FAILURE;
+
+        } else if (written_bytes < read_bytes) 
+        {
+            debug(CGICALL, "Short write.\n");
+        }
+    } while (1);
+}
+
+/*
+ssize_t provideCGIBodyToHTTPClient(int i_source_fd, int i_dest_fd) 
 {
     ssize_t total_read_bytes = 0;
     char ca_buffer[SCI_BUF_SIZE];
@@ -390,7 +438,7 @@ ssize_t drainPipe(int i_source_fd, char** cpp_cgi_response)
  
     do 
     {
-        /* Read data from input pipe */
+        // Read data from input pipe
         ssize_t read_bytes;
 
         read_bytes = read(i_source_fd, ca_buffer, sizeof(ca_buffer));
@@ -436,4 +484,5 @@ ssize_t drainPipe(int i_source_fd, char** cpp_cgi_response)
     
     return total_read_bytes;
 }
+*/
 
