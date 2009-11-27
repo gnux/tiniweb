@@ -316,8 +316,19 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
         {   
             response_stream = getCGIHeaderResponseStream(poll_fd[0].fd);
             http_norm *hpn_info = normalizeHttp(response_stream, TRUE);
-            i_success = parseCgiResponseHeader(hpn_info);
+            http_cgi_response *http_cgi_response_header = parseCgiResponseHeader(hpn_info);
             
+            
+            i_success = sendCGIHTTPResponseHeader(http_cgi_response_header);
+            if(i_success == EXIT_SUCCESS)
+            {
+                debug(CGICALL, "CGI header provided successfully to http client.\n");
+            }
+            else
+            {
+                debug(CGICALL, "Error providing cgi response header.\n");
+                return -1;
+            }
             
             if(i_success == EXIT_SUCCESS)
             {                        
@@ -402,7 +413,7 @@ int provideResponseStreamToHttpClient(FILE *stream, int i_dest_fd)
 
 FILE* getCGIHeaderResponseStream(int i_source_fd)
 {
-    int max_length = 10;
+    int max_length = 8192;
     ssize_t max_bytes_left_to_read = 0;
     ssize_t total_read_bytes = 0;
     char *cp_stream_memory = NULL;

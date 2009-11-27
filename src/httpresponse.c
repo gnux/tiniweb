@@ -18,7 +18,7 @@ int sendCGIHTTPResponseHeader(http_cgi_response *header)
         
     fprintf(stdout, "HTTP/1.1 %s\n", header->status);
     
-    for(i_index = 0; i_index < 100; i_index++)
+    for(i_index = 0; i_index < header->i_num_fields; i_index++)
     {
         fprintf(stdout, "%s: %s\n", header->cpp_header_field_name[i_index], 
                 header->cpp_header_field_body[i_index]);
