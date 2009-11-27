@@ -46,12 +46,19 @@ int main(int argc, char** argv)
     
 */
     fprintf(stdout, "Hello World!\n");
-    fflush(stdout);
+    //fflush(stdout);
 
     if(!fgets(buf2, sizeof(buf2), stdin)) {
         fprintf(stderr, "Error while reading: %d!\n", errno);
     } else {
         fprintf(stderr, "CgiScript: Read %d bytes.\n", strlen(buf2));
+        fprintf(stderr, "CgiScript: Read '%c'.\n", buf2[strlen(buf2)-2]);
+    }
+    if(!fgets(buf2, sizeof(buf2), stdin)) {
+        fprintf(stderr, "Error while reading: %d!\n", errno);
+    } else {
+        fprintf(stderr, "CgiScript: Read %d bytes.\n", strlen(buf2));
+        fprintf(stderr, "CgiScript: Read '%c'.\n", buf2[strlen(buf2)]);
     }
 
     // fprintf(stderr, "%s: %s\n", cp_env_var4, getenv(cp_env_var4)); 

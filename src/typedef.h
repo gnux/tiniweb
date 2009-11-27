@@ -39,8 +39,14 @@ typedef struct http_autorization{
 }http_autorization;
 
 typedef struct http_cgi_response{
+	int i_num_fields;
 	char *content_type;
 	char *status;
+	char *connection;
+	char *server;
+	char **cpp_header_field_name;
+  	char **cpp_header_field_body;
+	
 }http_cgi_response;
 
 typedef struct http_request{

@@ -24,7 +24,7 @@ void parse(http_norm *hnp_info);
  * Takes the Normalized Input from an CGI-Respons, Parser for Contetn-Type and Status
  * Return EXIT_SUCESS or EXIT_FAILURE
  */
-int parseCgiResponseHeader(http_norm *hnp_info);
+http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info);
 /**
  * Iterate to the hole Arguments providet from the Normalizer, add to all Headerfieldnames an HTTP_
  * an make them to upper Case by calling the stringToUpperCase funktion

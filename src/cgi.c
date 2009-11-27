@@ -6,6 +6,7 @@
 #include <poll.h>
 #include <signal.h>
 #include <string.h>
+#include <signal.h>
 
 #include "parser.h"
 #include "debug.h"
@@ -57,12 +58,8 @@ void processCGIScript(const char* cp_path)
     int ia_cgi_post_body_pipe[2] = {-1, -1};
     pid_t pid_child = 0;
     char* cpa_cgi_args[] = {"testscript", NULL};
-    char temp[199];
-    
-    //setNonblocking(STDIN_FILENO);
-    
-    //i_success = read(STDIN_FILENO, temp, sizeof(temp));   
 
+/*
     printEnvVarList();
 
     initEnvVarList("TEST_VARIABLE1", "this is just a test");
@@ -70,6 +67,7 @@ void processCGIScript(const char* cp_path)
     appendToEnvVarList("TEST_VARIABLE3", "this is just a third test");
     
     printEnvVarList();
+    */
     
     if (pipe(ia_cgi_response_pipe))
     {
@@ -86,7 +84,6 @@ void processCGIScript(const char* cp_path)
     
     if(e_used_method == POST)
     {
-    debug(CGICALL, "Creating post pipe.\n");
         if (pipe(ia_cgi_post_body_pipe))
         {
             //TODO: safe exit
@@ -98,7 +95,14 @@ void processCGIScript(const char* cp_path)
             //TODO safe exit
             debug(CGICALL, "Setting pipes non-blocking failed: %d\n", errno);
         }
+        if(signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+        {
+            //TODO safe exit
+            debug(CGICALL, "Setting signal handler failed.\n");
+        }
+        
     }
+    
     
     /* Fork the child process */
     pid_child = fork();  
@@ -228,7 +232,7 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
         debug(CGICALL, "Iteration: %d, %d\n", poll_fd[0].revents, poll_fd[1].revents);
         if (i_poll_result < 0)
         {
-            debug(CGICALL, "Polling for write failed: %d\n", errno);
+            debug(CGICALL, "Polling failed: %d\n", errno);
             return -1;
         }
         
@@ -243,14 +247,27 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
             return -1;
         }
         
+        if(poll_fd[1].revents & (POLLERR))
+        {
+            debug(CGICALL, "A problem occured on the cgi post body pipe %d.\n", errno);
+            b_write_successful = TRUE;
+        }
+        if(poll_fd[1].revents & (POLLHUP))
+        {
+            debug(CGICALL, "The other end closed the cgi post body pipe.\n");
+            b_write_successful = TRUE;
+        }
+        
         /* Drain the standard output pipe */
         if ((poll_fd[1].revents & POLLOUT) && (!b_write_successful))
         {   
             i_success = drainPipeTo(STDIN_FILENO, poll_fd[1].fd);
             if (i_success < 0)
             {
-                debug(CGICALL, "Could not read from pipe.\n");
-                return -1;
+                debug(CGICALL, "An error occurred while writing.\n");
+                b_write_successful = TRUE;
+                //Writing failed, but that's not so bad. 
+                //Possibly the cgi script terminated without reading the whole body
             }
             else if(i_success == 0)
             {
@@ -260,15 +277,21 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
             }
             else
             {   
-                debug(CGICALL, "Write not completed.\n");
+                debug(CGICALL, "Write not completed (yet).\n");
                 poll_fd[1].revents ^= POLLOUT;
             }
         }
 
-        if((poll_fd[1].revents & (POLLHUP | POLLERR)) && (!b_read_successful))
+        if((poll_fd[0].revents & (POLLERR)) && (!b_read_successful))
         {
-            debug(CGICALL, "A problem occured on the cgi post body pipe.\n");
-            return -1;
+            debug(CGICALL, "A problem occured on the cgi response pipe.\n");
+            //return -1;
+        }
+        
+        if((poll_fd[0].revents & (POLLHUP)) && (!b_read_successful))
+        {
+            debug(CGICALL, "The other side closed the cgi response pipe.\n");
+            //return -1;
         }
 
         /* Drain the standard output pipe */
@@ -287,11 +310,7 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
             poll_fd[0].revents ^= POLLIN;
         }
 
-        if((poll_fd[0].revents & (POLLHUP | POLLERR)) && (!b_read_successful))
-        {
-            debug(CGICALL, "A problem occured on the cgi response pipe.\n");
-            return -1;
-        }
+        
     } 
     
     debug(CGICALL, "Normal exit.\n");
@@ -300,39 +319,30 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
     
 }
 
-int drainPipeTo(int source_fd, int dest_fd)
+int drainPipeTo(int i_source_fd, int i_dest_fd)
 {
-    char io_buffer[256];
+    char io_buffer[2048];
  
-    do {
+    do
+    {
         /* Read data from input pipe */
         ssize_t written_bytes = 0;
         ssize_t read_bytes = 0;
 
-        if(!fgets(io_buffer, sizeof(io_buffer), stdin)) {
-            debug(CGICALL, "Error while reading.\n"); 
-            return 0; 
-        } else {
-            fprintf(stderr, "Read %s.\n", io_buffer);
-        }
-        if(strlen(io_buffer) == 0)
-        {
-            return 0;
-        }
+        read_bytes = read(i_source_fd, io_buffer, sizeof(io_buffer));
         
-        /*
         if (read_bytes <= 0) {
-             debug(CGICALL, "Wrote nothing to cgi pipe.\n");
+             debug(CGICALL, "Read nothing from source.\n");
             if (read_bytes == 0 || errno == EAGAIN) {            
                 return 0;
             }
 
             debug(CGICALL, "Error while reading.\n"); 
             return -1;      
-        }  */      
+        }     
 
-        /* Write data to output pipe (assumption: dest_fd is blocking) */
-        written_bytes = write(dest_fd, io_buffer, strlen(io_buffer));
+
+        written_bytes = write(i_dest_fd, io_buffer, strlen(io_buffer));
         debug(CGICALL, "Wrote %d bytes to cgi pipe.\n", written_bytes);
         if (written_bytes < 0) 
         {
@@ -345,8 +355,7 @@ int drainPipeTo(int source_fd, int dest_fd)
         {
             debug(CGICALL, "Short write.\n");
         }
-
-    } while (1);
+    } while(1);
 }
 
 ssize_t drainPipe(int i_source_fd, char** cpp_cgi_response) 
