@@ -23,13 +23,13 @@ static const char* SCCP_HTTP_HEADER_FIELD_MARKER = "HTTP_";
 enum SCE_KNOWN_METHODS e_used_method = UNKNOWN;
 
 bool B_CGI_BIN_FOUND = FALSE;
-//bool B_HOST_FOUND = FALSE;
-bool B_BODY_FOUND = FALSE;
-bool B_CONTENT_LENGTH_FOUND = FALSE;
-bool B_SEARCH_AUTORIZATION = FALSE;
 bool B_AUTORIZATION_FOUND = FALSE;
-bool B_RESPONSE_HEADER = FALSE;
-bool B_REQUEST_HEADER = FALSE;
+//bool B_HOST_FOUND = FALSE;
+//bool B_BODY_FOUND = FALSE;
+//bool B_CONTENT_LENGTH_FOUND = FALSE;
+//bool B_SEARCH_AUTORIZATION = FALSE;
+//bool B_RESPONSE_HEADER = FALSE;
+//bool B_REQUEST_HEADER = FALSE;
 //TODO: really use global variable???
 http_autorization* http_autorization_ = NULL;
 http_cgi_response *http_cgi_response_ = NULL;
@@ -486,6 +486,10 @@ void parsePrintStructures(){
 		debugVerbose(PARSER, "http_authorization_->cp_nonce = %s\n", http_autorization_->cp_nonce);
 		debugVerbose(PARSER, "http_authorization_->cp_uri = %s\n", http_autorization_->cp_uri);
 		debugVerbose(PARSER, "http_authorization_->cp_response = %s\n", http_autorization_->cp_response);
+	}
+	if(http_cgi_response_){
+		debugVerbose(PARSER, "http_cgi_response_->content_type = %s\n", http_cgi_response_->content_type);
+		debugVerbose(PARSER, "http_cgi_response_->status = %s\n", http_cgi_response_->status);
 	}
 	debugVerbose(PARSER, "...shown\n");
 }
