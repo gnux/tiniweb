@@ -173,7 +173,7 @@ int main(int argc, char** argv) {
     debugVerbose(MAIN, "SECRET = %s \n", scp_secret_);
     debugVerbose(MAIN, "CGI_TIMEOUT = %d \n", si_cgi_timeout_);
     
-	http_norm *hnp_info = normalizeHttp(stdin);
+	http_norm *hnp_info = normalizeHttp(stdin, FALSE);
 	
 	initEnvVarList("GATEWAY_INTERFACE","CGI/1.1");
     //appendToEnvVarList("SCRIPT_FILENAME",scp_cgi_dir_);
@@ -206,7 +206,7 @@ int main(int argc, char** argv) {
     //           "<html><body>Hello!</body></html>\r\n");   
 
 
-    processCGIScript("testscript");
+  //  processCGIScript("testscript");
     
 //     sec_test();
 //     sec_test();
