@@ -58,24 +58,31 @@ bool authenticate(char* cp_path)
             
             if (http_autorization_->cp_nonce && http_autorization_->cp_realm &&
                 http_autorization_->cp_response && http_autorization_->cp_uri &&
-                http_autorization_->cp_username && http_request_->cp_path)
+                http_autorization_->cp_username && http_request_->cp_path && 
+                http_request_->cp_method && http_request_->cp_uri)
             {
             
-                char* cp_password = NULL;
-                bool b_response_valid = FALSE;
+                char* cp_ha1 = NULL;
                 
+                if (getHA1HashFromHTDigestFile(cp_path, http_autorization_->cp_realm, 
+                                           http_autorization_->cp_username, &cp_ha1) == FALSE)
+                {
+                    // TODO safe exit
+                    // send login error
+                    return FALSE;
+                }
                 
-                // TODO: b_response_valid = verifyResponse(...);
-        
-                if (b_response_valid == FALSE)
+                if (verifyResponse((unsigned char*)cp_ha1, (unsigned char*)suca_sent_nonce,
+                    (unsigned char*)http_request_->cp_method, (unsigned char*)http_request_->cp_uri, 
+                    (unsigned char*)http_autorization_->cp_response) == FALSE)
                 {
                     //TODO Send Login Error
                     debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
+                    return FALSE;
                 }
-                else
-                {
-                    debugVerbose(AUTH, "The 'response' from the auth field is valid!\n");
-                }
+
+                debugVerbose(AUTH, "Success: The 'response' from the auth field is valid!\n");
+                // TODO free memory!
             }
             else
             {
@@ -182,20 +189,72 @@ int searchForHTDigestFile(char* cp_path, bool* bp_digest_file_available, char** 
     return EXIT_SUCCESS;
 }
 
-bool getHTDigestFileInfo(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_password)
+bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_ha1)
 {
-    return TRUE;
+    char* cp_mode = "r";
+    char* cp_htdigest_line = NULL;
+    char* cp_htdigest_compare_line = NULL;
+    char* cp_ha1 = NULL;
+    int i_line_len = strlen(cp_username) + strlen(cp_realm) + 2;
+    int i_htdigest_line_len = i_line_len + 32;
+        
+    FILE* file_htdigest = fopen(cp_path_to_file, cp_mode);
+
+    if (file_htdigest == NULL)
+    {
+        debugVerbose(AUTH, "ERROR, '.htdigest'-file could not be opened.\n");
+        return FALSE;
+    }
+    
+    cp_htdigest_line = secMalloc(i_htdigest_line_len);
+    
+    strAppend(&cp_htdigest_compare_line, cp_username);
+    strAppend(&cp_htdigest_compare_line, ":");
+    strAppend(&cp_htdigest_compare_line, cp_realm);
+    strAppend(&cp_htdigest_compare_line, ":");
+    
+    while( fgets(cp_htdigest_line, i_htdigest_line_len, file_htdigest) )
+    {
+        //debugVerbose(AUTH, "1: %s, 2: %s\n", cp_htdigest_compare_line, cp_htdigest_line);
+        
+        if (strncmp(cp_htdigest_compare_line, cp_htdigest_line, i_line_len) == 0)
+        {
+            debugVerbose(AUTH, "Success, expected line found in '.htdigest'-file\n");
+            
+            cp_ha1 = secMalloc(32 * sizeof(char));
+            strncpy(cp_ha1, cp_htdigest_line + i_line_len, 32);
+            *cpp_ha1 = cp_ha1;
+            
+            secFree(cp_htdigest_compare_line);
+            secFree(cp_htdigest_line);
+            fclose(file_htdigest);
+            
+            return TRUE;
+        }
+    }
+    
+    
+    debugVerbose(AUTH, "ERROR, expected line not found in '.htdigest'-file\n");
+    
+    secFree(cp_htdigest_compare_line);
+    secFree(cp_htdigest_line);
+    fclose(file_htdigest);
+    
+    return FALSE;
 }
 
-bool verifyResponse(unsigned char* uca_ha1, unsigned char* uca_nonce, int i_nonce_len,
-                    unsigned char* uca_http_request_method, int i_http_request_method_len,
-                    unsigned char* uca_uri, int i_uri_len, unsigned char* uca_response)
+bool verifyResponse(unsigned char* uca_ha1, unsigned char* uca_nonce,
+                    unsigned char* uca_http_request_method,
+                    unsigned char* uca_uri, unsigned char* uca_response)
 {
     md5_state_t ha2_state;
     md5_state_t expected_response_state;
     unsigned char uca_ha2[16];
     unsigned char uca_expected_response[16];
     int i_result = -1;
+    int i_nonce_len = strlen((char*)uca_nonce);
+    int i_http_request_method_len = strlen((char*)uca_http_request_method);
+    int i_uri_len = strlen((char*)uca_uri);
     
     // Calculate HA2:
     md5_init(&ha2_state);
@@ -210,9 +269,13 @@ bool verifyResponse(unsigned char* uca_ha1, unsigned char* uca_nonce, int i_nonc
     md5_append(&expected_response_state, uca_ha2, 16);
     md5_finish(&expected_response_state, uca_expected_response);
     
+    debugVerboseHash(AUTH, uca_response, 16, "Hash from client:");
+    debugVerboseHash(AUTH, uca_expected_response, 16, "Expected Hash   :");
+    
     i_result = strncmp((char*)uca_expected_response, (char*)uca_response, 16);
     if (i_result != 0)
     {
+        // TODO remove this debug output:
         debugVerbose(AUTH, "The response from the client does not match the expected response!\n");
         return FALSE;
     }

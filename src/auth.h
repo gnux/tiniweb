@@ -19,7 +19,7 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static);
 
 int searchForHTDigestFile(char* cp_path, bool* bp_digest_file_available, char** cpp_path_to_htdigest_file);
 
-bool getHTDigestFileInfo(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_password);
+bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_ha1);
 
 /**
  * Checks the response from the client, which should be calculated in the following way:
@@ -30,17 +30,14 @@ bool getHTDigestFileInfo(char* cp_path_to_file, char* cp_realm, char* cp_usernam
  *
  * @param uca_ha1
  * @param uca_nonce Nonce
- * @param i_nonce_len Nonce length
  * @param uca_http_request_method HTTP Request Method
- * @param i_http_request_method_len HTTP Request Method length
  * @param uca_uri URI
- * @param i_uri_len URI length
  * @param uca_response response from the client (this will be checked)
  * @return TRUE if the response was valid, FALSE if not
  */
-bool verifyResponse(unsigned char* uca_ha1, unsigned char* uca_nonce, int i_nonce_len,
-                    unsigned char* uca_http_request_method, int i_http_request_method_len,
-                    unsigned char* uca_uri, int i_uri_len, unsigned char* uca_response);
+bool verifyResponse(unsigned char* uca_ha1, unsigned char* uca_nonce,
+                    unsigned char* uca_http_request_method,
+                    unsigned char* uca_uri, unsigned char* uca_response);
 
 /**
  * Checks if we already sent a 401-Unauthorized Message back. 

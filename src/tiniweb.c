@@ -222,7 +222,7 @@ int main(int argc, char** argv) {
     
     if (b_digest_file_available)
     {
-        authenticate(cp_mapped_path);
+        authenticate(cp_path_to_htdigest_file);
     }
     
     processCGIScript("testscript");
