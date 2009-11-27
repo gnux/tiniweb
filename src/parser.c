@@ -341,6 +341,8 @@ int parseHttpRequestHeader(char* input){
 }
 
 int parseRequestLine(char* input){
+  if(input == NULL)
+    return EXIT_FAILURE;
 	ssize_t i_offset = parseRequestMethod(input, 0);
 	// no suitable method? so we break here!
 	if(i_offset == EXIT_FAILURE)
