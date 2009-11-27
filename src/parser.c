@@ -41,8 +41,8 @@ int min(int a, int b){
 
 void parse(http_norm *hnp_info){
  	//TODO: BETTER ERROR HANDLING
- 	//parseCgiResponseHeader(hnp_info);
-	if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE){
+ 	parseCgiResponseHeader(hnp_info);
+	/*if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE){
 			secAbort();
 	}
 //	if(parseRequiredArguments(hnp_info) == EXIT_FAILURE)
@@ -58,7 +58,7 @@ void parse(http_norm *hnp_info){
 	if(parseArguments(hnp_info) == EXIT_FAILURE)
 		secAbort();
 	
-	parsePrintStructures();
+	parsePrintStructures();*/
 }
 
 int parseCgiResponseHeader(http_norm *hnp_info){
@@ -66,6 +66,8 @@ int parseCgiResponseHeader(http_norm *hnp_info){
 	char* cp_status = NULL;
 	char* cp_server = NULL;
 	char* cp_connection = NULL;
+	char* cp_header_name = NULL;
+	char* cp_header_body = NULL;
 	bool content_found =FALSE;
 	bool status_found = FALSE;
 	bool connection_found = FALSE;
@@ -77,6 +79,7 @@ int parseCgiResponseHeader(http_norm *hnp_info){
 	http_cgi_response_->connection = NULL;
 	http_cgi_response_->cpp_header_field_body = NULL;
 	http_cgi_response_->cpp_header_field_name = NULL;
+	http_cgi_response_->i_num_header_fields = 0;
 
 
 	debugVerbose(PARSER, "Check CGI response\n");
@@ -109,7 +112,19 @@ int parseCgiResponseHeader(http_norm *hnp_info){
 				strAppend(&http_cgi_response_->server, "tiniweb/1.0");
 				server_found = TRUE;
 			}
+		//strAppend(&http_cgi_response_->cpp_header_field_name[i], hnp_info->cpp_header_field_name[i]);
+		//strAppend(&http_cgi_response_->cpp_header_field_body[i], hnp_info->cpp_header_field_body[i]);
+		//COPY
+		//http_cgi_response_->cpp_header_field_name[i] = secRealloc(http_cgi_response_->cpp_header_field_name, sizeof(char*) * hnp_info->i_num_fields);
+		//cp_header_name = hnp_info->cpp_header_field_name[i];
+		//strAppend(&http_cgi_response_->cpp_header_field_name[i], cp_header_name);
 		
+		//http_cgi_response_->cpp_header_field_body[i] = secRealloc(http_cgi_response_->cpp_header_field_body, sizeof(char*) * hnp_info->i_num_fields);
+		//cp_header_body = hnp_info->cpp_header_field_body[i];
+		//strAppend(&http_cgi_response_->cpp_header_field_body[i], cp_header_body);
+		
+		//http_cgi_response_->cpp_header_field_name[i] = hnp_info->cpp_header_field_name[i];
+		//http_cgi_response_->cpp_header_field_body[i] = hnp_info->cpp_header_field_body[i];
 
 	}
 	
@@ -341,6 +356,8 @@ int parseHttpRequestHeader(char* input){
 }
 
 int parseRequestLine(char* input){
+  if(input == NULL)
+    return EXIT_FAILURE;
 	ssize_t i_offset = parseRequestMethod(input, 0);
 	// no suitable method? so we break here!
 	if(i_offset == EXIT_FAILURE)
