@@ -32,7 +32,7 @@ bool B_AUTORIZATION_FOUND = FALSE;
 //bool B_REQUEST_HEADER = FALSE;
 //TODO: really use global variable???
 http_autorization* http_autorization_ = NULL;
-http_cgi_response *http_cgi_response_ = NULL;
+
 http_request *http_request_ = NULL;
 
 int min(int a, int b){
@@ -41,37 +41,22 @@ int min(int a, int b){
 
 void parse(http_norm *hnp_info){
  	//TODO: BETTER ERROR HANDLING
- 	parseCgiResponseHeader(hnp_info);
-	/*if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE){
+ 	//parseCgiResponseHeader(hnp_info);
+	if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE){
 			secAbort();
 	}
-//	if(parseRequiredArguments(hnp_info) == EXIT_FAILURE)
-//		secAbort();
-//	B_SEARCH_AUTORIZATION = TRUE;
-//	http_autorization_ = secCalloc(1, sizeof(http_autorization));
-//	http_autorization_->cp_nonce = NULL;
-//	http_autorization_->cp_realm = NULL;
-//	http_autorization_->cp_response = NULL;
-//	http_autorization_->cp_uri = NULL;
-//	http_autorization_->cp_username = NULL;
+
 
 	if(parseArguments(hnp_info) == EXIT_FAILURE)
 		secAbort();
 	
-	parsePrintStructures();*/
+	parsePrintStructures();
 }
 
-int parseCgiResponseHeader(http_norm *hnp_info){
-	char* cp_content = NULL;
-	char* cp_status = NULL;
-	char* cp_server = NULL;
-	char* cp_connection = NULL;
-	char* cp_header_name = NULL;
-	char* cp_header_body = NULL;
-	bool content_found =FALSE;
-	bool status_found = FALSE;
-	bool connection_found = FALSE;
-	bool server_found = FALSE;
+http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info){
+	http_cgi_response *http_cgi_response_ = NULL;
+	ssize_t i = 1;
+	ssize_t i_len = 0;
 	http_cgi_response_ = secCalloc(1, sizeof(http_cgi_response));
 	http_cgi_response_->content_type = NULL;
 	http_cgi_response_->status = NULL;
@@ -79,76 +64,91 @@ int parseCgiResponseHeader(http_norm *hnp_info){
 	http_cgi_response_->connection = NULL;
 	http_cgi_response_->cpp_header_field_body = NULL;
 	http_cgi_response_->cpp_header_field_name = NULL;
-	http_cgi_response_->i_num_header_fields = 0;
+	http_cgi_response_->i_num_fields = 0;
 
 
 	debugVerbose(PARSER, "Check CGI response\n");
 	
+	// it is req that content type is first field!
+	//if( i==0 && strlen(hnp_info->cpp_header_field_name[0])>=12)
+	if(hnp_info->i_num_fields < 1 || strlen(hnp_info->cpp_header_field_name[0]) != 12)
+		//TODO errror!!!
+				secAbort();
+	
+			//if()
+			if(strncasecmp("Content-Type",hnp_info->cpp_header_field_name[0],min(strlen(hnp_info->cpp_header_field_name[0]), 12))==0){
+				http_cgi_response_->content_type = hnp_info->cpp_header_field_body[0];
+				
+				
+			}
+			else
+				//TODO errror!!!
+				secAbort();
+	
+			//second can be Status, or no status is provided
+			if(hnp_info->i_num_fields > 1)
+			{
+				if(strlen(hnp_info->cpp_header_field_name[1]) == 6)
+					if(strncasecmp("Status",hnp_info->cpp_header_field_name[1],6)==0){
+					
+					http_cgi_response_->status = hnp_info->cpp_header_field_body[1];
+						i++;
+					}
+				if(http_cgi_response_->status == NULL)
+					strAppend(&http_cgi_response_->status, "200 OK");
+				
+			}
+	
+	// DEFAULTS
+	strAppend(&http_cgi_response_->connection, "close");
+	strAppend(&http_cgi_response_->server, "tiniweb/1.0");
+	
+	// add defaults
+	http_cgi_response_->i_num_fields = 3;
+	http_cgi_response_->cpp_header_field_name = secRealloc(http_cgi_response_->cpp_header_field_name, sizeof(char*) * http_cgi_response_->i_num_fields);
+	http_cgi_response_->cpp_header_field_body = secRealloc(http_cgi_response_->cpp_header_field_body, sizeof(char*) * http_cgi_response_->i_num_fields);
+	
+	http_cgi_response_->cpp_header_field_name[0] = "Server";
+	http_cgi_response_->cpp_header_field_body[0] = http_cgi_response_->server;
+	
+	http_cgi_response_->cpp_header_field_name[1] = "Connection";
+	http_cgi_response_->cpp_header_field_body[1] = http_cgi_response_->connection;
+	
+	http_cgi_response_->cpp_header_field_name[2] = "Content-Type";
+	http_cgi_response_->cpp_header_field_body[2] = http_cgi_response_->content_type;
+	
+	
 	//Find Content-Type
-	ssize_t i = 0;
+	
 	for(; i < hnp_info->i_num_fields; ++i){
 
-		if(strlen(hnp_info->cpp_header_field_name[i])>=12)
-			if(strncasecmp("Content-Type",hnp_info->cpp_header_field_name[i],12)==0){
-				cp_content = hnp_info->cpp_header_field_body[i];
-				strAppend(&http_cgi_response_->content_type, cp_content);
-				content_found = TRUE;
-			}
-		if(strlen(hnp_info->cpp_header_field_name[i])>=6)
-			if(strncasecmp("Status",hnp_info->cpp_header_field_name[i],6)==0){
-				cp_status = hnp_info->cpp_header_field_body[i];
-				strAppend(&http_cgi_response_->status, cp_status);
-				status_found = TRUE;
-			}
-		if(strlen(hnp_info->cpp_header_field_name[i])>=10)
-			if(strncasecmp("Connection",hnp_info->cpp_header_field_name[i],10)==0){
-				cp_connection = hnp_info->cpp_header_field_body[i];
-				strAppend(&http_cgi_response_->connection, "close");
-				connection_found = TRUE;
-			}
-		if(strlen(hnp_info->cpp_header_field_name[i])>=6)
-			if(strncasecmp("Server",hnp_info->cpp_header_field_name[i],6)==0){
-				cp_server = hnp_info->cpp_header_field_body[i];
-				strAppend(&http_cgi_response_->server, "tiniweb/1.0");
-				server_found = TRUE;
-			}
-		//strAppend(&http_cgi_response_->cpp_header_field_name[i], hnp_info->cpp_header_field_name[i]);
-		//strAppend(&http_cgi_response_->cpp_header_field_body[i], hnp_info->cpp_header_field_body[i]);
-		//COPY
-		//http_cgi_response_->cpp_header_field_name[i] = secRealloc(http_cgi_response_->cpp_header_field_name, sizeof(char*) * hnp_info->i_num_fields);
-		//cp_header_name = hnp_info->cpp_header_field_name[i];
-		//strAppend(&http_cgi_response_->cpp_header_field_name[i], cp_header_name);
+		i_len = strlen(hnp_info->cpp_header_field_name[i]);
+		if(i_len == 6 && strncasecmp("Server",hnp_info->cpp_header_field_name[i],6)==0)
+			continue;
+		if(i_len == 10 && strncasecmp("Connection",hnp_info->cpp_header_field_name[i],10)==0)
+			continue;
+			
+		++http_cgi_response_->i_num_fields;
 		
-		//http_cgi_response_->cpp_header_field_body[i] = secRealloc(http_cgi_response_->cpp_header_field_body, sizeof(char*) * hnp_info->i_num_fields);
-		//cp_header_body = hnp_info->cpp_header_field_body[i];
-		//strAppend(&http_cgi_response_->cpp_header_field_body[i], cp_header_body);
+		http_cgi_response_->cpp_header_field_name = secRealloc(http_cgi_response_->cpp_header_field_name, sizeof(char*) * http_cgi_response_->i_num_fields);
+		http_cgi_response_->cpp_header_field_body = secRealloc(http_cgi_response_->cpp_header_field_body, sizeof(char*) * http_cgi_response_->i_num_fields);
 		
-		//http_cgi_response_->cpp_header_field_name[i] = hnp_info->cpp_header_field_name[i];
-		//http_cgi_response_->cpp_header_field_body[i] = hnp_info->cpp_header_field_body[i];
+		http_cgi_response_->cpp_header_field_name[http_cgi_response_->i_num_fields - 1] = hnp_info->cpp_header_field_name[i];
+		http_cgi_response_->cpp_header_field_body[http_cgi_response_->i_num_fields - 1] = hnp_info->cpp_header_field_body[i];
+	}
+		
 
-	}
-	
-	//If we don't find this fields we set them
-	if(content_found == TRUE && status_found == FALSE){
-		strAppend(&http_cgi_response_->status, "200 OK");
-		status_found = TRUE;
-	}
-	if(content_found == TRUE && connection_found == FALSE){
-		strAppend(&http_cgi_response_->connection, "close");
-	}
-	if(content_found == TRUE && server_found == FALSE){
-		strAppend(&http_cgi_response_->server, "tiniweb/1.0");
-	}
 
 	debugVerbose(PARSER, "CGI Content: %s\n",http_cgi_response_->content_type);
 	debugVerbose(PARSER, "CGI Status: %s\n",http_cgi_response_->status);
 	debugVerbose(PARSER, "CGI Connection: %s\n",http_cgi_response_->connection);
 	debugVerbose(PARSER, "CGI Server: %s\n",http_cgi_response_->server);
-	if(status_found == TRUE && content_found == TRUE)
-		return EXIT_SUCCESS;
-	else
-		return EXIT_FAILURE;
-
+	
+	for(i = 0; i < http_cgi_response_->i_num_fields; ++i)
+		debugVerbose(PARSER, "%s: %s\n", http_cgi_response_->cpp_header_field_name[i], http_cgi_response_->cpp_header_field_body[i]);
+	
+		return http_cgi_response_;
+	
 }
 
 
@@ -215,69 +215,6 @@ int parseArguments(http_norm *hnp_info){
 	return EXIT_SUCCESS;
 }
 	
-/*	//
-	
-//		//TODO: provide own function, for req. header field searches!
-//		if(strlen(cp_name)>=4)
-//			if(strncmp(cp_name,"HTTP_HOST",4)==0)
-//				B_HOST_FOUND = TRUE;
-		
-		
-		if(B_SEARCH_AUTORIZATION==TRUE ){
-			if(strlen(cp_name)>=17)
-				if(strncmp(cp_name,"HTTP_AUTORIZATION",17)==0)
-					B_AUTORIZATION_FOUND = TRUE;
-			if(strlen(cp_name)>=13)
-				if(strncmp(cp_name,"HTTP_USERNAME",13)==0){
-					strAppend(&http_autorization_->username, hnp_info->cpp_header_field_body[i]);
-					debugVerbose(PARSER, "Username found!\n");
-				}
-			if(strlen(cp_name)>=10)
-				if(strncmp(cp_name,"HTTP_REALM",10)==0){
-					strAppend(&http_autorization_->realm, hnp_info->cpp_header_field_body[i]);
-					debugVerbose(PARSER, "REALM found!\n");	
-				}
-			if(strlen(cp_name)>=10)
-				if(strncmp(cp_name,"HTTP_NONCE",10)==0){
-					strAppend(&http_autorization_->nonce, hnp_info->cpp_header_field_body[i]);
-					debugVerbose(PARSER, "NONCE found!\n");
-				}
-			if(strlen(cp_name)>=8)
-				if(strncmp(cp_name,"HTTP_URI",8)==0){
-					strAppend(&http_autorization_->uri,hnp_info->cpp_header_field_body[i]);
-					debugVerbose(PARSER, "URI found!\n");
-				}
-			if(strlen(cp_name)>=13)
-				if(strncmp(cp_name,"HTTP_RESPONSE",13)==0){
-					strAppend(&http_autorization_->response,hnp_info->cpp_header_field_body[i]);
-					debugVerbose(PARSER, "RESPONSE found!\n");
-				}
-		
-		}
-		
-//		if(B_CGI_BIN_FOUND == TRUE)
-			
-//	}
-	// set Constants
-//	if(B_CGI_BIN_FOUND == TRUE){
-//		appendToEnvVarList("GATEWAY_INTERFACE", "CGI/1.1");
-//		appendToEnvVarList("SERVER_SOFTWARE", "tiniweb/1.0");
-		//TODO: What does it mean???? Which Content, body???
-		//Just set envvar in case of cgi_bin_found
-		// Just set content length in case of POST, header field must exist
-//		appendToEnvVarList("CONTENT_LENGHT", "0");
-		//TODO:Where to get???
-//		appendToEnvVarList("REMOTE_USER","0");
-		//TODO:Where to get???
-//		appendToEnvVarList("SCRIPT_FILENAME","0");
-//		//TODO:Where to get???
-//		appendToEnvVarList("DOCUMENT_ROOT","0");
-//	}
-//	else{
-//	
-//	}
-//	return EXIT_SUCCESS:	
-//}*/
 
 char* parseFindExplicitHeaderField(http_norm* hnp_info, const char* ccp_what){
 	ssize_t i = 0;
@@ -534,204 +471,11 @@ void parsePrintStructures(){
 		debugVerbose(PARSER, "http_authorization_->cp_uri = %s\n", http_autorization_->cp_uri);
 		debugVerbose(PARSER, "http_authorization_->cp_response = %s\n", http_autorization_->cp_response);
 	}
-	if(http_cgi_response_){
-		debugVerbose(PARSER, "http_cgi_response_->content_type = %s\n", http_cgi_response_->content_type);
-		debugVerbose(PARSER, "http_cgi_response_->status = %s\n", http_cgi_response_->status);
-	}
+//	if(http_cgi_response_){
+//		debugVerbose(PARSER, "http_cgi_response_->content_type = %s\n", http_cgi_response_->content_type);
+//		debugVerbose(PARSER, "http_cgi_response_->status = %s\n", http_cgi_response_->status);
+//	}
 	debugVerbose(PARSER, "...shown\n");
 }
 
-/*bool was_right = TRUE;
-if(offset == 0){
-			for(int i=0; i<=2; i++){
-			was_right = TRUE;
-			for(int j=0; j<strlen(METHOD[i]); j++){
-			if(input[j]!=METHOD[i][j]){
-			was_right = FALSE;
-			break;
-		}
-		}
-		if(was_right==TRUE){
-			selectedMETHOD[i]=TRUE;
-			offset=offsetPP(offset,3);
-			if(i>0){
-			offset=offsetPP(offset,4);
-		}
-		return offset;
-		}
-		}
-		}
-		
-		return EXIT_FAILURE;	
-		}*/
-
-/*	for(int i=0; i<strlen(HTTPVERSION);i++){
-if(HTTPVERSION[i]!=input[offset]){
-			istrue = FALSE;
-			break;
-			}
-			offset = offsetPP(offset,1);
-			}
-			if(istrue==TRUE){
-			//appendToEnvVarList("SERVER_PROTOCOL","HTTP/1.1");	
-			return offset;
-		}
-		else
-			*/
-//return EXIT_FAILURE;
-//}
-
-
-//if(parseArguments());
-	//char** outputline = NULL;	
-	//MAX_HEADER_BUFSIZE = strlen(hnp_info->cp_header);
-	//int offset = 0;
-	//int arguments_valid = 0;
-	//TODO: remove args 2,3
-	
-	//if(first_line_valid == EXIT_FAILURE){
-		//TODO: ERROR
-		//}
-		
-		// 	if(selectedMETHOD[0]==TRUE){
-		// 		appendToEnvVarList("REQUEST_METHOD","GET");
-		// 		/*if(hnp_info->cpp_header_field_body != NULL){
-   // 			arguments_valid=EXIT_FAILURE;
-   // 			//TODO: ERROR
-   // 		}
-   // 		else*/
-   // 			arguments_valid = parseArguments(hnp_info,outputline);
-   // 	}
-   // 	else if(selectedMETHOD[1]==TRUE){
-   // 		appendToEnvVarList("REQUEST_METHOD","POST");
-   // 		if(hnp_info->cpp_header_field_body == NULL){
-   // 			arguments_valid=EXIT_FAILURE;
-   // 			//TODO: ERROR
-   // 		}
-   // 		else
-   // 			arguments_valid = parseArguments(hnp_info,outputline);
-   // 	}
-   // 	else if(selectedMETHOD[2]==TRUE){
-   // 		appendToEnvVarList("REQUEST_METHOD","HEAD");
-   // 		if(hnp_info->cpp_header_field_body != NULL){
-   // 			arguments_valid=EXIT_FAILURE;
-   // 			//TODO: ERROR
-   // 		}
-   // 		else
-   // 			arguments_valid = parseArguments(hnp_info,outputline);
-   // 	}
-   // 	else{
-	   // 		//can't happen
-	   // 	}
-	   // 	
-	   // 	if(arguments_valid==EXIT_FAILURE){
-   // 		//TODO: ERROR
-   // 	}
-   // 	debugVerbose(3, "Arguments valid\n");
-   
-   //int parseHttpRequest(char* input, char** outputline, int offset){
-   //	return offset;
-   //}
-   
-   
-   
-   // 	if(input[offset]=='/'){
-   // 		//If it is an cgi request we have to build our path from the uri
-   // 		/*int length = strlen(input)-1;
-   // 		if(strncmp("/cgi-bin/",input+offset,9)==0){
-   // 			cgi_bin_found = TRUE;
-   // 			debugVerbose(3, "CGI bin\n");
-   // 
-   // 			for(int i = offset+9; i< strlen(input)-1;i++){
-   // 				if(input[i]=='/'){
-   // 					save_position = i;
-   // 				}
-   // 				if(isWhiteSpace(input[i])==TRUE || isEOF(input[i])==TRUE || input[i]=='#' || input[i]=='?')
-   // 					break;
-   // 			}
-   // 			strncpy(cgi_path,input+offset+9,save_position);
-   // 			debugVerbose(3, "CGI path %s\n",cgi_path);
-   // 		}
-   // 		
-   // 		//Try to find a fragment and/or the request
-   // 		while(isWhiteSpace(input[offset])==FALSE && isEOF(input[offset])==FALSE){
-   // 			my_char = input[offset];
-   // 						
-   // 			if(input[offset]=='#'){
-   // 				fragment_found = TRUE;
-   // 			}
-   // 			else if(input[offset]=='?'){
-   // 				query_found = TRUE;
-   // 				fragment_found = FALSE;
-   // 			}
-   // 			else if(fragment_found == TRUE){
-   // 				strAppend(&cp_fragment, &my_char);
-   // 			}
-   // 			else if(query_found == TRUE){
-   // 				strAppend(&cp_request, &my_char);
-   // 			}
-   // 			else{
-	   // 				//??
-	   // 			}
-	   // 			
-	   // 			if(isNonEscapedChar(input[offset])==TRUE && query_found == FALSE)
-	   // 				return EXIT_FAILURE;
-	   // 			strAppend(&cp_uri, &my_char);
-	   // 			
-	   // 			offset=offsetPP(offset,1);
-	   // 			
-	   // 		}
-	   // 		if(isEOF(input[offset]==TRUE)){
-   // 			appendToEnvVarList("SERVER_PROTOCOL","HTTP/1.1");
-   // 		}
-   
-   
-   //	appendToEnvVarList("REQUEST_PATH", cp_path);
-   //	appendToEnvVarList("FRAGMENT",cp_fragment);
-   //	appendToEnvVarList("QUERY_STRING",cp_query);
-   //	return offset;
-   //}
-   //	else{
-	   //		return EXIT_FAILURE;
-	   //	}
-	   //	
-	   //}
-	   
-	   // bool isChar(char input){
-   // 	if(input < 32 || input > 126 || input!='\t')
-   // 		return FALSE;
-   // 	else
-   // 		return TRUE;
-   // }
-   
-   
-   
-   
-   // /*bool isWhiteSpace(char input){
-   // 	if(input==' ' || input=='\t')
-   // 			return TRUE;
-   // 	return FALSE;
-   // }
-   // 
-   // bool isNewLine(char input){
-   // 	if(input=='\n')
-   // 		return TRUE;
-   // 	return FALSE;
-   // }
-   // 
-   // 
-   // 
-   // 
-   // bool isEOF(char input){
-   // 	if(input=='\0')
-   // 		return TRUE;
-   // 	return FALSE;
-   // }
-   // 
-   // int offsetPP(int offset, int count){
-   // /*	if(offset+count < MAX_HEADER_BUFSIZE){
-   // 		offset= offset + count;
-   // 	}
-   // 	return offset;*/
-   // }*/
 
