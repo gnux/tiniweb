@@ -16,4 +16,8 @@ int provideBodyToCGIScript(int source_fd, int dest_fd);
 
 int provideCGIBodyToHTTPClient(int i_source_fd, int i_dest_fd);
 
+int provideResponseStreamToHttpClient(FILE *stream, int i_dest_fd);
+
+FILE* getCGIHeaderResponseStream(int i_source_fd);
+
 #endif

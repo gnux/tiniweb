@@ -45,7 +45,7 @@ int main(int argc, char** argv)
     }
     
 */
-    fprintf(stdout, "GET /\nContent-Type: text/html\n");
+    fprintf(stdout, "Content-Type: text/html\n");
 
     fprintf(stdout, "Status: 200 OK\n\n<html>\n<body>I've to say hello to sase</body>\n</html> ");
     fflush(stdout);
