@@ -9,6 +9,7 @@
 #include <signal.h>
 
 #include "parser.h"
+#include "normalize.h"
 #include "debug.h"
 #include "cgi.h"
 #include "envvar.h"
@@ -205,25 +206,33 @@ void processCGIScript(const char* cp_path)
 
 int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_child)
 {
-    struct pollfd poll_fd[2];
+    struct pollfd poll_fd[(e_used_method == POST) ? 2 : 1];
     int i_success = 0;
     int i_poll_result = 0;
     ssize_t response_length = 0;
     char* cp_cgi_response = NULL;
     bool b_read_successful = FALSE;
-    bool b_write_successful = FALSE;
+    bool b_write_successful = TRUE;
+    FILE* response_stream = NULL;
     
     /* Setup poll_fds for child standard output and 
      * standard error stream */
     poll_fd[0].fd = i_cgi_response_pipe;
     poll_fd[0].events = POLLIN;
     poll_fd[0].revents = 0;
-    poll_fd[1].fd = i_cgi_post_body_pipe;
-    poll_fd[1].events = POLLOUT;
-    poll_fd[1].revents = 0;
+    
+    response_stream = fdopen(poll_fd[0].fd, "re");
+    
+    if(e_used_method == POST)
+    {
+        poll_fd[1].fd = i_cgi_post_body_pipe;
+        poll_fd[1].events = POLLOUT;
+        poll_fd[1].revents = 0;
+        b_write_successful = FALSE;
+    }
 
 
-    while (!b_read_successful)
+    while (!b_read_successful || !b_write_successful)
     {
         // Poll for more events
 
@@ -247,38 +256,41 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
             return -1;
         }
         
-        if(poll_fd[1].revents & (POLLERR))
+        if(e_used_method == POST)
         {
-            debug(CGICALL, "A problem occured on the cgi post body pipe %d.\n", errno);
-            b_write_successful = TRUE;
-        }
-        if(poll_fd[1].revents & (POLLHUP))
-        {
-            debug(CGICALL, "The other end closed the cgi post body pipe.\n");
-            b_write_successful = TRUE;
-        }
-        
-        /* Drain the standard output pipe */
-        if ((poll_fd[1].revents & POLLOUT) && (!b_write_successful))
-        {   
-            i_success = drainPipeTo(STDIN_FILENO, poll_fd[1].fd);
-            if (i_success < 0)
+            if(poll_fd[1].revents & (POLLERR))
             {
-                debug(CGICALL, "An error occurred while writing.\n");
+                debug(CGICALL, "A problem occured on the cgi post body pipe.\n");
                 b_write_successful = TRUE;
-                //Writing failed, but that's not so bad. 
-                //Possibly the cgi script terminated without reading the whole body
             }
-            else if(i_success == 0)
+            if(poll_fd[1].revents & (POLLHUP))
             {
-                debug(CGICALL, "Write completed.\n");
+                debug(CGICALL, "The other end closed the cgi post body pipe.\n");
                 b_write_successful = TRUE;
-                poll_fd[1].events = 0;
             }
-            else
+            
+            /* Drain the standard output pipe */
+            if ((poll_fd[1].revents & POLLOUT) && (!b_write_successful))
             {   
-                debug(CGICALL, "Write not completed (yet).\n");
-                poll_fd[1].revents ^= POLLOUT;
+                i_success = drainPipeTo(STDIN_FILENO, poll_fd[1].fd);
+                if (i_success < 0)
+                {
+                    debug(CGICALL, "An error occurred while writing.\n");
+                    b_write_successful = TRUE;
+                    //Writing failed, but that's not so bad. 
+                    //Possibly the cgi script terminated without reading the whole body
+                }
+                else if(i_success == 0)
+                {
+                    debug(CGICALL, "Write completed.\n");
+                    b_write_successful = TRUE;
+                    poll_fd[1].events = 0;
+                }
+                else
+                {   
+                    debug(CGICALL, "Write not completed (yet).\n");
+                    poll_fd[1].revents ^= POLLOUT;
+                }
             }
         }
 
@@ -297,6 +309,20 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
         /* Drain the standard output pipe */
         if ((poll_fd[0].revents & POLLIN) && (!b_read_successful))
         {   
+        
+            http_norm *hpn_info = normalizeHttp(response_stream);
+            i_success = parseCgiResponseHeader(hpn_info);
+            
+            if(i_success == EXIT_SUCCESS)
+            {
+                //TODO: send http_response header
+                //TODO: send body    
+            }
+            else
+            {
+            
+            }
+            
             response_length = drainPipe(poll_fd[0].fd, &cp_cgi_response);
             if (response_length < 0)
             {
@@ -308,9 +334,7 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
             b_read_successful = TRUE;
             
             poll_fd[0].revents ^= POLLIN;
-        }
-
-        
+        } 
     } 
     
     debug(CGICALL, "Normal exit.\n");
@@ -321,19 +345,18 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
 
 int drainPipeTo(int i_source_fd, int i_dest_fd)
 {
-    char io_buffer[2048];
+    char ca_buffer[2048];
  
     do
     {
-        /* Read data from input pipe */
         ssize_t written_bytes = 0;
         ssize_t read_bytes = 0;
 
-        read_bytes = read(i_source_fd, io_buffer, sizeof(io_buffer));
+        read_bytes = read(i_source_fd, ca_buffer, sizeof(ca_buffer));
         
         if (read_bytes <= 0) {
              debug(CGICALL, "Read nothing from source.\n");
-            if (read_bytes == 0 || errno == EAGAIN) {            
+            if (read_bytes == 0) {            
                 return 0;
             }
 
@@ -342,13 +365,13 @@ int drainPipeTo(int i_source_fd, int i_dest_fd)
         }     
 
 
-        written_bytes = write(i_dest_fd, io_buffer, strlen(io_buffer));
+        written_bytes = write(i_dest_fd, ca_buffer, strlen(ca_buffer));
         debug(CGICALL, "Wrote %d bytes to cgi pipe.\n", written_bytes);
         if (written_bytes < 0) 
-        {
-            debug(CGICALL, "Error while writing.\n");
+        {       
             if(errno == EAGAIN)
-                return 1;
+                return 1;  
+            debug(CGICALL, "Error while writing.\n");
             return -1;
 
         } else if (written_bytes < read_bytes) 

@@ -207,7 +207,7 @@ int main(int argc, char** argv) {
 
     char* cp_cgi_path = NULL;
     bool b_static = NULL;
-    authenticate(&cp_cgi_path, &b_static);
+    //authenticate(&cp_cgi_path, &b_static);
     processCGIScript("testscript");
     
 //     sec_test();
