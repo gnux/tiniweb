@@ -25,10 +25,10 @@ extern http_autorization* http_autorization_;
 extern http_request *http_request_;
 
 static const int NONCE_LEN = 16;
-static bool sb_unauthorized_message_sent = FALSE;
+static bool sb_unauthorized_message_sent = TRUE; // TODO wieder umsetzen
 static unsigned char suca_sent_nonce[16];
 
-bool authenticate(char** cp_path, bool *cb_static)
+bool authenticate(char* cp_path)
 {
     bool b_auth_field_available = FALSE;
     
@@ -44,6 +44,8 @@ bool authenticate(char** cp_path, bool *cb_static)
         createNonce((unsigned char*)scp_secret_, suca_sent_nonce);
         
         // TODO send 401
+        // Wait for answer
+        // Send answer to normalizer/parser
     }
     else
     {       
@@ -60,16 +62,9 @@ bool authenticate(char** cp_path, bool *cb_static)
             {
             
                 char* cp_password = NULL;
-                char* cp_mapped_path = NULL;
                 bool b_response_valid = FALSE;
                 
-                if (mapRequestPath(http_request_->cp_path, &cp_mapped_path, cb_static) == FALSE)
-                    return FALSE;
                 
-                bool b_htdigest_file_available = isHTDigestFileAvailable(cp_mapped_path,
-                                                                         http_autorization_->cp_realm, 
-                                                                         http_autorization_->cp_username, 
-                                                                         &cp_password);
                 // TODO: b_response_valid = verifyResponse(...);
         
                 if (b_response_valid == FALSE)
@@ -99,69 +94,92 @@ bool authenticate(char** cp_path, bool *cb_static)
     return TRUE;
 }
 
-bool mapRequestPath(char* cp_relative_path, char** cpp_final_path, bool *cb_static)
+bool mapRequestPath(char** cpp_final_path, bool *cb_static)
 {
     char* cp_cgi_bin = "/cgi-bin";
     char* cp_web_dir = "/";
+    char* cp_relative_path_without_first_letter = NULL;
+    char* cp_relative_path = http_request_->cp_path;
     int i_cgi_bin_len = strlen(cp_cgi_bin);
     int i_web_dir_len = strlen(cp_web_dir);
     int i_relative_path_len = strlen(cp_relative_path);
     
-    if (i_relative_path_len >= i_cgi_bin_len && strncmp(cp_relative_path, cp_cgi_bin, i_cgi_bin_len))
+    cp_relative_path_without_first_letter = secMalloc((i_relative_path_len - 1) * sizeof(char));
+    strncpy(cp_relative_path_without_first_letter, cp_relative_path + 1, i_relative_path_len - 1);
+    
+    if (i_relative_path_len >= i_cgi_bin_len && strncmp(cp_relative_path, cp_cgi_bin, i_cgi_bin_len) == 0)
     {
         strAppend(cpp_final_path, scp_cgi_dir_);
-        strAppend(cpp_final_path, "/");
-        strAppend(cpp_final_path, cp_relative_path);
+        strAppend(cpp_final_path, cp_relative_path_without_first_letter);
         (*cb_static) = FALSE;
-        // TODO inform somebody because dynamic?
     }
     else
     {
-        if (i_relative_path_len >= i_web_dir_len && strncmp(cp_relative_path, cp_web_dir, i_web_dir_len))
+        if (i_relative_path_len >= i_web_dir_len && strncmp(cp_relative_path, cp_web_dir, i_web_dir_len) == 0)
         {
             strAppend(cpp_final_path, scp_web_dir_);
-            strAppend(cpp_final_path, "/");
-            strAppend(cpp_final_path, cp_relative_path);
+            strAppend(cpp_final_path, cp_relative_path_without_first_letter);
             (*cb_static) = TRUE;
-            // TODO inform somebody because static?
         }
         else
         {
             debugVerbose(AUTH, "ERROR, mapping request-path to filesystem path did not work!\n");
+            secFree(cp_relative_path_without_first_letter);
             return FALSE;
         }
     }
     
+    secFree(cp_relative_path_without_first_letter);
     return TRUE;
 }
 
-bool isHTDigestFileAvailable(char* cp_path, char* cp_realm, char* cp_username, char** cpp_password)
+int searchForHTDigestFile(char* cp_path, bool* bp_digest_file_available, char** cpp_path_to_htdigest_file)
 {
     char** cpp_sorted_final_path = NULL;
-   
-    int i_num_folders = 0;
-
-    // TODO:
-    // pfad anschauen                                               OK
-    //   '/' für web-dir, cgi-bin für cgi-bin (von commandline)     OK
-    //   check ob datei wirklich existiert                          OK
-    // get sorted path                                              OK
-    //   pfad durchgehen                                            OK
-    //     nach .htdigest file suchen, wenn dort -> merken
-    //     wenn 2. file im pfad -> abbruch (Protected fehler)
+    char* cp_search_path = NULL;
+    char* cp_search_path_with_ht_file = NULL;
+    bool b_htdigest_file_found = FALSE;   
 
     if (checkPath(cp_path) == FALSE)
-        return FALSE;
+        return EXIT_FAILURE;
     
-    i_num_folders = (cp_path, &cpp_sorted_final_path);
+    const int ci_num_folders = getSortedPath(cp_path, &cpp_sorted_final_path);
     
-    for (int i_current_folder = 0; i_current_folder < i_num_folders; i_current_folder+++)
+    for (int i_current_folder = 0; i_current_folder < ci_num_folders; i_current_folder++)
     {
+        strAppend(&cp_search_path, cpp_sorted_final_path[i_current_folder]);
+        strAppend(&cp_search_path_with_ht_file, cp_search_path);
+        strAppend(&cp_search_path_with_ht_file, ".htdigest");
         
+        debugVerbose(AUTH, "Searching for .htdigest file in '%s'.\n", cp_search_path_with_ht_file);
         
+        // .htdigest file in path?
+        if (checkPath(cp_search_path_with_ht_file))
+        {
+            
+            // Already second htdigest file found?
+            if (b_htdigest_file_found == TRUE)
+            {
+                debugVerbose(AUTH, "ERROR, path contains two .htdigest files! Ressource is inaccassable\n");
+                freeSortedPath(cpp_sorted_final_path, ci_num_folders);
+                secFree(cp_search_path_with_ht_file);
+                secFree(cp_search_path);
+                return EXIT_FAILURE;        // TODO wirklich richtig?
+            }
+            b_htdigest_file_found = TRUE;
+            
+            // Store results int referenced vars:
+            *bp_digest_file_available = TRUE;
+            strAppend(cpp_path_to_htdigest_file, cp_search_path_with_ht_file);
+        }
+        
+        secFree(cp_search_path_with_ht_file);
+        cp_search_path_with_ht_file = NULL;
     }
     
-    return TRUE;
+    freeSortedPath(cpp_sorted_final_path, ci_num_folders);
+    secFree(cp_search_path);  
+    return EXIT_SUCCESS;
 }
 
 bool getHTDigestFileInfo(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_password)

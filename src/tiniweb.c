@@ -205,9 +205,26 @@ int main(int argc, char** argv) {
     //           "\r\n"
     //           "<html><body>Hello!</body></html>\r\n");   
 
-    char* cp_cgi_path = NULL;
-    bool b_static = NULL;
-    authenticate(&cp_cgi_path, &b_static);
+    bool b_static = FALSE;
+    char* cp_mapped_path = NULL;
+    char* cp_path_to_htdigest_file = NULL;
+    bool b_digest_file_available = FALSE;
+    
+    if (mapRequestPath(&cp_mapped_path, &b_static) == FALSE)
+    {
+        // TODO safe exit + error to client
+    }
+    
+    if (searchForHTDigestFile(cp_mapped_path, &b_digest_file_available, &cp_path_to_htdigest_file) == EXIT_FAILURE)
+    {
+        //TODO error, because file is inaccessable and safe exit
+    }
+    
+    if (b_digest_file_available)
+    {
+        authenticate(cp_mapped_path);
+    }
+    
     processCGIScript("testscript");
     
 //     sec_test();

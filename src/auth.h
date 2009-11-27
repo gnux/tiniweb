@@ -13,11 +13,11 @@
  * TODO specify everything
  *
  */
-bool authenticate(char** cp_path, bool* cb_static);
+bool authenticate(char* cp_path);
 
-bool mapRequestPath(char* cp_relative_path, char** cpp_final_path, bool *cb_static);
+bool mapRequestPath(char** cpp_final_path, bool *cb_static);
 
-bool isHTDigestFileAvailable(char* cp_path, char* cp_realm, char* cp_username, char** cpp_password);
+int searchForHTDigestFile(char* cp_path, bool* bp_digest_file_available, char** cpp_path_to_htdigest_file);
 
 bool getHTDigestFileInfo(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_password);
 
