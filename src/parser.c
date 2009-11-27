@@ -64,11 +64,19 @@ void parse(http_norm *hnp_info){
 int parseCgiResponseHeader(http_norm *hnp_info){
 	char* cp_content = NULL;
 	char* cp_status = NULL;
+	char* cp_server = NULL;
+	char* cp_connection = NULL;
 	bool content_found =FALSE;
 	bool status_found = FALSE;
+	bool connection_found = FALSE;
+	bool server_found = FALSE;
 	http_cgi_response_ = secCalloc(1, sizeof(http_cgi_response));
 	http_cgi_response_->content_type = NULL;
 	http_cgi_response_->status = NULL;
+	http_cgi_response_->server = NULL;
+	http_cgi_response_->connection = NULL;
+	http_cgi_response_->cpp_header_field_body = NULL;
+	http_cgi_response_->cpp_header_field_name = NULL;
 
 
 	debugVerbose(PARSER, "Check CGI response\n");
@@ -77,28 +85,50 @@ int parseCgiResponseHeader(http_norm *hnp_info){
 	ssize_t i = 0;
 	for(; i < hnp_info->i_num_fields; ++i){
 
-		if(i==0 && strlen(hnp_info->cpp_header_field_name[i])>=12)
+		if(strlen(hnp_info->cpp_header_field_name[i])>=12)
 			if(strncasecmp("Content-Type",hnp_info->cpp_header_field_name[i],12)==0){
 				cp_content = hnp_info->cpp_header_field_body[i];
 				strAppend(&http_cgi_response_->content_type, cp_content);
 				content_found = TRUE;
 			}
-		if(i==1 && strlen(hnp_info->cpp_header_field_name[i])>=6)
+		if(strlen(hnp_info->cpp_header_field_name[i])>=6)
 			if(strncasecmp("Status",hnp_info->cpp_header_field_name[i],6)==0){
 				cp_status = hnp_info->cpp_header_field_body[i];
 				strAppend(&http_cgi_response_->status, cp_status);
 				status_found = TRUE;
 			}
+		if(strlen(hnp_info->cpp_header_field_name[i])>=10)
+			if(strncasecmp("Connection",hnp_info->cpp_header_field_name[i],10)==0){
+				cp_connection = hnp_info->cpp_header_field_body[i];
+				strAppend(&http_cgi_response_->connection, "close");
+				connection_found = TRUE;
+			}
+		if(strlen(hnp_info->cpp_header_field_name[i])>=6)
+			if(strncasecmp("Server",hnp_info->cpp_header_field_name[i],6)==0){
+				cp_server = hnp_info->cpp_header_field_body[i];
+				strAppend(&http_cgi_response_->server, "tiniweb/1.0");
+				server_found = TRUE;
+			}
+		
 
 	}
-	if(i==1 && content_found == TRUE && status_found == FALSE){
+	
+	//If we don't find this fields we set them
+	if(content_found == TRUE && status_found == FALSE){
 		strAppend(&http_cgi_response_->status, "200 OK");
 		status_found = TRUE;
+	}
+	if(content_found == TRUE && connection_found == FALSE){
+		strAppend(&http_cgi_response_->connection, "close");
+	}
+	if(content_found == TRUE && server_found == FALSE){
+		strAppend(&http_cgi_response_->server, "tiniweb/1.0");
 	}
 
 	debugVerbose(PARSER, "CGI Content: %s\n",http_cgi_response_->content_type);
 	debugVerbose(PARSER, "CGI Status: %s\n",http_cgi_response_->status);
-	
+	debugVerbose(PARSER, "CGI Connection: %s\n",http_cgi_response_->connection);
+	debugVerbose(PARSER, "CGI Server: %s\n",http_cgi_response_->server);
 	if(status_found == TRUE && content_found == TRUE)
 		return EXIT_SUCCESS;
 	else
