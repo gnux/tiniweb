@@ -125,9 +125,13 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
     char* cp_cgi_bin = "/cgi-bin";
     char* cp_web_dir = "/";
     char* cp_relative_path_without_first_letter = NULL;
-    char* cp_relative_path = http_request_->cp_path;
     int i_cgi_bin_len = strlen(cp_cgi_bin);
     int i_web_dir_len = strlen(cp_web_dir);
+    
+    if (!http_request_->cp_path)
+        return FALSE;
+    
+    char* cp_relative_path = http_request_->cp_path;
     int i_relative_path_len = strlen(cp_relative_path);
     
     cp_relative_path_without_first_letter = secMalloc((i_relative_path_len - 1) * sizeof(char));
