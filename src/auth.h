@@ -10,15 +10,41 @@
 #include "typedef.h"
 
 /**
- * TODO specify everything
+ * Performs the authentication
  *
+ * @param cp_path the path to the .htdigest file
+ * @return TRUE if the authentication worked, FALSE if not.
  */
 bool authenticate(char* cp_path);
 
+/**
+ * Maps the request path to the local file structure
+ *
+ * @param cpp_final_path mapped path to the requested resource is going to be stored here
+ * @param cb_static boolean to be stored in. Shows if the request is static or not
+ * @return TRUE in case of success, FALSE in case of an error
+ */
 bool mapRequestPath(char** cpp_final_path, bool *cb_static);
 
+/**
+ * Searches for a .htdigest file within the mapped path
+ *
+ * @param cp_path mapped path
+ * @param bp_digest_file_available boolean to be stored in. Shows if a .htdigest file was found
+ * @param cpp_path_to_htdigest_file path of the htdigest file to be stored in
+ * @return EXIT_FAILURE in cause of an error (or if two .htdigest files were found), otherwise EXIT_SUCCESS
+ */
 int searchForHTDigestFile(char* cp_path, bool* bp_digest_file_available, char** cpp_path_to_htdigest_file);
 
+/**
+ * Searches for the HA1 String in the .htdigest file
+ *
+ * @param cp_path_to_file path to the .htdigest file
+ * @param cp_realm realm of the user
+ * @param cp_username username of the user
+ * @param cpp_ha1 ha1 sting to be stored in
+ * @return TRUE if the HA1 string was found, FALSE in case of an error
+ */
 bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_ha1);
 
 /**
@@ -58,7 +84,6 @@ bool unauthorizedMessageSent();
 void performHMACMD5(unsigned char* uca_text, int i_text_len, 
                     unsigned char* uca_key, int i_key_len, unsigned char* digest);
                     
-
 /**
  * Creates the nonce for authentication purposes
  *
@@ -67,10 +92,14 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len,
  */
 int createNonce(unsigned char* uca_key, char** cpp_nonce);
 
-
+/**
+ * Converts the hash from an unsigned char to a readable string
+ *
+ * @param ucp_hash hash to be converted
+ * @param i_hash_len hash length
+ * @param cp_hash_nonce readable hast to be stored in
+ * @return EXIT_SUCCESS if everything worked, EXIT_FAILURE if not
+ */
 int convertHash(unsigned char* ucp_hash, int i_hash_len, char** cp_hash_nonce);
-
-
-
 
 #endif

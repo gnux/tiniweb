@@ -9,8 +9,22 @@
 #include <sys/types.h>
 #include "typedef.h"
 
+/**
+ * 
+ *
+ * @param cp_path 
+ * @param cppp_sorted_path 
+ * @return 
+ */
 int getSortedPath(char* cp_path, char*** cppp_sorted_path);
 
+/**
+ * 
+ *
+ * @param cp_path 
+ * @param i_num_folders 
+ * @return 
+ */
 void freeSortedPath(char** cpp_path, int i_num_folders);
 
 /**
@@ -62,6 +76,7 @@ bool isAbsolutePath(char * cp_path);
  */
 void constructAbsolutePath(char** cpp_path);
 
+// TODO remove if not needed any more
 void testPathChecking();
 
 
