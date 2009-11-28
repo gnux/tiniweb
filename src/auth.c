@@ -24,9 +24,9 @@ extern char *scp_secret_;
 extern http_autorization* http_autorization_;
 extern http_request *http_request_;
 
-static const int NONCE_LEN = 16;
-static bool sb_unauthorized_message_sent = TRUE; // TODO wieder umsetzen
-static unsigned char suca_sent_nonce[16];
+static const int SCI_NONCE_LEN = 16;
+static bool sb_unauthorized_message_sent_ = TRUE; // TODO wieder umsetzen
+static char* scp_sent_nonce_ = NULL;
 
 bool authenticate(char* cp_path)
 {
@@ -38,14 +38,24 @@ bool authenticate(char* cp_path)
     
     // If no authentication field is available and no unauthorized message (401) was
     // sent, create nonce and send unauthorized message (401)
-    if (sb_unauthorized_message_sent == FALSE)
+    if (sb_unauthorized_message_sent_ == FALSE)
     {
         debugVerbose(AUTH, "No 401-Unauthorized message waas sent before.\n");
-        createNonce((unsigned char*)scp_secret_, suca_sent_nonce);
+        int i_result_nonce_len = SCI_NONCE_LEN * 2 + 1;
+        scp_sent_nonce_ = secMalloc(i_result_nonce_len * sizeof(char));
+        
+        if (createNonce((unsigned char*)scp_secret_, &scp_sent_nonce_) == EXIT_FAILURE)
+        {
+            secFree(scp_sent_nonce_);
+        }
         
         // TODO send 401
         // Wait for answer
         // Send answer to normalizer/parser
+        
+        
+        
+        secFree(scp_sent_nonce_);
     }
     else
     {       
@@ -72,9 +82,16 @@ bool authenticate(char* cp_path)
                     return FALSE;
                 }
                 
-                if (verifyResponse((unsigned char*)cp_ha1, (unsigned char*)suca_sent_nonce,
-                    (unsigned char*)http_request_->cp_method, (unsigned char*)http_request_->cp_uri, 
-                    (unsigned char*)http_autorization_->cp_response) == FALSE)
+                // TODO: remove THIS ---------------------------------- START --- just for testing!
+                int i_result_nonce_len = SCI_NONCE_LEN * 2 + 1;
+                scp_sent_nonce_ = secMalloc(i_result_nonce_len * sizeof(char));
+                scp_sent_nonce_ = "c4c544b9722671f08465167eebc2d54f";
+                // TODO -------------------------------------------- END -----------------------
+                
+                
+                
+                if (verifyResponse(cp_ha1, scp_sent_nonce_, http_request_->cp_method, 
+                    http_request_->cp_uri, http_autorization_->cp_response) == FALSE)
                 {
                     //TODO Send Login Error
                     debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
@@ -83,6 +100,8 @@ bool authenticate(char* cp_path)
 
                 debugVerbose(AUTH, "Success: The 'response' from the auth field is valid!\n");
                 // TODO free memory!
+                
+                secFree(scp_sent_nonce_);
             }
             else
             {
@@ -171,7 +190,7 @@ int searchForHTDigestFile(char* cp_path, bool* bp_digest_file_available, char** 
                 freeSortedPath(cpp_sorted_final_path, ci_num_folders);
                 secFree(cp_search_path_with_ht_file);
                 secFree(cp_search_path);
-                return EXIT_FAILURE;        // TODO wirklich richtig?
+                return EXIT_FAILURE;
             }
             b_htdigest_file_found = TRUE;
             
@@ -243,49 +262,53 @@ bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_
     return FALSE;
 }
 
-bool verifyResponse(unsigned char* uca_ha1, unsigned char* uca_nonce,
-                    unsigned char* uca_http_request_method,
-                    unsigned char* uca_uri, unsigned char* uca_response)
+bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
+                    char* cp_uri, char* cp_response)
 {
     md5_state_t ha2_state;
     md5_state_t expected_response_state;
-    unsigned char uca_ha2[16];
-    unsigned char uca_expected_response[16];
+    unsigned char uca_ha2[SCI_NONCE_LEN];
+    unsigned char uca_expected_response[SCI_NONCE_LEN];
+    char* cp_expected_converted_response = NULL;
     int i_result = -1;
-    int i_nonce_len = strlen((char*)uca_nonce);
-    int i_http_request_method_len = strlen((char*)uca_http_request_method);
-    int i_uri_len = strlen((char*)uca_uri);
+    int i_nonce_len = strlen(cp_nonce);
+    int i_http_request_method_len = strlen(cp_http_request_method);
+    int i_uri_len = strlen(cp_uri);
     
     // Calculate HA2:
     md5_init(&ha2_state);
-    md5_append(&ha2_state, uca_http_request_method, i_http_request_method_len);
-    md5_append(&ha2_state, uca_uri, i_uri_len);
+    md5_append(&ha2_state, (unsigned char*)cp_http_request_method, i_http_request_method_len);
+    md5_append(&ha2_state, (unsigned char*)cp_uri, i_uri_len);
     md5_finish(&ha2_state, uca_ha2);
     
     // Calculate expected response:
     md5_init(&expected_response_state);
-    md5_append(&expected_response_state, uca_ha1, 16);
-    md5_append(&expected_response_state, uca_nonce, i_nonce_len);
-    md5_append(&expected_response_state, uca_ha2, 16);
+    md5_append(&expected_response_state, (unsigned char*)cp_ha1, SCI_NONCE_LEN);
+    md5_append(&expected_response_state, (unsigned char*)cp_nonce, i_nonce_len);
+    md5_append(&expected_response_state, (unsigned char*)uca_ha2, SCI_NONCE_LEN);
     md5_finish(&expected_response_state, uca_expected_response);
+
+    // TODO remove this debug output:
+    debugVerbose(AUTH, "Hash from client: %s\n", cp_response);
+    debugVerboseHash(AUTH, uca_expected_response, SCI_NONCE_LEN, "Expected Hash   :");
     
-    debugVerboseHash(AUTH, uca_response, 16, "Hash from client:");
-    debugVerboseHash(AUTH, uca_expected_response, 16, "Expected Hash   :");
+    convertHash(uca_expected_response, SCI_NONCE_LEN, &cp_expected_converted_response);
     
-    i_result = strncmp((char*)uca_expected_response, (char*)uca_response, 16);
+    i_result = strncmp(cp_response, cp_expected_converted_response, SCI_NONCE_LEN * 2);
     if (i_result != 0)
     {
-        // TODO remove this debug output:
         debugVerbose(AUTH, "The response from the client does not match the expected response!\n");
+        secFree(cp_expected_converted_response);
         return FALSE;
     }
     
+    secFree(cp_expected_converted_response);
     return TRUE;
 }
 
 bool unauthorizedMessageSent()
 {
-    return sb_unauthorized_message_sent;
+    return sb_unauthorized_message_sent_;
 }
 
 //------------------------------------------------------------------------
@@ -366,19 +389,45 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len, unsigned char* uca_
 // END-FOREIGN-CODE (RFC2104)
 //------------------------------------------------------------------------
 
-void createNonce(unsigned char* uca_key, unsigned char* uca_nonce)
+int createNonce(unsigned char* uca_key, char** cpp_nonce)
 {
     time_t timestamp = time(NULL);
     int i_text_len = 30;
     unsigned char uca_text[i_text_len];
+    unsigned char uca_nonce[SCI_NONCE_LEN];
     
     memset(uca_text, 0, i_text_len);
     sprintf((char*)uca_text,"%s",asctime( localtime(&timestamp) ) );  
 
     performHMACMD5(uca_text, i_text_len, uca_key, i_text_len, uca_nonce);
-    debugVerboseHash(AUTH, uca_nonce, NONCE_LEN, "A Nonce was created!");
+    debugVerboseHash(AUTH, uca_nonce, SCI_NONCE_LEN, "A Nonce was created!");
+    
+    if (convertHash(uca_nonce, SCI_NONCE_LEN, cpp_nonce) == EXIT_FAILURE)
+        return EXIT_FAILURE;
+    
+    return EXIT_SUCCESS;
 }
 
-
+int convertHash(unsigned char* ucp_hash, int i_hash_len, char** cp_hash_nonce)
+{
+    int i_result_nonce_len = (i_hash_len * 2) + 1;
+    char* cp_tmp_nonce_container = NULL;
+    
+    if (i_result_nonce_len < i_hash_len)
+        return EXIT_FAILURE;
+    
+    cp_tmp_nonce_container = secMalloc(3 * sizeof(char));
+    
+    for (int i = 0; i < i_hash_len; i++)
+    {
+        sprintf(cp_tmp_nonce_container, "%x", ucp_hash[i]);
+        cp_tmp_nonce_container[2] = '\0';
+        strAppend(cp_hash_nonce, cp_tmp_nonce_container);
+    }
+    
+    secFree(cp_tmp_nonce_container);    
+    
+    return EXIT_SUCCESS;
+}
 
 

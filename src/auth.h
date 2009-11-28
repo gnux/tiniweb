@@ -28,16 +28,15 @@ bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_
  *   HA2 = md5( HTTP-Request-Method : URI)
  *   response = md5( HA1 : nonce : HA2 )
  *
- * @param uca_ha1
- * @param uca_nonce Nonce
- * @param uca_http_request_method HTTP Request Method
- * @param uca_uri URI
- * @param uca_response response from the client (this will be checked)
+ * @param cp_ha1
+ * @param cp_nonce Nonce
+ * @param cp_http_request_method HTTP Request Method
+ * @param cp_uri URI
+ * @param cp_response response from the client (this will be checked)
  * @return TRUE if the response was valid, FALSE if not
  */
-bool verifyResponse(unsigned char* uca_ha1, unsigned char* uca_nonce,
-                    unsigned char* uca_http_request_method,
-                    unsigned char* uca_uri, unsigned char* uca_response);
+bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
+                    char* cp_uri, char* cp_response);
 
 /**
  * Checks if we already sent a 401-Unauthorized Message back. 
@@ -64,9 +63,12 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len,
  * Creates the nonce for authentication purposes
  *
  * @param uca_key the secret key, providied from the commandline
- * @param uca_nonce nonce to be filled in
+ * @param cpp_nonce nonce to be filled in
  */
-void createNonce(unsigned char* uca_key, unsigned char* uca_nonce);
+int createNonce(unsigned char* uca_key, char** cpp_nonce);
+
+
+int convertHash(unsigned char* ucp_hash, int i_hash_len, char** cp_hash_nonce);
 
 
 
