@@ -24,11 +24,11 @@ extern char *scp_secret_;
 extern http_autorization* http_autorization_;
 extern http_request *http_request_;
 
-static const int NONCE_LEN = 16;
-static bool sb_unauthorized_message_sent = FALSE;
-static unsigned char suca_sent_nonce[16];
+static const int SCI_NONCE_LEN = 16;
+static bool sb_unauthorized_message_sent_ = TRUE; // TODO wieder umsetzen
+static char* scp_sent_nonce_ = NULL;
 
-bool authenticate(char** cp_path, bool *b_static)
+bool authenticate(char* cp_path)
 {
     bool b_auth_field_available = FALSE;
     
@@ -38,12 +38,24 @@ bool authenticate(char** cp_path, bool *b_static)
     
     // If no authentication field is available and no unauthorized message (401) was
     // sent, create nonce and send unauthorized message (401)
-    if (sb_unauthorized_message_sent == FALSE)
+    if (sb_unauthorized_message_sent_ == FALSE)
     {
         debugVerbose(AUTH, "No 401-Unauthorized message waas sent before.\n");
-        createNonce((unsigned char*)scp_secret_, suca_sent_nonce);
+        int i_result_nonce_len = SCI_NONCE_LEN * 2 + 1;
+        scp_sent_nonce_ = secMalloc(i_result_nonce_len * sizeof(char));
+        
+        if (createNonce((unsigned char*)scp_secret_, &scp_sent_nonce_) == EXIT_FAILURE)
+        {
+            secFree(scp_sent_nonce_);
+        }
         
         // TODO send 401
+        // Wait for answer
+        // Send answer to normalizer/parser
+        
+        
+        
+        secFree(scp_sent_nonce_);
     }
     else
     {       
@@ -56,26 +68,40 @@ bool authenticate(char** cp_path, bool *b_static)
             
             if (http_autorization_->cp_nonce && http_autorization_->cp_realm &&
                 http_autorization_->cp_response && http_autorization_->cp_uri &&
-                http_autorization_->cp_username && http_request_->cp_path)
+                http_autorization_->cp_username && http_request_->cp_path && 
+                http_request_->cp_method && http_request_->cp_uri)
             {
             
-                char* cp_password = NULL;
-                bool b_response_valid = FALSE;
-                bool b_htdigest_file_available = isHTDigestFileAvailable(http_request_->cp_path, 
-                                                                         http_autorization_->cp_realm, 
-                                                                         http_autorization_->cp_username, 
-                                                                         &cp_password);
-                // TODO: b_response_valid = verifyResponse(...);
-        
-                if (b_response_valid == FALSE)
+                char* cp_ha1 = NULL;
+                
+                if (getHA1HashFromHTDigestFile(cp_path, http_autorization_->cp_realm, 
+                                           http_autorization_->cp_username, &cp_ha1) == FALSE)
+                {
+                    // TODO safe exit
+                    // send login error
+                    return FALSE;
+                }
+                
+                // TODO: remove THIS ---------------------------------- START --- just for testing!
+                int i_result_nonce_len = SCI_NONCE_LEN * 2 + 1;
+                scp_sent_nonce_ = secMalloc(i_result_nonce_len * sizeof(char));
+                scp_sent_nonce_ = "c4c544b9722671f08465167eebc2d54f";
+                // TODO -------------------------------------------- END -----------------------
+                
+                
+                
+                if (verifyResponse(cp_ha1, scp_sent_nonce_, http_request_->cp_method, 
+                    http_request_->cp_uri, http_autorization_->cp_response) == FALSE)
                 {
                     //TODO Send Login Error
                     debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
+                    return FALSE;
                 }
-                else
-                {
-                    debugVerbose(AUTH, "The 'response' from the auth field is valid!\n");
-                }
+
+                debugVerbose(AUTH, "Success: The 'response' from the auth field is valid!\n");
+                // TODO free memory!
+                
+                secFree(scp_sent_nonce_);
             }
             else
             {
@@ -94,95 +120,195 @@ bool authenticate(char** cp_path, bool *b_static)
     return TRUE;
 }
 
-bool isHTDigestFileAvailable(char* cp_relative_path, char* cp_realm, char* cp_username, char** cpp_password)
+bool mapRequestPath(char** cpp_final_path, bool *cb_static)
 {
-    char* cp_final_path = NULL;
-    char** cpp_sorted_final_path = NULL;
     char* cp_cgi_bin = "/cgi-bin";
     char* cp_web_dir = "/";
-    int i_num_folders = 0;
-    int i_relative_path_len = strlen(cp_relative_path);
+    char* cp_relative_path_without_first_letter = NULL;
+    char* cp_relative_path = http_request_->cp_path;
     int i_cgi_bin_len = strlen(cp_cgi_bin);
     int i_web_dir_len = strlen(cp_web_dir);
+    int i_relative_path_len = strlen(cp_relative_path);
     
-    // TODO:
-    // pfad anschauen
-    //   '/' für web-dir, cgi-bin für cgi-bin (von commandline)
-    //   check ob datei wirklich existiert
-    // get sorted path
-    //   pfad durchgehen
-    //     nach .htdigest file suchen, wenn dort -> merken
-    //     wenn 2. file im pfad -> abbruch (Protected fehler)
+    cp_relative_path_without_first_letter = secMalloc((i_relative_path_len - 1) * sizeof(char));
+    strncpy(cp_relative_path_without_first_letter, cp_relative_path + 1, i_relative_path_len - 1);
     
-    if (i_relative_path_len >= i_cgi_bin_len && strncmp(cp_relative_path, cp_cgi_bin, i_cgi_bin_len))
+    if (i_relative_path_len >= i_cgi_bin_len && strncmp(cp_relative_path, cp_cgi_bin, i_cgi_bin_len) == 0)
     {
-        strAppend(&cp_final_path, scp_cgi_dir_);
-        strAppend(&cp_final_path, "/");
-        strAppend(&cp_final_path, cp_relative_path);
-        
-        // TODO inform somebody because dynamic?
+        strAppend(cpp_final_path, scp_cgi_dir_);
+        strAppend(cpp_final_path, cp_relative_path_without_first_letter);
+        (*cb_static) = FALSE;
     }
     else
     {
-        if (i_relative_path_len >= i_web_dir_len && strncmp(cp_relative_path, cp_web_dir, i_web_dir_len))
+        if (i_relative_path_len >= i_web_dir_len && strncmp(cp_relative_path, cp_web_dir, i_web_dir_len) == 0)
         {
-            strAppend(&cp_final_path, scp_web_dir_);
-            strAppend(&cp_final_path, "/");
-            strAppend(&cp_final_path, cp_relative_path);
-            
-            // TODO inform somebody because static?
+            strAppend(cpp_final_path, scp_web_dir_);
+            strAppend(cpp_final_path, cp_relative_path_without_first_letter);
+            (*cb_static) = TRUE;
         }
         else
         {
-            debugVerbose(AUTH, "ERROR, Final!\n");
+            debugVerbose(AUTH, "ERROR, mapping request-path to filesystem path did not work!\n");
+            secFree(cp_relative_path_without_first_letter);
             return FALSE;
         }
     }
     
+    secFree(cp_relative_path_without_first_letter);
     return TRUE;
 }
 
-bool getHTDigestFileInfo(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_password)
+int searchForHTDigestFile(char* cp_path, bool* bp_digest_file_available, char** cpp_path_to_htdigest_file)
 {
-    return TRUE;
+    char** cpp_sorted_final_path = NULL;
+    char* cp_search_path = NULL;
+    char* cp_search_path_with_ht_file = NULL;
+    bool b_htdigest_file_found = FALSE;   
+
+    if (checkPath(cp_path) == FALSE)
+        return EXIT_FAILURE;
+    
+    const int ci_num_folders = getSortedPath(cp_path, &cpp_sorted_final_path);
+    
+    for (int i_current_folder = 0; i_current_folder < ci_num_folders; i_current_folder++)
+    {
+        strAppend(&cp_search_path, cpp_sorted_final_path[i_current_folder]);
+        strAppend(&cp_search_path_with_ht_file, cp_search_path);
+        strAppend(&cp_search_path_with_ht_file, ".htdigest");
+        
+        debugVerbose(AUTH, "Searching for .htdigest file in '%s'.\n", cp_search_path_with_ht_file);
+        
+        // .htdigest file in path?
+        if (checkPath(cp_search_path_with_ht_file))
+        {
+            
+            // Already second htdigest file found?
+            if (b_htdigest_file_found == TRUE)
+            {
+                debugVerbose(AUTH, "ERROR, path contains two .htdigest files! Ressource is inaccassable\n");
+                freeSortedPath(cpp_sorted_final_path, ci_num_folders);
+                secFree(cp_search_path_with_ht_file);
+                secFree(cp_search_path);
+                return EXIT_FAILURE;
+            }
+            b_htdigest_file_found = TRUE;
+            
+            // Store results int referenced vars:
+            *bp_digest_file_available = TRUE;
+            strAppend(cpp_path_to_htdigest_file, cp_search_path_with_ht_file);
+        }
+        
+        secFree(cp_search_path_with_ht_file);
+        cp_search_path_with_ht_file = NULL;
+    }
+    
+    freeSortedPath(cpp_sorted_final_path, ci_num_folders);
+    secFree(cp_search_path);  
+    return EXIT_SUCCESS;
 }
 
-bool verifyResponse(unsigned char* uca_ha1, unsigned char* uca_nonce, int i_nonce_len,
-                    unsigned char* uca_http_request_method, int i_http_request_method_len,
-                    unsigned char* uca_uri, int i_uri_len, unsigned char* uca_response)
+bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_ha1)
+{
+    char* cp_mode = "r";
+    char* cp_htdigest_line = NULL;
+    char* cp_htdigest_compare_line = NULL;
+    char* cp_ha1 = NULL;
+    int i_line_len = strlen(cp_username) + strlen(cp_realm) + 2;
+    int i_htdigest_line_len = i_line_len + 32;
+        
+    FILE* file_htdigest = fopen(cp_path_to_file, cp_mode);
+
+    if (file_htdigest == NULL)
+    {
+        debugVerbose(AUTH, "ERROR, '.htdigest'-file could not be opened.\n");
+        return FALSE;
+    }
+    
+    cp_htdigest_line = secMalloc(i_htdigest_line_len);
+    
+    strAppend(&cp_htdigest_compare_line, cp_username);
+    strAppend(&cp_htdigest_compare_line, ":");
+    strAppend(&cp_htdigest_compare_line, cp_realm);
+    strAppend(&cp_htdigest_compare_line, ":");
+    
+    while( fgets(cp_htdigest_line, i_htdigest_line_len, file_htdigest) )
+    {
+        //debugVerbose(AUTH, "1: %s, 2: %s\n", cp_htdigest_compare_line, cp_htdigest_line);
+        
+        if (strncmp(cp_htdigest_compare_line, cp_htdigest_line, i_line_len) == 0)
+        {
+            debugVerbose(AUTH, "Success, expected line found in '.htdigest'-file\n");
+            
+            cp_ha1 = secMalloc(32 * sizeof(char));
+            strncpy(cp_ha1, cp_htdigest_line + i_line_len, 32);
+            *cpp_ha1 = cp_ha1;
+            
+            secFree(cp_htdigest_compare_line);
+            secFree(cp_htdigest_line);
+            fclose(file_htdigest);
+            
+            return TRUE;
+        }
+    }
+    
+    
+    debugVerbose(AUTH, "ERROR, expected line not found in '.htdigest'-file\n");
+    
+    secFree(cp_htdigest_compare_line);
+    secFree(cp_htdigest_line);
+    fclose(file_htdigest);
+    
+    return FALSE;
+}
+
+bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
+                    char* cp_uri, char* cp_response)
 {
     md5_state_t ha2_state;
     md5_state_t expected_response_state;
-    unsigned char uca_ha2[16];
-    unsigned char uca_expected_response[16];
+    unsigned char uca_ha2[SCI_NONCE_LEN];
+    unsigned char uca_expected_response[SCI_NONCE_LEN];
+    char* cp_expected_converted_response = NULL;
     int i_result = -1;
+    int i_nonce_len = strlen(cp_nonce);
+    int i_http_request_method_len = strlen(cp_http_request_method);
+    int i_uri_len = strlen(cp_uri);
     
     // Calculate HA2:
     md5_init(&ha2_state);
-    md5_append(&ha2_state, uca_http_request_method, i_http_request_method_len);
-    md5_append(&ha2_state, uca_uri, i_uri_len);
+    md5_append(&ha2_state, (unsigned char*)cp_http_request_method, i_http_request_method_len);
+    md5_append(&ha2_state, (unsigned char*)cp_uri, i_uri_len);
     md5_finish(&ha2_state, uca_ha2);
     
     // Calculate expected response:
     md5_init(&expected_response_state);
-    md5_append(&expected_response_state, uca_ha1, 16);
-    md5_append(&expected_response_state, uca_nonce, i_nonce_len);
-    md5_append(&expected_response_state, uca_ha2, 16);
+    md5_append(&expected_response_state, (unsigned char*)cp_ha1, SCI_NONCE_LEN);
+    md5_append(&expected_response_state, (unsigned char*)cp_nonce, i_nonce_len);
+    md5_append(&expected_response_state, (unsigned char*)uca_ha2, SCI_NONCE_LEN);
     md5_finish(&expected_response_state, uca_expected_response);
+
+    // TODO remove this debug output:
+    debugVerbose(AUTH, "Hash from client: %s\n", cp_response);
+    debugVerboseHash(AUTH, uca_expected_response, SCI_NONCE_LEN, "Expected Hash   :");
     
-    i_result = strncmp((char*)uca_expected_response, (char*)uca_response, 16);
+    convertHash(uca_expected_response, SCI_NONCE_LEN, &cp_expected_converted_response);
+    
+    i_result = strncmp(cp_response, cp_expected_converted_response, SCI_NONCE_LEN * 2);
     if (i_result != 0)
     {
         debugVerbose(AUTH, "The response from the client does not match the expected response!\n");
+        secFree(cp_expected_converted_response);
         return FALSE;
     }
     
+    secFree(cp_expected_converted_response);
     return TRUE;
 }
 
 bool unauthorizedMessageSent()
 {
-    return sb_unauthorized_message_sent;
+    return sb_unauthorized_message_sent_;
 }
 
 //------------------------------------------------------------------------
@@ -263,19 +389,45 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len, unsigned char* uca_
 // END-FOREIGN-CODE (RFC2104)
 //------------------------------------------------------------------------
 
-void createNonce(unsigned char* uca_key, unsigned char* uca_nonce)
+int createNonce(unsigned char* uca_key, char** cpp_nonce)
 {
     time_t timestamp = time(NULL);
     int i_text_len = 30;
     unsigned char uca_text[i_text_len];
+    unsigned char uca_nonce[SCI_NONCE_LEN];
     
     memset(uca_text, 0, i_text_len);
     sprintf((char*)uca_text,"%s",asctime( localtime(&timestamp) ) );  
 
     performHMACMD5(uca_text, i_text_len, uca_key, i_text_len, uca_nonce);
-    debugVerboseHash(AUTH, uca_nonce, NONCE_LEN, "A Nonce was created!");
+    debugVerboseHash(AUTH, uca_nonce, SCI_NONCE_LEN, "A Nonce was created!");
+    
+    if (convertHash(uca_nonce, SCI_NONCE_LEN, cpp_nonce) == EXIT_FAILURE)
+        return EXIT_FAILURE;
+    
+    return EXIT_SUCCESS;
 }
 
-
+int convertHash(unsigned char* ucp_hash, int i_hash_len, char** cp_hash_nonce)
+{
+    int i_result_nonce_len = (i_hash_len * 2) + 1;
+    char* cp_tmp_nonce_container = NULL;
+    
+    if (i_result_nonce_len < i_hash_len)
+        return EXIT_FAILURE;
+    
+    cp_tmp_nonce_container = secMalloc(3 * sizeof(char));
+    
+    for (int i = 0; i < i_hash_len; i++)
+    {
+        sprintf(cp_tmp_nonce_container, "%x", ucp_hash[i]);
+        cp_tmp_nonce_container[2] = '\0';
+        strAppend(cp_hash_nonce, cp_tmp_nonce_container);
+    }
+    
+    secFree(cp_tmp_nonce_container);    
+    
+    return EXIT_SUCCESS;
+}
 
 
