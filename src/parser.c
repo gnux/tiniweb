@@ -369,23 +369,31 @@ int parseRequestURI(char* input, int offset){
 		debugVerbose(PARSER, "CGI bin found\n");
 	}
 	
-	for(i_offset_st = 0; i_offset_st < strlen(cp_uri) && cp_uri[i_offset_st] != '?'; ++i_offset_st);
+	for(i_offset_st = 0; i_offset_st < strlen(cp_uri) && cp_uri[i_offset_st] != '?' && cp_uri[i_offset_st] != '#'; ++i_offset_st);
+	cp_path = secGetStringPart(cp_uri, 0, i_offset_st - 1);
 	if(i_offset_st != strlen(cp_uri)){
-		cp_path = secGetStringPart(cp_uri, 0, i_offset_st - 1);
+		
+		if(cp_uri[i_offset_st] == '?'){
 		for(i_offset_en = i_offset_st; i_offset_en < strlen(cp_uri) && cp_uri[i_offset_en] != '#'; ++i_offset_en);
 		cp_query = secGetStringPart(cp_uri, i_offset_st + 1, i_offset_en - 1);
 		if(i_offset_en != strlen(cp_uri))
-			cp_fragment = secGetStringPart(cp_uri, i_offset_en + 1, strlen(cp_uri) - 1);
+			cp_fragment = secGetStringPart(cp_uri, i_offset_en + 1, strlen(cp_uri) - 1);}
+		else
+			cp_fragment = secGetStringPart(cp_uri, i_offset_st + 1, strlen(cp_uri) - 1);
 	}
 	else
 		strAppend(&cp_path, cp_uri);
 
 	if(cp_path){
-		if(validateString(cp_path) == EXIT_FAILURE){
-			debugVerbose(PARSER, "Invalid char detected in URI Path\n");
+		if(validateAbspath(&cp_path) == EXIT_FAILURE){
+			debugVerbose(PARSER, "Invalid encoding detected in URI Path\n");
 			return EXIT_FAILURE;
 		}
 	}
+	
+	
+	
+	
 	// Fill up struct, remember it could contain NULL-pointers!
 	http_request_->cp_uri = cp_uri;
 	http_request_->cp_path = cp_path;
@@ -408,23 +416,64 @@ int parseHttpVersion(char* input, int offset){
 	return EXIT_SUCCESS;
 }
 
-int validateString(char* cp_string){
-	int i = 0;
+char decode(char* cp_string, ssize_t i_offset){
+	unsigned char a;
+	unsigned char b;
+	a = cp_string[i_offset + 1];
+	b = cp_string[i_offset + 2];
+	hextodec(&a);
+	hextodec(&b);
+	return a*16 + b;
+}
+
+void hextodec(unsigned char* a){
+	if(*a>47 && *a<58)
+		*a -= 48;
+	else if(*a>64 && *a<71)
+		*a -= 55;
+	else if(*a>96 && *a<103)
+		*a -= 87;
+}
+
+int validateAbspath(char** cpp_string){
+	ssize_t i = 0;
+	ssize_t i_offset = 0;
+	unsigned char* cp_decoded = NULL;
 	
-	for(;i<strlen(cp_string); ++i)
-		if(isNonEscapedChar(cp_string, i) == TRUE)
-			return EXIT_FAILURE;
+	cp_decoded = secCalloc(strlen(*cpp_string), sizeof(char));
+	
+	for(;i<strlen(*cpp_string); ++i){
 		
+		if(isNonEscapedChar(*cpp_string, i) == TRUE)
+			return EXIT_FAILURE;
+		if((*cpp_string)[i] == '%'){
+		
+			cp_decoded[i - i_offset] = decode(*cpp_string, i);
+			//PROOF for NULL!!! TODO: bad request
+			if(cp_decoded[i - i_offset] == 0x00 || cp_decoded[i - i_offset] == 0xff)
+				secAbort();
+			i+=2;
+			i_offset +=2;
+		}
+			
+		else if((*cpp_string)[i] == '+')
+			cp_decoded[i-i_offset] = ' ';
+		else
+		cp_decoded[i-i_offset] = (*cpp_string)[i];
+	}
+	secFree(*cpp_string);
+	*cpp_string = cp_decoded;
 		return EXIT_SUCCESS;
 }
 
 bool isNonEscapedChar(char* input, int i_offset){
-	const char* ccp_invalids = " ;?:@&=+$,#";
+	const char* ccp_invalids = " ;?:@&=$,#";
 	int i = 0;
 	
 	for(; i<strlen(ccp_invalids); ++i)
 		if(input[i_offset] == ccp_invalids[i])
 			return TRUE;
+		
 		if(input[i_offset]=='%'){
 			if(strlen(input) - i_offset < 3)
 				return TRUE;

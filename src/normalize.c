@@ -63,7 +63,7 @@ http_norm *normalizeHttp(FILE* fp_input, bool b_skipfirstline){
 	// now hunt for header-fields
 	while(1){
 		//TODO: sec abort
-		if(isValidHeaderFieldStart(cp_current_line) == EXIT_FAILURE){
+		if(isValidHeaderFieldStart(cp_current_line, b_skipfirstline) == EXIT_FAILURE){
 			debugVerbose(NORMALISE, "Invalid Header Field detected: %s\n", cp_current_line);
 			secAbort();
 		}
@@ -231,8 +231,14 @@ int isBlankNewLineChars(const char* ccp_input, const size_t i_offset){
 	return ((isBlank(ccp_input, i_offset) == EXIT_SUCCESS) ? EXIT_SUCCESS : isNewLineChars(ccp_input, i_offset));
 }
 
-int isCharacter(const char* cpp_input, const size_t i_offset){
-	return (cpp_input[i_offset] > 32 && cpp_input[i_offset] < 128) ? EXIT_SUCCESS : EXIT_FAILURE;
+int isCharacter(const char* ccp_input, const size_t i_offset){
+	return (ccp_input[i_offset] > 32 && ccp_input[i_offset] < 127) ? EXIT_SUCCESS : EXIT_FAILURE;
+}
+
+int isValid(const char* ccp_input, const size_t i_offset){
+	if(isCharacter(ccp_input, i_offset) == EXIT_SUCCESS || isBlankNewLineChars(ccp_input, i_offset)==EXIT_SUCCESS)
+		return EXIT_SUCCESS;
+	return EXIT_FAILURE;
 }
 
 void strAppend(char** cpp_output, const char* ccp_input){
@@ -261,7 +267,7 @@ void strAppend(char** cpp_output, const char* ccp_input){
 	(*cpp_output)[i_len_new - 1] = '\0';
 }
 
-int isValidHeaderFieldStart(const char* ccp_input){
+int isValidHeaderFieldStart(const char* ccp_input, bool b_skipfirstline){
 	size_t i_offset_token;
 	size_t i_last_char_name;
 	size_t i;
@@ -276,12 +282,19 @@ int isValidHeaderFieldStart(const char* ccp_input){
 		
 	// search for last char in name
 	for(i_last_char_name = 0; i_last_char_name < i_offset_token; ++i_last_char_name)
-		if(isBlank(ccp_input, i_last_char_name) == EXIT_SUCCESS)
-			break; 
+		if(isBlank(ccp_input, i_last_char_name) == EXIT_SUCCESS){
+  		if(b_skipfirstline == FALSE)
+			  break; 
+			  else
+			  return EXIT_FAILURE;}
+			  
+	//do this not in case of CGI
+	fprintf(stderr, "%s\n", ccp_input);
 	// now proof if entries from i_last_char_name to i_offset_token is filled only by spaces
 	for(i = i_last_char_name; i < i_offset_token; ++i)
-		if(isBlank(ccp_input, i) == EXIT_SUCCESS)
-			 return EXIT_FAILURE;
+		if(isBlank(ccp_input, i) != EXIT_SUCCESS)
+//		  if(b_skipfirstline == TRUE)
+			  return EXIT_FAILURE;
 			 
 	return EXIT_SUCCESS;
 }

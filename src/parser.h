@@ -63,7 +63,7 @@ int parseHttpVersion(char* input, int offset);
 /**
  * Checks if the String is correct and Special characters are escaped with "%" hexdigit hexdigit
  */
-int validateString(char* cp_string);
+int validateAbspath(char** cp_string);
 
 /**
  * Tries to find non excaped chars, if one is found we abort
@@ -99,6 +99,8 @@ int parseAuthorizationInfos(const char* ccp_authstr);
  *
  */
 void parsePrintStructures();
+
+ 
 
 
 //void normalizeHeader(char input[]);
