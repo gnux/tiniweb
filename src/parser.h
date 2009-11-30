@@ -100,7 +100,15 @@ int parseAuthorizationInfos(const char* ccp_authstr);
  */
 void parsePrintStructures();
 
- 
+ /**
+ *
+ */
+char* parseExtention(char* filepath);
+
+ /**
+ *
+ */
+char* parseFilename(char* filepath);
 
 
 //void normalizeHeader(char input[]);

@@ -42,6 +42,7 @@ int min(int a, int b){
 void parse(http_norm *hnp_info){
  	//TODO: BETTER ERROR HANDLING
  	//parseCgiResponseHeader(hnp_info);
+ 	
 	if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE){
 			secAbort();
 	}
@@ -527,4 +528,40 @@ void parsePrintStructures(){
 	debugVerbose(PARSER, "...shown\n");
 }
 
+
+char* parseExtention(char* filename){
+
+	char* cp_extension = NULL;
+	const char* ccp_file_type[] = {"png","html","txt", "css", NULL};
+	char* cp_content_type[] = {"image/png","text/html","text/plain", "text/css", "application/octet-stream"};
+	int i_str_end = strlen(filename)-1;
+	int i_str_beginn = strlen(filename)-1;
+	int i = 0;
+	
+	for(; i_str_beginn > 0 && filename[i_str_beginn] != '.'; i_str_beginn--)
+	cp_extension = secGetStringPart(filename, i_str_beginn, i_str_end);
+	
+	for(;i<4;i++)
+		if(strlen(cp_extension)==strlen(ccp_file_type[i]))
+			if(strncasecmp(cp_extension,ccp_file_type[i],strlen(ccp_file_type[i]))==0)
+				return cp_content_type[i];
+	
+	
+	
+	return cp_content_type[4];
+	
+}
+
+char* parseFilename(char* filename){
+	
+	char* name = NULL;
+	int i_str_end = strlen(filename)-1;
+	int i_str_beginn = strlen(filename)-1;
+	
+	for(; i_str_beginn > 0 && filename[i_str_beginn] != '/'; i_str_beginn--)
+	name = secGetStringPart(filename, i_str_beginn, i_str_end);
+	
+	return name;
+	
+}
 
