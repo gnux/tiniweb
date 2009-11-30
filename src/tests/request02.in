@@ -1,0 +1,5 @@
+GET /cgi-bin/env.cgi HTTP/1.1
+Host: localhost:8080
+A-Header-for-the-script: Some header data
+X-Info: Simple correct CGI request with extra header
+

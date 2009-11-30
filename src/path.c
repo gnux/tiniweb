@@ -31,8 +31,6 @@ int getSortedPath(char* cp_path, char*** cppp_sorted_path)
         
         if (cp_path[i_end] == '/' || i_end == i_path_len - 1)
         {
-//             debugVerbose(PATH, "'/' Found!\n");
-
             int i_num_chars = i_end - i_start + 1;
 //             debugVerbose(PATH, "  i_num_chars = %i\n", i_num_chars);
 
@@ -140,7 +138,6 @@ void deleteCyclesFromPath(char** cpp_path_to_check)
 {
     char** cpp_path = NULL;
     char* cp_result_path = NULL;
-    int i_alloc_result_path_len = 0;
     int i_num_folders = 0;
 
     i_num_folders = getSortedPath((*cpp_path_to_check), &cpp_path);
@@ -152,15 +149,10 @@ void deleteCyclesFromPath(char** cpp_path_to_check)
      */
     for (int i_current_folder = 0; i_current_folder < i_num_folders; i_current_folder++)
     {
-//         for (int i = 0; i < i_num_folders; i++) {
-//             debugVerbose(PATH, "BEFORE: i_current_folder: %i, String: %s\n", i, cpp_path[i]);
-//         }
-        
         // handle the '..'
         if (strncmp(cpp_path[i_current_folder], "../", 3) == 0 ||
             strncmp(cpp_path[i_current_folder], "..", 2) == 0)
         {
-            secRealloc(cpp_path[i_current_folder], 1 * sizeof(char));
             cpp_path[i_current_folder][0] = '\0';
             if (i_current_folder > 0)
             {
@@ -179,7 +171,6 @@ void deleteCyclesFromPath(char** cpp_path_to_check)
                     // Erase the Folder before the '..'
                     if (cpp_path[i_folder_reverse][0] != '\0')
                     {
-                        secRealloc(cpp_path[i_folder_reverse], 1 * sizeof(char));
                         cpp_path[i_folder_reverse][0] = '\0';
                         break;
                     }
@@ -191,13 +182,8 @@ void deleteCyclesFromPath(char** cpp_path_to_check)
         else if ( strncmp(cpp_path[i_current_folder], "./", 2) == 0 || 
                 ( cpp_path[i_current_folder][0] == '.' && cpp_path[i_current_folder][1] == '\0' ) )
         {
-            secRealloc(cpp_path[i_current_folder], 1 * sizeof(char));
             cpp_path[i_current_folder][0] = '\0';
         }
-        
-//         for (int i = 0; i < i_num_folders; i++) {
-//             debugVerbose(PATH, "AFTER:  i_current_folder: %i, String: %s\n", i, cpp_path[i]);
-//         }
     }
     
     /**
@@ -207,16 +193,9 @@ void deleteCyclesFromPath(char** cpp_path_to_check)
     {
         if (cpp_path[i_current_folder][0] != '\0')
         {
-            int i_str_len = strlen(cpp_path[i_current_folder]);
-            cp_result_path = secRealloc(cp_result_path, i_alloc_result_path_len + i_str_len);
-            
-            strncpy(cp_result_path + (i_alloc_result_path_len), cpp_path[i_current_folder], i_str_len);
-            i_alloc_result_path_len += i_str_len;
+            strAppend(&cp_result_path, cpp_path[i_current_folder]);
         }
-        
-//         debugVerbose(PATH, "Currentfolder: %i, Resultstring: %s\n", i_current_folder, cp_result_path);
     }
-    cp_result_path[i_alloc_result_path_len] = '\0';
     
     /**
      *  Free Allocated Memory
@@ -259,6 +238,7 @@ void constructAbsolutePath(char** cpp_path)
         strAppend(&cp_result, "/");
         strAppend(&cp_result, *cpp_path);
         secFree(cpp_path);
+        secFree(*cpp_path);
         (*cpp_path) = cp_result;
         
         debugVerbose(PATH, "Absolute Path %s constructed.\n", (*cpp_path));

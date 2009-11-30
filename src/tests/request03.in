@@ -1,0 +1,5 @@
+GET /subdir/../cgi-bin/env.cgi HTTP/1.1
+Host: localhost:8080
+A-Header-For-The-Script: This is for the CGI script
+X-Info: Simple CGI request requiring path normalization
+
