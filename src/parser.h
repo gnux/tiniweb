@@ -142,12 +142,12 @@ void parsePrintStructures();
  * Parse the last characters until it finds the first "." afterwoods it checks if we know
  * the extension and returns the defined values
  */
-char* parseExtention(char* filepath);
+char* parseExtention(const char* filepath);
 
  /**
  * Parse the last characters until it finds the first "/" returns everything after "/" to 
  * end of File
  */
-char* parseFilename(char* filepath);
+char* parseFilename(const char* filepath);
 
 #endif /*PARSER_H_*/

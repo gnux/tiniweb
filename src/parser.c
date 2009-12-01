@@ -553,7 +553,7 @@ void parsePrintStructures(){
 }
 
 
-char* parseExtention(char* filename){
+char* parseExtention(const char* filename){
 
 	char* cp_extension = NULL;
 	const char* ccp_file_type[] = {"png","html","txt", "css", NULL};
@@ -577,7 +577,7 @@ char* parseExtention(char* filename){
 	
 }
 
-char* parseFilename(char* cp_filename){
+char* parseFilename(const char* cp_filename){
 	
 	char* cp_name = NULL;
 	int i_str_end = strlen(cp_filename)-1;

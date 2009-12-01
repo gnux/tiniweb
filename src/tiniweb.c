@@ -20,6 +20,7 @@
 #include "envvar.h"
 #include "auth.h"
 #include "path.h"
+#include "staticfile.h"
 
 // default values for options, if no command line option is available
 //static const char SCCA_WEB_DIR[] = "/";
@@ -205,11 +206,36 @@ int main(int argc, char** argv) {
     //           "\r\n"
     //           "<html><body>Hello!</body></html>\r\n");   
 
-    char* cp_cgi_path = NULL;
-    bool b_static = TRUE;
-    //authenticate(&cp_cgi_path, &b_static);
-    processCGIScript("testscript");
+    bool b_static = FALSE;
+    char* cp_mapped_path = NULL;
+    char* cp_path_to_htdigest_file = NULL;
+    bool b_digest_file_available = FALSE;
     
+    if (mapRequestPath(&cp_mapped_path, &b_static) == FALSE)
+    {
+        // TODO safe exit + error to client
+    }
+    
+    if (searchForHTDigestFile(cp_mapped_path, &b_digest_file_available, &cp_path_to_htdigest_file) == EXIT_FAILURE)
+    {
+        //TODO error, because file is inaccessable and safe exit
+    }
+    
+    if (b_digest_file_available)
+    {
+        authenticate(cp_path_to_htdigest_file);
+    }
+    processStaticFile("tests/webroot/index.html");
+/*
+    if(b_static)
+    {
+        processStaticFile("tests/werbroot/index.html");
+    }
+    else
+    {
+        processCGIScript("testscript");
+    }
+    */
 //     sec_test();
 //     sec_test();
 //     
@@ -220,7 +246,7 @@ int main(int argc, char** argv) {
    
 //     processCGIScript("testscript");
   //  testPerformHMACMD5();
-    testPathChecking();
+    //testPathChecking();
     
 //     secCleanup();
     secCleanup();
