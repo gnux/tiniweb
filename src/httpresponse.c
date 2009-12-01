@@ -9,6 +9,7 @@
 
 #include "httpresponse.h"
 #include "typedef.h"
+#include "normalize.h"
 
 
 int sendCGIHTTPResponseHeader(http_cgi_response *header)
@@ -70,13 +71,35 @@ void sendHTTPResponse(int i_status, int i_content_type, const char* ccp_body)
     int i_content_length = 0;
     
     if(ccp_body == NULL)
-    {
+    {   
+    
         i_content_length = strlen(ccp_body);
     }
        
     sendHTTPResponseHeader(i_status, i_content_type, i_content_length);
     
     fprintf(stdout, "%s", ccp_body);
+    
+}
+
+
+
+int sendHTTPErrorMessage(int i_status)
+{
+    char* cp_body = NULL;
+    
+    if(i_status > STATUS_OK && i_status <= STATUS_HTTP_VERSION_NOT_SUPPORTED)
+    {
+        strAppend(&cp_body, "<html><body>");
+        strAppend(&cp_body, getStatusCode(i_status));
+        strAppend(&cp_body, "</body></html>");
+        
+        sendHTTPResponse(i_status, TEXT_HTML, cp_body);
+    
+        return EXIT_SUCCESS;
+    }
+    
+    return EXIT_FAILURE;
 }
 
 char* getStatusCode(int status)

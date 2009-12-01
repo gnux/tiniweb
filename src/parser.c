@@ -40,11 +40,11 @@ void parse(http_norm *hnp_info){
  	
  	//We have to check if the first Line is correct else we can abort
  	if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE)
-		secExit(STATUS_BAD_REQUEST,TEXT_HTML);
+		secExit(STATUS_BAD_REQUEST);
 			
 	//Now we try to find all Arguments
 	if(parseArguments(hnp_info) == EXIT_FAILURE)
-		secExit(STATUS_BAD_REQUEST,TEXT_HTML);
+		secExit(STATUS_BAD_REQUEST);
 	
 	//Let's see what we have found
 	parsePrintStructures();
@@ -70,7 +70,7 @@ http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info){
 	// If there is no field we can abort, if the doesn't has 12chars it can't be content-type so abort
 	if(hnp_info->i_num_fields < 1 || strlen(hnp_info->cpp_header_field_name[0]) != 12)
 		//TODO errror!!!
-		secExit(STATUS_BAD_REQUEST,TEXT_HTML);
+		secExit(STATUS_BAD_REQUEST);
 	
 	//Check if first field is realy content-type set the value to our structure
 	if(strncasecmp("Content-Type",hnp_info->cpp_header_field_name[0],min(strlen(hnp_info->cpp_header_field_name[0]), 12))==0){
@@ -78,7 +78,7 @@ http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info){
 	}
 	else
 		//TODO errror!!!
-		secExit(STATUS_BAD_REQUEST,TEXT_HTML);
+		secExit(STATUS_BAD_REQUEST);
 
 	//second can be Status, or no status is provided 
 	//if no Status is provided we have to set it to "200 OK"
@@ -168,7 +168,7 @@ int parseArguments(http_norm *hnp_info){
 			break;
 		default:
 			debugVerbose(PARSER, "This line should NEVER be reached!\n");
-			secExit(STATUS_BAD_REQUEST,TEXT_HTML);
+			secExit(STATUS_BAD_REQUEST);
 			break;
 	};
 	
@@ -435,7 +435,7 @@ int parseHttpVersion(char* input, int offset){
 	
 	//Check if the Version is correct
 	if(strncmp(cp_http_version, SCCP_KNOWN_HTTPVERSION, min(strlen(SCCP_KNOWN_HTTPVERSION), strlen(cp_http_version))) != 0)
-		secExit(STATUS_HTTP_VERSION_NOT_SUPPORTED,TEXT_HTML);
+		secExit(STATUS_HTTP_VERSION_NOT_SUPPORTED);
 	appendToEnvVarList("SERVER_PROTOCOL",cp_http_version);
 	return EXIT_SUCCESS;
 }
@@ -479,7 +479,7 @@ int validateAbspath(char** cpp_string){
 			//PROOF for NULL!!! TODO: bad request
 			//We don't support 00 or ff
 			if(cp_decoded[i - i_offset] == 0x00 || cp_decoded[i - i_offset] == 0xff)
-				secExit(STATUS_BAD_REQUEST,TEXT_HTML);
+				secExit(STATUS_BAD_REQUEST);
 			i+=2;
 			i_offset +=2;
 		}

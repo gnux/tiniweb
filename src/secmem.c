@@ -145,7 +145,7 @@ void secAbort(){
 	//TODO:provide error handling! error responses, maybe get used of a secExit function that sends responses!
 	// use secAbort only for internal failures
 
-	sendHTTPResponseHeader(STATUS_INTERNAL_SERVER_ERROR, TEXT_HTML);
+    sendHTTPErrorMessage(STATUS_INTERNAL_SERVER_ERROR);
 	
 	fprintf(stderr, "-----INTERNAL FAILURE, SERVER IS GOING TO ABORT-----\n");
 	fprintf(stderr, "-----ERROR-MESSAGE: 500 Internal Server Error-----\n");	
@@ -155,9 +155,9 @@ void secAbort(){
 	abort();
 }
 
-void secExit(int i_status, int i_content_type){
+void secExit(int i_status){
 	
-	sendHTTPResponseHeader(i_status, i_content_type);
+	sendHTTPErrorMessage(i_status);
 	
 	fprintf(stderr, "-----FAILURE, SERVER IS GOING TO EXIT-----\n");	
 	fprintf(stderr, "-----ERROR-MESSAGE: %s-----\n",getStatusCode(i_status));

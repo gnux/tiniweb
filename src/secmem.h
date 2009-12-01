@@ -73,7 +73,7 @@ void secAbort();
 /**
  * secExit routine, used to exit with controlled cleanup and -1
  */
-void secExit(int i_status, int i_content_type);
+void secExit(int i_status);
 
 /**
  * secGetline routine, is used like getline but uses secMemory functions

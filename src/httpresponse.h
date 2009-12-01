@@ -31,6 +31,7 @@ static const enum SCE_CONTENT_TYPE_
     
 } SCE_CONTENT_TYPE;
 
+int sendHTTPErrorMessage(int i_status);
 
 int sendCGIHTTPResponseHeader(http_cgi_response *header);
 
