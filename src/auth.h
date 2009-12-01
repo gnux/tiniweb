@@ -18,6 +18,11 @@
 bool authenticate(char* cp_path);
 
 /**
+ * Sends a login error
+ */
+void sendLoginError();
+
+/**
  * Searches for a .htdigest file within the mapped path
  *
  * @param cp_path mapped path
@@ -55,14 +60,6 @@ bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_
  */
 bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
                     char* cp_uri, char* cp_response);
-
-/**
- * Checks if we already sent a 401-Unauthorized Message back. 
- * It should be impossible for a client to send an HTTP request with 
- * valid "Authorization"-header without prior reception of an "401 
- * Unauthorized message".
- */
-bool unauthorizedMessageSent();
 
 /**
  * Implementation of HMAC using MD5 from RFC2104 (http://tools.ietf.org/html/rfc2104)

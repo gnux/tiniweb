@@ -17,6 +17,7 @@
 #include "secmem.h"
 #include "normalize.h"
 #include "path.h"
+#include "httpresponse.h"
 
 
 extern char *scp_secret_;
@@ -24,99 +25,91 @@ extern http_autorization* http_autorization_;
 extern http_request *http_request_;
 
 static const int SCI_NONCE_LEN = 16;
-static bool sb_unauthorized_message_sent_ = TRUE; // TODO wieder umsetzen
 static char* scp_sent_nonce_ = NULL;
 
 bool authenticate(char* cp_path)
 {
-    bool b_auth_field_available = FALSE;
+
+    /**
+     * It should be impossible for a client to send an HTTP request with 
+     * valid "Authorization"-header without prior reception of an "401 
+     * Unauthorized message".
+     */
+
+    debugVerbose(AUTH, "No 401-Unauthorized message waas sent before.\n");
+    int i_result_nonce_len = SCI_NONCE_LEN * 2 + 1;
+    scp_sent_nonce_ = secMalloc(i_result_nonce_len * sizeof(char));
     
-    if (http_autorization_ != NULL)
-        b_auth_field_available = TRUE;
-    
-    
-    // If no authentication field is available and no unauthorized message (401) was
-    // sent, create nonce and send unauthorized message (401)
-    if (sb_unauthorized_message_sent_ == FALSE)
+    if (createNonce((unsigned char*)scp_secret_, &scp_sent_nonce_) == EXIT_FAILURE)
     {
-        debugVerbose(AUTH, "No 401-Unauthorized message waas sent before.\n");
-        int i_result_nonce_len = SCI_NONCE_LEN * 2 + 1;
-        scp_sent_nonce_ = secMalloc(i_result_nonce_len * sizeof(char));
+        secFree(scp_sent_nonce_);
+        sendHTTPResponseHeader(STATUS_INTERNAL_SERVER_ERROR, TEXT_HTML);
+        fprintf(stdout, "<html><body>Internal Server Error!</body></html>");
+        return FALSE;
+    }
+    
+    sendHTTPResponseHeader(STATUS_UNAUTHORIZED, TEXT_HTML);
+    fprintf(stdout, "<html><body>Please Authenticate!</body></html>");
+    
+    // TODO send 401
+    // Wait for answer
+    // Send answer to normalizer/parser
+    
+    
+    
+    //secFree(scp_sent_nonce_);
+
+    // If authentication field is available and 401 was already sent -> check if response
+    // is valid
+
+    debugVerbose(AUTH, "The Request contains an authentication field.\n");
+    
+    if (http_autorization_->cp_nonce && http_autorization_->cp_realm &&
+        http_autorization_->cp_response && http_autorization_->cp_uri &&
+        http_autorization_->cp_username && http_request_->cp_path && 
+        http_request_->cp_method && http_request_->cp_uri)
+    {
+    
+        char* cp_ha1 = NULL;
         
-        if (createNonce((unsigned char*)scp_secret_, &scp_sent_nonce_) == EXIT_FAILURE)
+        if (getHA1HashFromHTDigestFile(cp_path, http_autorization_->cp_realm, 
+                                    http_autorization_->cp_username, &cp_ha1) == FALSE)
         {
-            secFree(scp_sent_nonce_);
+            sendLoginError();
+            return FALSE;
         }
         
-        // TODO send 401
-        // Wait for answer
-        // Send answer to normalizer/parser
+        // TODO: remove THIS ---------------------------------- START --- just for testing!
+        int i_result_nonce_len = SCI_NONCE_LEN * 2 + 1;
+        scp_sent_nonce_ = secMalloc(i_result_nonce_len * sizeof(char));
+        scp_sent_nonce_ = "c4c544b9722671f08465167eebc2d54f";
+        // TODO -------------------------------------------- END -----------------------
         
         
         
+        if (verifyResponse(cp_ha1, scp_sent_nonce_, http_request_->cp_method, 
+            http_request_->cp_uri, http_autorization_->cp_response) == FALSE)
+        {
+            sendLoginError();
+            debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
+            return FALSE;
+        }
+
+        debugVerbose(AUTH, "Success: The 'response' from the auth field is valid!\n");
         secFree(scp_sent_nonce_);
     }
     else
-    {       
-        if (b_auth_field_available == TRUE)
-        {
-            // If authentication field is available and 401 was already sent -> check if response
-            // is valid
-        
-            debugVerbose(AUTH, "The Request contains an authentication field.\n");
-            
-            if (http_autorization_->cp_nonce && http_autorization_->cp_realm &&
-                http_autorization_->cp_response && http_autorization_->cp_uri &&
-                http_autorization_->cp_username && http_request_->cp_path && 
-                http_request_->cp_method && http_request_->cp_uri)
-            {
-            
-                char* cp_ha1 = NULL;
-                
-                if (getHA1HashFromHTDigestFile(cp_path, http_autorization_->cp_realm, 
-                                           http_autorization_->cp_username, &cp_ha1) == FALSE)
-                {
-                    // TODO safe exit
-                    // send login error
-                    return FALSE;
-                }
-                
-                // TODO: remove THIS ---------------------------------- START --- just for testing!
-                int i_result_nonce_len = SCI_NONCE_LEN * 2 + 1;
-                scp_sent_nonce_ = secMalloc(i_result_nonce_len * sizeof(char));
-                scp_sent_nonce_ = "c4c544b9722671f08465167eebc2d54f";
-                // TODO -------------------------------------------- END -----------------------
-                
-                
-                
-                if (verifyResponse(cp_ha1, scp_sent_nonce_, http_request_->cp_method, 
-                    http_request_->cp_uri, http_autorization_->cp_response) == FALSE)
-                {
-                    //TODO Send Login Error
-                    debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
-                    return FALSE;
-                }
-
-                debugVerbose(AUTH, "Success: The 'response' from the auth field is valid!\n");
-                // TODO free memory!
-                
-                secFree(scp_sent_nonce_);
-            }
-            else
-            {
-                // TODO send Login Error
-            }
-        }
-        else
-        {
-            debugVerbose(AUTH, "The Request contains no authentication field.\n");
-            
-            // TODO send Login Error
-            
-        }
+    {
+        sendLoginError();
     }
     
     return TRUE;
+}
+
+void sendLoginError()
+{
+    sendHTTPResponseHeader(STATUS_LOGIN_FAILED, TEXT_HTML);
+    fprintf(stdout, "<html><body>Login Failed!</body></html>");
 }
 
 int searchForHTDigestFile(char* cp_path, char* cp_cearch_path_root, bool* bp_digest_file_available, char** cpp_path_to_htdigest_file)
@@ -289,11 +282,6 @@ bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
     
     secFree(cp_expected_converted_response);
     return TRUE;
-}
-
-bool unauthorizedMessageSent()
-{
-    return sb_unauthorized_message_sent_;
 }
 
 //------------------------------------------------------------------------
