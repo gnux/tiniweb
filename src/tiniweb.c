@@ -225,12 +225,11 @@ int main(int argc, char** argv) {
     {
         authenticate(cp_path_to_htdigest_file);
     }
-    
-    processCGIScript("testscript");
-    /*
+    processStaticFile("tests/webroot/index.html");
+/*
     if(b_static)
     {
-        processStaticFile(cp_mapped_path);
+        processStaticFile("tests/werbroot/index.html");
     }
     else
     {
