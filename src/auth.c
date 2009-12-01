@@ -18,8 +18,7 @@
 #include "normalize.h"
 #include "path.h"
 
-extern char *scp_web_dir_;
-extern char *scp_cgi_dir_;
+
 extern char *scp_secret_;
 extern http_autorization* http_autorization_;
 extern http_request *http_request_;
@@ -120,70 +119,50 @@ bool authenticate(char* cp_path)
     return TRUE;
 }
 
-bool mapRequestPath(char** cpp_final_path, bool *cb_static)
-{
-    char* cp_cgi_bin = "/cgi-bin";
-    char* cp_web_dir = "/";
-    char* cp_relative_path_without_first_letter = NULL;
-    int i_cgi_bin_len = strlen(cp_cgi_bin);
-    int i_web_dir_len = strlen(cp_web_dir);
-    
-    if (!http_request_->cp_path)
-        return FALSE;
-    
-    char* cp_relative_path = http_request_->cp_path;
-    int i_relative_path_len = strlen(cp_relative_path);
-    
-    //cp_relative_path_without_first_letter = secMalloc((i_relative_path_len - 1) * sizeof(char));
-    //strncpy(cp_relative_path_without_first_letter, cp_relative_path + 1, i_relative_path_len - 1);
-    
-    strAppend(&cp_relative_path_without_first_letter, cp_relative_path + 1);
-    
-    if (i_relative_path_len >= i_cgi_bin_len && strncmp(cp_relative_path, cp_cgi_bin, i_cgi_bin_len) == 0)
-    {
-        strAppend(cpp_final_path, scp_cgi_dir_);
-        strAppend(cpp_final_path, cp_relative_path_without_first_letter);
-        (*cb_static) = FALSE;
-    }
-    else
-    {
-        if (i_relative_path_len >= i_web_dir_len && strncmp(cp_relative_path, cp_web_dir, i_web_dir_len) == 0)
-        {
-            strAppend(cpp_final_path, scp_web_dir_);
-            strAppend(cpp_final_path, cp_relative_path_without_first_letter);
-            (*cb_static) = TRUE;
-        }
-        else
-        {
-            debugVerbose(AUTH, "ERROR, mapping request-path to filesystem path did not work!\n");
-            secFree(cp_relative_path_without_first_letter);
-            return FALSE;
-        }
-    }
-    
-    secFree(cp_relative_path_without_first_letter);
-    return TRUE;
-}
-
-int searchForHTDigestFile(char* cp_path, bool* bp_digest_file_available, char** cpp_path_to_htdigest_file)
+int searchForHTDigestFile(char* cp_path, char* cp_cearch_path_root, bool* bp_digest_file_available, char** cpp_path_to_htdigest_file)
 {
     char** cpp_sorted_final_path = NULL;
+    char** cpp_search_path_root_tmp = NULL;
     char* cp_search_path = NULL;
     char* cp_search_path_with_ht_file = NULL;
-    bool b_htdigest_file_found = FALSE;   
-
-    if (checkPath(cp_path) == FALSE)
-        return EXIT_FAILURE;
+    char* cp_htdigest_filename = ".htdigest";
+    bool b_htdigest_file_found = FALSE;
+    int i_htdigest_filename_len = strlen(cp_htdigest_filename);
+    int i_path_len = strlen(cp_path);
+    
+    // Is the requested file a '.htdigest'-File?
+    if (i_path_len >= i_htdigest_filename_len)
+    {
+        if (strncmp(cp_path + i_path_len - i_htdigest_filename_len, cp_htdigest_filename, i_htdigest_filename_len) == 0)
+        {
+            debugVerbose(AUTH, "ERROR, requested ressource is a .htdigest file!\n");
+            return EXIT_FAILURE;
+        }
+    }
     
     const int ci_num_folders = getSortedPath(cp_path, &cpp_sorted_final_path);
     
+    // We do need the number of folders of the search root
+    const int ci_root_num_folders = getSortedPath(cp_cearch_path_root, &cpp_search_path_root_tmp);
+    freeSortedPath(cpp_search_path_root_tmp, ci_root_num_folders);
+    
+    strAppend(&cp_search_path, cp_cearch_path_root);
+    
     for (int i_current_folder = 0; i_current_folder < ci_num_folders; i_current_folder++)
     {
-        strAppend(&cp_search_path, cpp_sorted_final_path[i_current_folder]);
-        strAppend(&cp_search_path_with_ht_file, cp_search_path);
-        strAppend(&cp_search_path_with_ht_file, ".htdigest");
-        
-        debugVerbose(AUTH, "Searching for .htdigest file in '%s'.\n", cp_search_path_with_ht_file);
+
+        if (i_current_folder == 0)
+        {
+            strAppend(&cp_search_path_with_ht_file, cp_search_path);
+            strAppend(&cp_search_path_with_ht_file, ".htdigest");
+            i_current_folder = ci_root_num_folders -1;
+        }
+        else
+        {
+            strAppend(&cp_search_path, cpp_sorted_final_path[i_current_folder]);
+            strAppend(&cp_search_path_with_ht_file, cp_search_path);
+            strAppend(&cp_search_path_with_ht_file, ".htdigest");
+        }
         
         // .htdigest file in path?
         if (checkPath(cp_search_path_with_ht_file))
@@ -204,7 +183,7 @@ int searchForHTDigestFile(char* cp_path, bool* bp_digest_file_available, char** 
             *bp_digest_file_available = TRUE;
             strAppend(cpp_path_to_htdigest_file, cp_search_path_with_ht_file);
         }
-        
+
         secFree(cp_search_path_with_ht_file);
         cp_search_path_with_ht_file = NULL;
     }

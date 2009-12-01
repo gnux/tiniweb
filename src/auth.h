@@ -18,23 +18,15 @@
 bool authenticate(char* cp_path);
 
 /**
- * Maps the request path to the local file structure
- *
- * @param cpp_final_path mapped path to the requested resource is going to be stored here
- * @param cb_static boolean to be stored in. Shows if the request is static or not
- * @return TRUE in case of success, FALSE in case of an error
- */
-bool mapRequestPath(char** cpp_final_path, bool *cb_static);
-
-/**
  * Searches for a .htdigest file within the mapped path
  *
  * @param cp_path mapped path
+ * @param b_static does the path map the static or the dynamic ressources
  * @param bp_digest_file_available boolean to be stored in. Shows if a .htdigest file was found
  * @param cpp_path_to_htdigest_file path of the htdigest file to be stored in
  * @return EXIT_FAILURE in cause of an error (or if two .htdigest files were found), otherwise EXIT_SUCCESS
  */
-int searchForHTDigestFile(char* cp_path, bool* bp_digest_file_available, char** cpp_path_to_htdigest_file);
+int searchForHTDigestFile(char* cp_path, char* cp_cearch_path_root, bool* bp_digest_file_available, char** cpp_path_to_htdigest_file);
 
 /**
  * Searches for the HA1 String in the .htdigest file
