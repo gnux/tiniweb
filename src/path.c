@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/param.h>
+#include <errno.h>
 
 #include "path.h"
 #include "debug.h"
@@ -14,6 +15,7 @@
 extern char *scp_web_dir_;
 extern char *scp_cgi_dir_;
 extern http_request *http_request_;
+const int CI_MAX_PATH_LEN = 100;
 
 int getSortedPath(char* cp_path, char*** cppp_sorted_path)
 {
@@ -66,8 +68,11 @@ bool performPathChecking(char** cpp_path_cgi, char** cpp_path_web)
 {
     constructAbsolutePath(cpp_path_cgi);
     constructAbsolutePath(cpp_path_web);
-    deleteCyclesFromPath(cpp_path_cgi);
-    deleteCyclesFromPath(cpp_path_web);
+    
+    if (convertToRealPath(cpp_path_cgi) == FALSE || convertToRealPath(cpp_path_web) == FALSE)
+    {
+        return FALSE;
+    }
     
     if (checkPath(*cpp_path_cgi) == FALSE || checkPath(*cpp_path_web) == FALSE)
     {
@@ -83,14 +88,38 @@ bool performPathChecking(char** cpp_path_cgi, char** cpp_path_web)
     return TRUE;
 }
 
+bool convertToRealPath(char** cp_path)
+{
+    char* ca_path_buffer = secMalloc(MAXPATHLEN * sizeof(char));
+    char* cp_realpath_result = NULL;
+    
+    /**
+     *  Construct the final path (without '..' '.' and '//')
+     */
+    cp_realpath_result = realpath(*cp_path, ca_path_buffer);
+    if ( cp_realpath_result == NULL || cp_realpath_result != ca_path_buffer)
+    {
+        debugVerbose(AUTH, "ERROR, Path to File/Directory: '%s' could not be resolved!\n", *cp_path);
+        return FALSE;
+    }
+    *cp_path = ca_path_buffer;
+    return TRUE;
+}
+
 bool checkPath(char* ca_path)
 {
     struct stat buffer;
-    int i_result = stat(ca_path, &buffer);
+    int i_result = lstat(ca_path, &buffer);
     
     if (i_result == 0)
     {
         debugVerbose(PATH, "Success: Directory Checked: Directory/File %s is valid!\n", ca_path);
+        
+        if ( (buffer.st_mode & S_IFMT) != S_IFDIR )
+        {
+            debugVerbose(PATH, "ERROR: The Requested ressource is no directory!\n");
+            return FALSE;
+        }
         return TRUE;
     }
 
@@ -101,24 +130,24 @@ bool checkPath(char* ca_path)
 bool checkRequestPath(char* cp_path)
 {
     struct stat buffer;
-    int i_result = stat(cp_path, &buffer);
+    int i_result = lstat(cp_path, &buffer);
     
     if (i_result == 0)
     {
         debugVerbose(PATH, "Success: Directory Checked: Directory/File %s is valid!\n", cp_path);
+        
+        if ( (buffer.st_mode & S_IFMT) != S_IFREG)
+        {
+            // TODO if Folder -> map to index.html
+            debugVerbose(PATH, "ERROR: The Requested ressource is no file!\n");
+            return FALSE;
+        }
+    
         return TRUE;
     }
 
-    debugVerbose(PATH, "ERROR: Directory Checked: Directory/File %s is NOT valid!\n", cp_path);
-    
-    
-    if ( (buffer.st_mode & S_IFMT) != S_IFREG)
-    {
-        debugVerbose(PATH, "ERROR: The Requested ressource is no file!\n", cp_path);
-        return FALSE;
-    }
-    
-    return TRUE;
+    debugVerbose(PATH, "ERROR: Directory Checked: Directory/File %s is NOT valid!\n", cp_path);   
+    return FALSE;
 }
 
 bool checkIfFirstDirContainsSecondDir(char* ca_path_cgi, char* ca_path_web)
@@ -246,7 +275,6 @@ void constructAbsolutePath(char** cpp_path)
     {
         char* cp_buffer = NULL;
         int i_buffer_len = 20;
-//         int i_path_len = strlen(*cpp_path);
         cp_buffer = secMalloc(i_buffer_len * sizeof(char));
         char* cp_result = getcwd(cp_buffer, i_buffer_len);
         
@@ -271,11 +299,9 @@ void constructAbsolutePath(char** cpp_path)
 
 bool mapRequestPath(char** cpp_final_path, bool *cb_static)
 {
-    int MAXNAMLEN = 256;
     char* cp_cgi_bin = "/cgi-bin";
     char* cp_web_dir = "/";
     char* cp_relative_path_without_first_letter = NULL;
-    char ca_path[MAXNAMLEN];
     int i_cgi_bin_len = strlen(cp_cgi_bin);
     int i_web_dir_len = strlen(cp_web_dir);
     
@@ -292,9 +318,11 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
         strAppend(cpp_final_path, scp_cgi_dir_);
         strAppend(cpp_final_path, cp_relative_path_without_first_letter);
         
-        realpath(*cpp_final_path, ca_path);
-        debug(AUTH, "#### REALPATH USE: '%s'\n", ca_path);
-        deleteCyclesFromPath(cpp_final_path);
+        if (convertToRealPath(cpp_final_path) == FALSE)
+        {
+            secFree(cp_relative_path_without_first_letter);
+            return FALSE;
+        }
         
         (*cb_static) = FALSE;
         
@@ -321,9 +349,12 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
             strAppend(cpp_final_path, scp_web_dir_);
             strAppend(cpp_final_path, cp_relative_path_without_first_letter);
             
-            realpath(*cpp_final_path, ca_path);
-        debug(AUTH, "#### REALPATH USE: '%s'\n", ca_path);
-            deleteCyclesFromPath(cpp_final_path);
+            if (convertToRealPath(cpp_final_path) == FALSE)
+            {
+                secFree(cp_relative_path_without_first_letter);
+                return FALSE;
+            }
+            
             (*cb_static) = TRUE;
             
             /** Does the request path now map to the sci-dir?

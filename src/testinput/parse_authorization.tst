@@ -1,4 +1,4 @@
-GET /tests/webroot/index.html HTTP/1.1
+GET /////////../src//./../src/tests/webroot/index.html HTTP/1.1
 Host: localhost
 Authorization: Digest username="testuser",
  realm="testrealm@localhost",

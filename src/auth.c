@@ -147,6 +147,7 @@ int searchForHTDigestFile(char* cp_path, char* cp_cearch_path_root, bool* bp_dig
     freeSortedPath(cpp_search_path_root_tmp, ci_root_num_folders);
     
     strAppend(&cp_search_path, cp_cearch_path_root);
+    strAppend(&cp_search_path, "/");
     
     for (int i_current_folder = 0; i_current_folder < ci_num_folders; i_current_folder++)
     {
@@ -219,8 +220,7 @@ bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_
     
     while( fgets(cp_htdigest_line, i_htdigest_line_len, file_htdigest) )
     {
-        //debugVerbose(AUTH, "1: %s, 2: %s\n", cp_htdigest_compare_line, cp_htdigest_line);
-        
+      
         if (strncmp(cp_htdigest_compare_line, cp_htdigest_line, i_line_len) == 0)
         {
             debugVerbose(AUTH, "Success, expected line found in '.htdigest'-file\n");

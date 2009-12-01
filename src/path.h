@@ -37,6 +37,14 @@ void freeSortedPath(char** cpp_path, int i_num_folders);
 bool performPathChecking(char** cpp_path_cgi, char** cpp_path_web);
 
 /**
+ * 
+ *
+ * @param cp_path 
+ * @return 
+ */
+bool convertToRealPath(char** cp_path);
+
+/**
  * Checks if a path/file exists
  *
  * @param ca_path the path/file
