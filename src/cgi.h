@@ -12,8 +12,12 @@ void processCGIScript(const char* cp_path);
 
 int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_child);
 
-int drainPipeTo(int source_fd, int dest_fd);
+int provideBodyToCGIScript(int source_fd, int dest_fd);
 
-ssize_t drainPipe(int i_source_fd, char** i_destination_fd);
+int provideCGIBodyToHTTPClient(int i_source_fd, int i_dest_fd);
+
+int provideResponseStreamToHttpClient(FILE *stream, int i_dest_fd);
+
+FILE* getCGIHeaderResponseStream(int i_source_fd);
 
 #endif

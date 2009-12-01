@@ -205,8 +205,10 @@ int main(int argc, char** argv) {
     //           "\r\n"
     //           "<html><body>Hello!</body></html>\r\n");   
 
-
-  //  processCGIScript("testscript");
+    char* cp_cgi_path = NULL;
+    bool b_static = TRUE;
+    //authenticate(&cp_cgi_path, &b_static);
+    processCGIScript("testscript");
     
 //     sec_test();
 //     sec_test();
