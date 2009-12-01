@@ -10,19 +10,18 @@
 #include <signal.h>
 
 
+#include "cgi.h"
 #include "httpresponse.h"
 #include "parser.h"
+#include "staticfile.h"
 #include "normalize.h"
 #include "debug.h"
-#include "cgi.h"
 #include "envvar.h"
 #include "secmem.h"
 #include "typedef.h"
 
-
-
+static const int MAX_HEADER_SIZE = 8192;
 static const int SCI_BUF_SIZE = 256;
-static const int SCI_MAX_CGI_HEADER_SIZE = 8192;
 
 extern int si_cgi_timeout_;
 extern const enum SCE_KNOWN_METHODS e_used_method;
@@ -332,7 +331,7 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
             {                        
                 if(e_used_method != HEAD)
                 {
-                    i_success = provideResponseStreamToHttpClient(response_stream, STDOUT_FILENO);
+                    i_success = writeFileTo(response_stream, STDOUT_FILENO);
                     fclose(response_stream);
                     
                     if(i_success == EXIT_SUCCESS)
@@ -391,32 +390,6 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
     
 }
 
-int provideResponseStreamToHttpClient(FILE *stream, int i_dest_fd)
-{
-    unsigned char c_char = 0;
-    int i_result = 0;
-    ssize_t written_bytes = 0;
- 
-    do 
-    {
-        // Read data from input pipe
-        i_result = fgetc(stream);
-        if(i_result == EOF)
-            return EXIT_SUCCESS;
-            
-        c_char = (unsigned char)(i_result);
-        
-        //debug(CGICALL, "Before write.\n");
-        written_bytes = write(i_dest_fd, &c_char, 1);
-        //debug(CGICALL, "Wrote %d bytes to http client.\n", written_bytes);
-        if (written_bytes < 0) 
-        {       
-            return EXIT_FAILURE;
-        } 
-    } while (1);
-
-}
-
 FILE* getCGIHeaderResponseStream(int i_source_fd)
 {
     ssize_t max_bytes_left_to_read = 0;
@@ -426,12 +399,14 @@ FILE* getCGIHeaderResponseStream(int i_source_fd)
     bool b_first_iteration = TRUE;
     bool b_eof_reached = FALSE;
  
+ //TODO: neu mit getc()
+    cp_stream_memory = (char*)secCalloc(total_read_bytes+1, sizeof(char));
     do 
     {
         // Read data from input pipe
         ssize_t read_bytes = 0;
 
-        max_bytes_left_to_read = SCI_MAX_CGI_HEADER_SIZE - total_read_bytes;
+        max_bytes_left_to_read = MAX_HEADER_SIZE - total_read_bytes;
 
         read_bytes = read(i_source_fd, ca_buffer, 
                           (sizeof(ca_buffer) < max_bytes_left_to_read) ? 
@@ -453,19 +428,19 @@ FILE* getCGIHeaderResponseStream(int i_source_fd)
         if (b_first_iteration == TRUE)
         {
         //TODO: find solution to valgrind problem
-            cp_stream_memory = (char*)secCalloc(total_read_bytes, sizeof(char));
-            strncpy(cp_stream_memory, ca_buffer, total_read_bytes);
+            cp_stream_memory = (char*)secCalloc(total_read_bytes+1, sizeof(char));
+            memcpy(cp_stream_memory, ca_buffer, total_read_bytes);
             debugVerbose(CGICALL, "Read %d bytes from pipe.\n", total_read_bytes);
             b_first_iteration = FALSE;
         }
         else
         { 
-            cp_stream_memory = (char*) secRealloc(cp_stream_memory, total_read_bytes);
-            strncpy(cp_stream_memory + (total_read_bytes - read_bytes), ca_buffer, read_bytes);
+            cp_stream_memory = (char*) secRealloc(cp_stream_memory, total_read_bytes+1);
+            memcpy(cp_stream_memory + (total_read_bytes - read_bytes), ca_buffer, read_bytes);
             debugVerbose(CGICALL, "Read totally %d from pipe after realloc.\n", total_read_bytes);
             
             //Check maximum size.
-            if(total_read_bytes >= SCI_MAX_CGI_HEADER_SIZE)
+            if(total_read_bytes >= MAX_HEADER_SIZE)
             {
                 b_eof_reached = TRUE;
             }
@@ -474,8 +449,8 @@ FILE* getCGIHeaderResponseStream(int i_source_fd)
 
     } while (!b_eof_reached);
     
-    
-    return fmemopen(cp_stream_memory, (size_t)total_read_bytes, "r");
+    cp_stream_memory[total_read_bytes] = '\0';
+    return fmemopen((void*)cp_stream_memory, (size_t)total_read_bytes, "r");
 }
 
 int pipeThrough(int i_source_fd, int i_dest_fd, bool b_is_source_non_blocking, 

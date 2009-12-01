@@ -20,6 +20,7 @@
 #include "envvar.h"
 #include "auth.h"
 #include "path.h"
+#include "staticfile.h"
 
 // default values for options, if no command line option is available
 //static const char SCCA_WEB_DIR[] = "/";
@@ -226,7 +227,16 @@ int main(int argc, char** argv) {
     }
     
     processCGIScript("testscript");
-    
+    /*
+    if(b_static)
+    {
+        processStaticFile(cp_mapped_path);
+    }
+    else
+    {
+        processCGIScript("testscript");
+    }
+    */
 //     sec_test();
 //     sec_test();
 //     

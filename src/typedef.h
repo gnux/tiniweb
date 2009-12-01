@@ -1,6 +1,6 @@
 /** tiniweb
  * \file typedef.h
- * \author Patrick Plaschzug
+ * \author Patrick Plaschzug, Christian Partl
  */
 
 #ifndef TYPEDEF_
