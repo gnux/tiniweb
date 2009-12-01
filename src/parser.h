@@ -81,42 +81,38 @@ bool isHexDigit(char input);
 void stringToUpperCase(char* input);
 
 /**
- *
+ * Takes the string you are searching for and returns the header fieldbody if it could
+ * be found, or NULL if not
  */
 char* parseFindExplicitHeaderField(http_norm* hnp_info, const char* ccp_what);
 
 /**
- *
+ * Takes the beginning char and the end char and returns everything between them, watch out
+ * it only finds the first time where it occures
  */
 char* parseSubstringByDelimStrings(const char* ccp_string, const char* ccp_stdelim, const char* ccp_endelim);
 
 /**
- *
+ * If we find an Autorization field with our function parseFindExplicitHeaderField, we start
+ * to look for all necessary fields we need to check if the autorization could be correct
  */
 int parseAuthorizationInfos(const char* ccp_authstr);
 
 /**
- *
+ * Prints out the found Structures so we can see if everything went right
  */
 void parsePrintStructures();
 
  /**
- *
+ * Parse the last characters until it finds the first "." afterwoods it checks if we know
+ * the extension and returns the defined values
  */
 char* parseExtention(char* filepath);
 
  /**
- *
+ * Parse the last characters until it finds the first "/" returns everything after "/" to 
+ * end of File
  */
 char* parseFilename(char* filepath);
-
-
-//void normalizeHeader(char input[]);
-//bool isChar(char input);
-//bool isWhiteSpace(char input);
-//bool isNewLine(char input);
-//bool isEOF(char input);
-//int parseHttpRequest(char* input, char** outputline, int offset);
-//int offsetPP(int offset, int count);
 
 #endif /*PARSER_H_*/
