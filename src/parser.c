@@ -47,7 +47,7 @@ void parse(http_norm *hnp_info){
 		secExit(STATUS_BAD_REQUEST,TEXT_HTML);
 	
 	//Let's see what we have found
-	//parsePrintStructures();
+	parsePrintStructures();
 }
 
 http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info){
@@ -398,6 +398,11 @@ int parseRequestURI(char* input, int offset){
 		else
 			cp_fragment = secGetStringPart(cp_uri, i_offset_st + 1, strlen(cp_uri) - 1);
 	}
+	else if(i_offset_st == strlen(cp_uri)){
+		if(strncmp(cp_path,cp_uri,strlen(cp_uri))!=0)
+			strAppend(&cp_path, cp_uri);
+	}
+	//why we have do append something wenn we are equal, changed statment with else if aboth correct?
 	else
 		strAppend(&cp_path, cp_uri);
 	
