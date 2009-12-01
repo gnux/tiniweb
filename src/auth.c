@@ -18,17 +18,21 @@
 #include "normalize.h"
 #include "path.h"
 #include "httpresponse.h"
+#include "parser.h"
+#include "envvar.h"
 
 
 extern char *scp_secret_;
 extern http_autorization* http_autorization_;
 extern http_request *http_request_;
+extern char *scp_web_dir_;
 
 static const int SCI_NONCE_LEN = 16;
 static char* scp_sent_nonce_ = NULL;
 
 bool authenticate(char* cp_path)
 {
+    char* cp_ha1 = NULL;
 
     /**
      * It should be impossible for a client to send an HTTP request with 
@@ -56,6 +60,19 @@ bool authenticate(char* cp_path)
     // Send answer to normalizer/parser
     
     
+    deleteEnvVarList();
+    http_norm *hnp_info = normalizeHttp(stdin, FALSE);
+    
+    initEnvVarList("GATEWAY_INTERFACE","CGI/1.1");
+    //appendToEnvVarList("SCRIPT_FILENAME",scp_cgi_dir_);
+    appendToEnvVarList("DOCUMENT_ROOT",scp_web_dir_);
+    appendToEnvVarList("SERVER_SOFTWARE","tiniweb/1.0");
+    appendToEnvVarList("CONTENT_LENGTH","0");
+    //appendToEnvVarList("QUERY_STRING",hnp_info->);
+    
+    debugVerbose(MAIN, "Normalize finished \n");
+    
+    parse(hnp_info);
     
     //secFree(scp_sent_nonce_);
 
@@ -70,10 +87,8 @@ bool authenticate(char* cp_path)
         http_request_->cp_method && http_request_->cp_uri)
     {
     
-        char* cp_ha1 = NULL;
-        
         if (getHA1HashFromHTDigestFile(cp_path, http_autorization_->cp_realm, 
-                                    http_autorization_->cp_username, &cp_ha1) == FALSE)
+                                       http_autorization_->cp_username, &cp_ha1) == FALSE)
         {
             sendLoginError();
             return FALSE;

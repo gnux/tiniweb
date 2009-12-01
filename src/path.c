@@ -327,7 +327,7 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
     char* cp_relative_path = http_request_->cp_path;
     int i_relative_path_len = strlen(cp_relative_path);
 
-    strAppend(&cp_relative_path_without_first_letter, cp_relative_path + 1);    
+    strAppend(&cp_relative_path_without_first_letter, cp_relative_path + 1);
     
     if (i_relative_path_len >= i_cgi_bin_len && strncmp(cp_relative_path, cp_cgi_bin, i_cgi_bin_len) == 0)
     {
