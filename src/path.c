@@ -136,9 +136,25 @@ bool checkRequestPath(char* cp_path)
     {
         debugVerbose(PATH, "Success: Directory Checked: Directory/File %s is valid!\n", cp_path);
         
+        // Is the file a regular file?
         if ( (buffer.st_mode & S_IFMT) != S_IFREG)
         {
-            // TODO if Folder -> map to index.html
+            // Is it a folder?
+            if ( (buffer.st_mode & S_IFMT) == S_IFDIR )
+            {
+                /**
+                 *  Now we have to map to index.html in that folder!
+                 *  If it exists, continue with the mapped path
+                 */                
+                
+                debugVerbose(PATH, "INFO: The Requested ressource is a folder! Trying to map to index.html\n");
+                strAppend(&cp_path, "/index.html");
+                
+                struct stat index_path_buffer;
+                if (lstat(cp_path, &index_path_buffer) == 0)
+                    return TRUE;
+                
+            }
             debugVerbose(PATH, "ERROR: The Requested ressource is no file!\n");
             return FALSE;
         }
