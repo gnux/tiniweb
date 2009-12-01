@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/param.h>
 
 #include "path.h"
 #include "debug.h"
@@ -270,9 +271,11 @@ void constructAbsolutePath(char** cpp_path)
 
 bool mapRequestPath(char** cpp_final_path, bool *cb_static)
 {
+    int MAXNAMLEN = 256;
     char* cp_cgi_bin = "/cgi-bin";
     char* cp_web_dir = "/";
     char* cp_relative_path_without_first_letter = NULL;
+    char ca_path[MAXNAMLEN];
     int i_cgi_bin_len = strlen(cp_cgi_bin);
     int i_web_dir_len = strlen(cp_web_dir);
     
@@ -289,7 +292,10 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
         strAppend(cpp_final_path, scp_cgi_dir_);
         strAppend(cpp_final_path, cp_relative_path_without_first_letter);
         
+        realpath(*cpp_final_path, ca_path);
+        debug(AUTH, "#### REALPATH USE: '%s'\n", ca_path);
         deleteCyclesFromPath(cpp_final_path);
+        
         (*cb_static) = FALSE;
         
          /** Does the request path now map to the sci-dir?
@@ -315,6 +321,8 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
             strAppend(cpp_final_path, scp_web_dir_);
             strAppend(cpp_final_path, cp_relative_path_without_first_letter);
             
+            realpath(*cpp_final_path, ca_path);
+        debug(AUTH, "#### REALPATH USE: '%s'\n", ca_path);
             deleteCyclesFromPath(cpp_final_path);
             (*cb_static) = TRUE;
             
