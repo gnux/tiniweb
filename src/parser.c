@@ -14,6 +14,7 @@
 #include "normalize.h"
 #include "debug.h"
 #include "envvar.h"
+#include "httpresponse.h"
 
 static const char* SCCA_KNOWN_METHODS[] = {"GET", "POST", "HEAD"};
 static const int SCI_NUM_KNOWN_METHODS = 3;
@@ -38,12 +39,12 @@ void parse(http_norm *hnp_info){
  	//TODO: BETTER ERROR HANDLING
  	
  	//We have to check if the first Line is correct else we can abort
- 	if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE){
-			secAbort();
-	}
+ 	if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE)
+		secExit(STATUS_BAD_REQUEST,TEXT_HTML);
+			
 	//Now we try to find all Arguments
 	if(parseArguments(hnp_info) == EXIT_FAILURE)
-		secAbort();
+		secExit(STATUS_BAD_REQUEST,TEXT_HTML);
 	
 	//Let's see what we have found
 	parsePrintStructures();
@@ -69,7 +70,7 @@ http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info){
 	// If there is no field we can abort, if the doesn't has 12chars it can't be content-type so abort
 	if(hnp_info->i_num_fields < 1 || strlen(hnp_info->cpp_header_field_name[0]) != 12)
 		//TODO errror!!!
-		secAbort();
+		secExit(STATUS_BAD_REQUEST,TEXT_HTML);
 	
 	//Check if first field is realy content-type set the value to our structure
 	if(strncasecmp("Content-Type",hnp_info->cpp_header_field_name[0],min(strlen(hnp_info->cpp_header_field_name[0]), 12))==0){
@@ -77,7 +78,7 @@ http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info){
 	}
 	else
 		//TODO errror!!!
-		secAbort();
+		secExit(STATUS_BAD_REQUEST,TEXT_HTML);
 
 	//second can be Status, or no status is provided 
 	//if no Status is provided we have to set it to "200 OK"
@@ -167,7 +168,7 @@ int parseArguments(http_norm *hnp_info){
 			break;
 		default:
 			debugVerbose(PARSER, "This line should NEVER be reached!\n");
-			secAbort();
+			secExit(STATUS_BAD_REQUEST,TEXT_HTML);
 			break;
 	};
 	
@@ -397,6 +398,11 @@ int parseRequestURI(char* input, int offset){
 		else
 			cp_fragment = secGetStringPart(cp_uri, i_offset_st + 1, strlen(cp_uri) - 1);
 	}
+	else if(i_offset_st == strlen(cp_uri)){
+		if(strncmp(cp_path,cp_uri,strlen(cp_uri))!=0)
+			strAppend(&cp_path, cp_uri);
+	}
+	//why we have do append something wenn we are equal, changed statment with else if aboth correct?
 	else
 		strAppend(&cp_path, cp_uri);
 	
@@ -429,7 +435,7 @@ int parseHttpVersion(char* input, int offset){
 	
 	//Check if the Version is correct
 	if(strncmp(cp_http_version, SCCP_KNOWN_HTTPVERSION, min(strlen(SCCP_KNOWN_HTTPVERSION), strlen(cp_http_version))) != 0)
-		return EXIT_FAILURE;
+		secExit(STATUS_HTTP_VERSION_NOT_SUPPORTED,TEXT_HTML);
 	appendToEnvVarList("SERVER_PROTOCOL",cp_http_version);
 	return EXIT_SUCCESS;
 }
@@ -473,7 +479,7 @@ int validateAbspath(char** cpp_string){
 			//PROOF for NULL!!! TODO: bad request
 			//We don't support 00 or ff
 			if(cp_decoded[i - i_offset] == 0x00 || cp_decoded[i - i_offset] == 0xff)
-				secAbort();
+				secExit(STATUS_BAD_REQUEST,TEXT_HTML);
 			i+=2;
 			i_offset +=2;
 		}
