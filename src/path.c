@@ -4,12 +4,18 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/param.h>
+#include <errno.h>
 
 #include "path.h"
 #include "debug.h"
 #include "normalize.h"
 #include "secmem.h"
 
+extern char *scp_web_dir_;
+extern char *scp_cgi_dir_;
+extern http_request *http_request_;
+const int CI_MAX_PATH_LEN = 100;
 
 int getSortedPath(char* cp_path, char*** cppp_sorted_path)
 {
@@ -27,12 +33,10 @@ int getSortedPath(char* cp_path, char*** cppp_sorted_path)
     
     for (int i_end = 0; i_end < i_path_len; i_end++)
     {
-//         debugVerbose(PATH, "i_end: %i\n", i_end);
         
         if (cp_path[i_end] == '/' || i_end == i_path_len - 1)
         {
             int i_num_chars = i_end - i_start + 1;
-//             debugVerbose(PATH, "  i_num_chars = %i\n", i_num_chars);
 
             if (i_num_folders == 0)
                 (*cppp_sorted_path) = (char**) secMalloc((i_num_folders + 1) * sizeof(char*));
@@ -41,12 +45,9 @@ int getSortedPath(char* cp_path, char*** cppp_sorted_path)
             
             (*cppp_sorted_path)[i_num_folders] = (char*) secMalloc((i_num_chars + 1) * sizeof(char));
             
-//             debugVerbose(PATH, "nach malloc!\n");
-            
             // Write all chars into new sorted array
             strncpy((*cppp_sorted_path)[i_num_folders], cp_path + i_start, i_num_chars);
             (*cppp_sorted_path)[i_num_folders][i_num_chars] = '\0';
-//             debugVerbose(PATH, "Write from A to B: %s\n", cpp_path[i_num_folders]);
             
             i_start = i_end + 1;
             i_num_folders++;
@@ -67,15 +68,18 @@ bool performPathChecking(char** cpp_path_cgi, char** cpp_path_web)
 {
     constructAbsolutePath(cpp_path_cgi);
     constructAbsolutePath(cpp_path_web);
-    deleteCyclesFromPath(cpp_path_cgi);
-    deleteCyclesFromPath(cpp_path_web);
+    
+    if (convertToRealPath(cpp_path_cgi) == FALSE || convertToRealPath(cpp_path_web) == FALSE)
+    {
+        return FALSE;
+    }
     
     if (checkPath(*cpp_path_cgi) == FALSE || checkPath(*cpp_path_web) == FALSE)
     {
         return FALSE;
     }
     
-    if (checkIfCGIDirContainsWebDir(*cpp_path_cgi, *cpp_path_web) == TRUE)
+    if (checkIfFirstDirContainsSecondDir(*cpp_path_cgi, *cpp_path_web) == TRUE)
     {
         return FALSE;
     }
@@ -84,14 +88,38 @@ bool performPathChecking(char** cpp_path_cgi, char** cpp_path_web)
     return TRUE;
 }
 
+bool convertToRealPath(char** cp_path)
+{
+    char* ca_path_buffer = secMalloc(MAXPATHLEN * sizeof(char));
+    char* cp_realpath_result = NULL;
+    
+    /**
+     *  Construct the final path (without '..' '.' and '//')
+     */
+    cp_realpath_result = realpath(*cp_path, ca_path_buffer);
+    if ( cp_realpath_result == NULL || cp_realpath_result != ca_path_buffer)
+    {
+        debugVerbose(AUTH, "ERROR, Path to File/Directory: '%s' could not be resolved!\n", *cp_path);
+        return FALSE;
+    }
+    *cp_path = ca_path_buffer;
+    return TRUE;
+}
+
 bool checkPath(char* ca_path)
 {
     struct stat buffer;
-    int i_result = stat(ca_path, &buffer);
+    int i_result = lstat(ca_path, &buffer);
     
     if (i_result == 0)
     {
         debugVerbose(PATH, "Success: Directory Checked: Directory/File %s is valid!\n", ca_path);
+        
+        if ( (buffer.st_mode & S_IFMT) != S_IFDIR )
+        {
+            debugVerbose(PATH, "ERROR: The Requested ressource is no directory!\n");
+            return FALSE;
+        }
         return TRUE;
     }
 
@@ -99,7 +127,46 @@ bool checkPath(char* ca_path)
     return FALSE;
 }
 
-bool checkIfCGIDirContainsWebDir(char* ca_path_cgi, char* ca_path_web)
+bool checkRequestPath(char* cp_path)
+{
+    struct stat buffer;
+    int i_result = lstat(cp_path, &buffer);
+    
+    if (i_result == 0)
+    {
+        debugVerbose(PATH, "Success: Directory Checked: Directory/File %s is valid!\n", cp_path);
+        
+        // Is the file a regular file?
+        if ( (buffer.st_mode & S_IFMT) != S_IFREG)
+        {
+            // Is it a folder?
+            if ( (buffer.st_mode & S_IFMT) == S_IFDIR )
+            {
+                /**
+                 *  Now we have to map to index.html in that folder!
+                 *  If it exists, continue with the mapped path
+                 */                
+                
+                debugVerbose(PATH, "INFO: The Requested ressource is a folder! Trying to map to index.html\n");
+                strAppend(&cp_path, "/index.html");
+                
+                struct stat index_path_buffer;
+                if (lstat(cp_path, &index_path_buffer) == 0)
+                    return TRUE;
+                
+            }
+            debugVerbose(PATH, "ERROR: The Requested ressource is no file!\n");
+            return FALSE;
+        }
+    
+        return TRUE;
+    }
+
+    debugVerbose(PATH, "ERROR: Directory Checked: Directory/File %s is NOT valid!\n", cp_path);   
+    return FALSE;
+}
+
+bool checkIfFirstDirContainsSecondDir(char* ca_path_cgi, char* ca_path_web)
 {
     int i_path_cgi_len = strlen(ca_path_cgi);
     int i_path_web_len = strlen(ca_path_web);
@@ -127,9 +194,9 @@ bool checkIfCGIDirContainsWebDir(char* ca_path_cgi, char* ca_path_web)
     }
     
     if (!b_cgi_dir_contains_web_dir)
-        debugVerbose(PATH, "Success: CGI-Dir: '%s' does not contain WEB-Dir: '%s'!\n", ca_path_cgi, ca_path_web);
+        debugVerbose(PATH, "Success: First-Dir: '%s' does not contain Second-Dir: '%s'!\n", ca_path_cgi, ca_path_web);
     else
-        debugVerbose(PATH, "ERROR: CGI-Dir: '%s' contains WEB-Dir: '%s'!\n", ca_path_cgi, ca_path_web);
+        debugVerbose(PATH, "Attention: First-Dir: '%s' contains Second-Dir: '%s'!\n", ca_path_cgi, ca_path_web);
     
     return b_cgi_dir_contains_web_dir;
 }
@@ -224,7 +291,6 @@ void constructAbsolutePath(char** cpp_path)
     {
         char* cp_buffer = NULL;
         int i_buffer_len = 20;
-//         int i_path_len = strlen(*cpp_path);
         cp_buffer = secMalloc(i_buffer_len * sizeof(char));
         char* cp_result = getcwd(cp_buffer, i_buffer_len);
         
@@ -245,6 +311,108 @@ void constructAbsolutePath(char** cpp_path)
         return;
     }
     debugVerbose(PATH, "Path %s is already an absolute path.\n", (*cpp_path));
+}
+
+bool mapRequestPath(char** cpp_final_path, bool *cb_static)
+{
+    char* cp_cgi_bin = "/cgi-bin";
+    char* cp_web_dir = "/";
+    char* cp_relative_path_without_first_letter = NULL;
+    int i_cgi_bin_len = strlen(cp_cgi_bin);
+    int i_web_dir_len = strlen(cp_web_dir);
+    
+    if (!http_request_->cp_path)
+        return FALSE;
+    
+    char* cp_relative_path = http_request_->cp_path;
+    int i_relative_path_len = strlen(cp_relative_path);
+
+    strAppend(&cp_relative_path_without_first_letter, cp_relative_path + 1);    
+    
+    if (i_relative_path_len >= i_cgi_bin_len && strncmp(cp_relative_path, cp_cgi_bin, i_cgi_bin_len) == 0)
+    {
+        strAppend(cpp_final_path, scp_cgi_dir_);
+        strAppend(cpp_final_path, cp_relative_path_without_first_letter);
+        
+        if (convertToRealPath(cpp_final_path) == FALSE)
+        {
+            secFree(cp_relative_path_without_first_letter);
+            return FALSE;
+        }
+        
+        (*cb_static) = FALSE;
+        
+         /** Does the request path now map to the sci-dir?
+          *
+          *  This could happen if eg:
+          *
+          *      cgi-dir:  home/foo/cgi
+          *      web-dir:  home/foo/web
+          *      Request:  /cgi-bin/../web/x.html
+          *
+          *      The Mapped Request would now be 'home/foo/web/x.html' and DYNAMIC
+          *      And that is why the folloging lines of code are necessary!
+          */
+         if (checkIfFirstDirContainsSecondDir(scp_web_dir_, *cpp_final_path) == TRUE)
+         {
+            (*cb_static) = TRUE;
+         }
+    }
+    else
+    {
+        if (i_relative_path_len >= i_web_dir_len && strncmp(cp_relative_path, cp_web_dir, i_web_dir_len) == 0)
+        {
+            strAppend(cpp_final_path, scp_web_dir_);
+            strAppend(cpp_final_path, cp_relative_path_without_first_letter);
+            
+            if (convertToRealPath(cpp_final_path) == FALSE)
+            {
+                secFree(cp_relative_path_without_first_letter);
+                return FALSE;
+            }
+            
+            (*cb_static) = TRUE;
+            
+            /** Does the request path now map to the sci-dir?
+             *
+             *  This could happen if eg:
+             *
+             *      cgi-dir:  home/foo/cgi
+             *      web-dir:  home/foo/web
+             *      Request:  /../cgi/script
+             *
+             *      The Mapped Request would now be 'home/foo/cgi/script' and STATIC
+             *      And that is why the folloging lines of code are necessary!
+             */
+            if (checkIfFirstDirContainsSecondDir(scp_cgi_dir_, *cpp_final_path) == TRUE)
+            {
+                (*cb_static) = FALSE;
+            }
+        }
+        else
+        {
+            debugVerbose(AUTH, "ERROR, mapping request-path to filesystem path did not work!\n");
+            secFree(cp_relative_path_without_first_letter);
+            return FALSE;
+        }
+    }
+    
+    secFree(cp_relative_path_without_first_letter);
+    
+    /** Check if we moved out of cgi-dir or web-dir
+     *
+     *  Sample:     web-dir:        home/foo/web
+     *              Request:        /../../some-important-system-file
+     *              Mapped Request: home/some-important-system-file
+     */
+    if (!( (checkIfFirstDirContainsSecondDir(scp_cgi_dir_, *cpp_final_path) == TRUE) ||
+           (checkIfFirstDirContainsSecondDir(scp_web_dir_, *cpp_final_path) == TRUE) ))
+    {
+        debug(AUTH, "ERROR, request Path would leave web/cgi directory!\n");
+        return FALSE;
+    }
+    
+    return TRUE;
 }
 
 void testPathChecking()

@@ -20,6 +20,7 @@
 #include "envvar.h"
 #include "auth.h"
 #include "path.h"
+#include "httpresponse.h"
 #include "staticfile.h"
 
 // default values for options, if no command line option is available
@@ -155,8 +156,7 @@ int main(int argc, char** argv) {
     else if (performPathChecking(&scp_cgi_dir_, &scp_web_dir_) == FALSE)
     {
         debug(MAIN, "ERROR, Paths not valid!\n");
-        //TODO: controlledShutdown();
-        //TODO: give answer internal server error!
+        secAbort();
     }
 //    if(!b_flag_cgi_timeout)
 //      sui_cgi_timeout = SCUI_CGI_TIMEOUT;
@@ -187,38 +187,36 @@ int main(int argc, char** argv) {
 	parse(hnp_info);
 	debugVerbose(MAIN, "Parsing finished \n"); 
 
-    // I am testing!
-    // just to make tcp wrapper happy 
-    //    char buf[8192];
-    //    int ret = read(STDIN_FILENO, buf, 8192);
-    //    fprintf(stderr, "tiniweb: got %d bytes\n", ret);
-   // 	char buf[8192];
-   // 	int ret = read(STDIN_FILENO, buf, 8192);
-    //	parse(buf,8192);
-   // 	fprintf(stderr, "tiniweb: got %d bytes\n", ret);
-
-		
-    // sample response
-    //    printf("HTTP/1.1 200 OK\r\n"
-    //           "Server: tiniweb/1.0\r\n"
-    //           "Connection: close\r\n"
-    //           "Content-type: text/html\r\n"
-    //           "\r\n"
-    //           "<html><body>Hello!</body></html>\r\n");   
-
     bool b_static = FALSE;
     char* cp_mapped_path = NULL;
     char* cp_path_to_htdigest_file = NULL;
+    char* cp_search_path_root = NULL;
     bool b_digest_file_available = FALSE;
     
     if (mapRequestPath(&cp_mapped_path, &b_static) == FALSE)
     {
-        // TODO safe exit + error to client
+        sendHTTPResponseHeader(STATUS_FORBIDDEN, TEXT_HTML);
+        fprintf(stdout, "<html><body>Forbidden!</body></html>");
+        secAbort();
     }
     
-    if (searchForHTDigestFile(cp_mapped_path, &b_digest_file_available, &cp_path_to_htdigest_file) == EXIT_FAILURE)
+    if (checkRequestPath(cp_mapped_path) == FALSE)
     {
-        //TODO error, because file is inaccessable and safe exit
+        sendHTTPResponseHeader(STATUS_NOT_FOUND, TEXT_HTML);
+        fprintf(stdout, "<html><body>Not Found!</body></html>");
+        secAbort();
+    }
+    
+    cp_search_path_root = b_static ? scp_web_dir_ : scp_cgi_dir_;
+    
+    if (searchForHTDigestFile(cp_mapped_path, cp_search_path_root, &b_digest_file_available, &cp_path_to_htdigest_file) == EXIT_FAILURE)
+    {
+        /**
+         *  We found two .htdigest Files in the path! File is protected!
+         */
+        sendHTTPResponseHeader(STATUS_FORBIDDEN, TEXT_HTML);
+        fprintf(stdout, "<html><body>Forbidden!</body></html>");
+        secAbort();
     }
     
     if (b_digest_file_available)
@@ -236,21 +234,6 @@ int main(int argc, char** argv) {
         processCGIScript("testscript");
     }
     */
-//     sec_test();
-//     sec_test();
-//     
-//     secMalloc(34);
-//     secRealloc(secCalloc(38,55),22);
-//     secProof(0);
-//     secCleanup();
-   
-//     processCGIScript("testscript");
-  //  testPerformHMACMD5();
-    //testPathChecking();
-    
-//     secCleanup();
     secCleanup();
-    
-    
     return EXIT_SUCCESS;
 }
