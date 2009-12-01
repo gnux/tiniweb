@@ -14,6 +14,8 @@
 #include "parser.h"
 #include "httpresponse.h"
  
+extern const enum SCE_KNOWN_METHODS e_used_method;
+
 void processStaticFile(const char* ccp_path)
 {
     FILE* file = NULL;
@@ -29,9 +31,12 @@ void processStaticFile(const char* ccp_path)
     
     cp_content_type = parseExtention(ccp_path);
 
-    sendHTTPResponseHeader("200 OK", cp_content_type);
+    sendHTTPResponseHeaderExplicit("200 OK", cp_content_type);
     
-    writeFileTo(file, STDOUT_FILENO);
+    if(e_used_method != HEAD)
+    {
+        writeFileTo(file, STDOUT_FILENO);
+    }
     
     fclose(file);
 }

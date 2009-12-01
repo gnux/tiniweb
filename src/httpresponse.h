@@ -9,9 +9,38 @@
 #include <sys/types.h>
 #include "typedef.h"
 
+static const enum SCE_STATUS_CODE_
+{
+    STATUS_OK,
+    STATUS_BAD_REQUEST,
+    STATUS_UNAUTHORIZED,
+    STATUS_FORBIDDEN,
+    STATUS_NOT_FOUND,
+    STATUS_INTERNAL_SERVER_ERROR,
+    STATUS_HTTP_VERSION_NOT_SUPPORTED
+    
+} SCE_STATUS_CODE;
+
+static const enum SCE_CONTENT_TYPE_
+{
+    TEXT_HTML,
+    TEXT_PLAIN,
+    TEXT_CSS,
+    IMAGE_PNG,
+    DEFAULT
+    
+} SCE_CONTENT_TYPE;
+
+
 int sendCGIHTTPResponseHeader(http_cgi_response *header);
 
-int sendHTTPResponseHeader(const char* cp_status, const char* cp_content_type);
+int sendHTTPResponseHeader(int i_status, int i_content_type);
+
+int sendHTTPResponseHeaderExplicit(const char* cp_status, const char* cp_content_type);
+
+char* getStatusCode(int i_status);
+
+char* getContentType(int i_content_type);
 
 #endif
 

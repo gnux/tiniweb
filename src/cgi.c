@@ -450,7 +450,7 @@ FILE* getCGIHeaderResponseStream(int i_source_fd)
     } while (!b_eof_reached);
     
     cp_stream_memory[total_read_bytes] = '\0';
-    return fmemopen((void*)cp_stream_memory, (size_t)total_read_bytes, "r");
+    return fmemopen((void*)cp_stream_memory, (size_t)total_read_bytes, "rb");
 }
 
 int pipeThrough(int i_source_fd, int i_dest_fd, bool b_is_source_non_blocking, 

@@ -9,6 +9,7 @@
 #include "httpresponse.h"
 #include "typedef.h"
 
+
 int sendCGIHTTPResponseHeader(http_cgi_response *header)
 {
     int i_index = 0;
@@ -28,7 +29,7 @@ int sendCGIHTTPResponseHeader(http_cgi_response *header)
     return EXIT_SUCCESS;
 }
 
-int sendHTTPResponseHeader(const char* cp_status, const char* cp_content_type)
+int sendHTTPResponseHeaderExplicit(const char* cp_status, const char* cp_content_type)
 {
     if(cp_content_type == NULL || cp_status == NULL)
         return EXIT_FAILURE;
@@ -40,4 +41,69 @@ int sendHTTPResponseHeader(const char* cp_status, const char* cp_content_type)
         
     return EXIT_SUCCESS;
 }
+
+int sendHTTPResponseHeader(int i_status, int i_content_type)
+{       
+    fprintf(stdout, "HTTP/1.1 %s\n", getStatusCode(i_status));
+    fprintf(stdout, "Server: tiniweb/1.0\n");
+    fprintf(stdout, "Connection: close\n");
+    fprintf(stdout, "Content-Type: %s\n\n", getContentType(i_content_type));
+        
+    return EXIT_SUCCESS;
+}
+
+char* getStatusCode(int status)
+{
+    switch(status)
+    {
+        case STATUS_OK:
+            return "200 OK";
+            break;
+        case STATUS_BAD_REQUEST:
+            return "400 Bad Request";
+            break;
+        case STATUS_UNAUTHORIZED:
+            return "401 Unauthorized";
+            break;
+        case STATUS_FORBIDDEN:
+            return "403 Forbidden";
+            break;
+        case STATUS_NOT_FOUND:
+            return "404 Not Found";
+            break;
+        case STATUS_INTERNAL_SERVER_ERROR:
+            return "500 Internal Server Error";
+            break;
+        case STATUS_HTTP_VERSION_NOT_SUPPORTED:
+            return "505 HTTP Version Not Supported";
+            break;
+        default:
+            return "200 OK";
+    };  
+}
+
+char* getContentType(int i_content_type)
+{
+    switch(i_content_type)
+    {
+        case TEXT_HTML:
+            return "text/html";
+            break;
+        case TEXT_PLAIN:
+            return "text/plain";
+            break;
+        case TEXT_CSS:
+            return "text/css";
+            break;
+        case IMAGE_PNG:
+            return "image/png";
+            break;
+        case DEFAULT:
+            return "application/octet-stream";
+            break;
+        default:
+            return "application/octet-stream";
+    };  
+}
+
 
