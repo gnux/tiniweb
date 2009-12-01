@@ -34,9 +34,11 @@ static const enum SCE_CONTENT_TYPE_
 
 int sendCGIHTTPResponseHeader(http_cgi_response *header);
 
-int sendHTTPResponseHeader(int i_status, int i_content_type);
+void sendHTTPResponseHeader(int i_status, int i_content_type, int i_content_length);
 
-int sendHTTPResponseHeaderExplicit(const char* cp_status, const char* cp_content_type);
+void sendHTTPResponse(int i_status, int i_content_type, const char* ccp_body);
+
+int sendHTTPResponseHeaderExplicit(const char* cp_status, const char* cp_content_type, int i_content_length);
 
 char* getStatusCode(int i_status);
 

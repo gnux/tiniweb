@@ -5,6 +5,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "httpresponse.h"
 #include "typedef.h"
@@ -29,7 +30,7 @@ int sendCGIHTTPResponseHeader(http_cgi_response *header)
     return EXIT_SUCCESS;
 }
 
-int sendHTTPResponseHeaderExplicit(const char* cp_status, const char* cp_content_type)
+int sendHTTPResponseHeaderExplicit(const char* cp_status, const char* cp_content_type, int i_content_length)
 {
     if(cp_content_type == NULL || cp_status == NULL)
         return EXIT_FAILURE;
@@ -37,19 +38,45 @@ int sendHTTPResponseHeaderExplicit(const char* cp_status, const char* cp_content
     fprintf(stdout, "HTTP/1.1 %s\n", cp_status);
     fprintf(stdout, "Server: tiniweb/1.0\n");
     fprintf(stdout, "Connection: close\n");
-    fprintf(stdout, "Content-Type: %s\n\n", cp_content_type);
+    fprintf(stdout, "Content-Type: %s\n", cp_content_type);
+    
+    if(i_content_length >= 0)
+    {
+        fprintf(stdout, "Content-Length: %i\n", i_content_length);
+    }
+    
+    fprintf(stdout, "\n");
         
     return EXIT_SUCCESS;
 }
 
-int sendHTTPResponseHeader(int i_status, int i_content_type)
+void sendHTTPResponseHeader(int i_status, int i_content_type, int i_content_length)
 {       
     fprintf(stdout, "HTTP/1.1 %s\n", getStatusCode(i_status));
     fprintf(stdout, "Server: tiniweb/1.0\n");
     fprintf(stdout, "Connection: close\n");
-    fprintf(stdout, "Content-Type: %s\n\n", getContentType(i_content_type));
-        
-    return EXIT_SUCCESS;
+    fprintf(stdout, "Content-Type: %s\n", getContentType(i_content_type));
+   
+    if(i_content_length >= 0)
+    {
+        fprintf(stdout, "Content-Length: %i\n", i_content_length);
+    }
+    
+    fprintf(stdout, "\n");
+}
+
+void sendHTTPResponse(int i_status, int i_content_type, const char* ccp_body)
+{
+    int i_content_length = 0;
+    
+    if(ccp_body == NULL)
+    {
+        i_content_length = strlen(ccp_body);
+    }
+       
+    sendHTTPResponseHeader(i_status, i_content_type, i_content_length);
+    
+    fprintf(stdout, "%s", ccp_body);
 }
 
 char* getStatusCode(int status)
