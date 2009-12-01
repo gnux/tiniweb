@@ -143,10 +143,34 @@ void secRegister(void *ptr){
 void secAbort(){
 	//TODO:provide error handling! error responses, maybe get used of a secExit function that sends responses!
 	// use secAbort only for internal failures
+	
+	//Methoden ersetzen
+	sendHTTPResponseHeader("500 Internal Server Error", "text/html");
+	fprintf(stdout,"<html><body>Oops...something went wrong!</body></html>");
+	
 	fprintf(stderr, "-----INTERNAL FAILURE, SERVER IS GOING TO ABORT-----\n");
+	fprintf(stderr, "-----ERROR-MESSAGE: 500 Internal Server Error-----\n");	
+	
 	secCleanup();
 	//TODO: cleanup open files and pipes
 	abort();
+}
+
+void secExit(int i_exitcode, const unsigned char *cp_error_message){
+	
+	if(cp_error_message){
+		//methoden ersetzen
+		fprintf(stdout,"%s %i \n", cp_error_message, i_exitcode);
+		sendHTTPResponseHeader(i_exitcode, "text/html");
+		fprintf(stdout,"<html><body> %s </body></html>", cp_error_message);
+		
+		
+		fprintf(stderr, "-----FAILURE, SERVER IS GOING TO EXIT-----\n");	
+		fprintf(stderr, "-----ERROR-MESSAGE: %s %i-----\n",cp_error_message,i_exitcode);
+	}
+		
+	secCleanup();
+	exit(-1);	
 }
 
 ssize_t secGetline(char** cpp_lineptr, FILE *stream){
