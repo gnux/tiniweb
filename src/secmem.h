@@ -71,6 +71,11 @@ void secRegister(void *ptr);
 void secAbort();
 
 /**
+ * secExit routine, used to exit with controlled cleanup and -1
+ */
+void secExit(int i_status);
+
+/**
  * secGetline routine, is used like getline but uses secMemory functions
  * every given pointer is tried to free, and new pointers are registered
  * therefor every pointer should be secure
