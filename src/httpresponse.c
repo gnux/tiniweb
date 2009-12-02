@@ -66,6 +66,20 @@ void sendHTTPResponseHeader(int i_status, int i_content_type, int i_content_leng
     fprintf(stdout, "\n");
 }
 
+void sendHTTPAuthorizationResponse(const char* realm, const char* nonce)
+{   
+    char *cp_body = "<html><body>Access Denied!</body></html>";
+    fprintf(stdout, "HTTP/1.1 %s\n", getStatusCode(STATUS_UNAUTHORIZED));
+    fprintf(stdout, "Server: tiniweb/1.0\n");
+    fprintf(stdout, "Connection: close\n");
+    fprintf(stdout, "Authorization: Digest realm=\"%s\", nonce=\"%s\"\n", realm, nonce);
+    
+    fprintf(stdout, "Content-Type: text/html\n");
+    fprintf(stdout, "Content-Length: %i\n",strlen(cp_body));
+    
+    fprintf(stdout, "\n");
+}
+
 void sendHTTPResponse(int i_status, int i_content_type, const char* ccp_body)
 {
     int i_content_length = 0;

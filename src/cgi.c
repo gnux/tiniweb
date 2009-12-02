@@ -428,14 +428,14 @@ FILE* getCGIHeaderResponseStream(int i_source_fd)
         if (b_first_iteration == TRUE)
         {
         //TODO: find solution to valgrind problem
-            cp_stream_memory = (char*)secCalloc(total_read_bytes+1, sizeof(char));
+            cp_stream_memory = (char*)secCalloc(total_read_bytes, sizeof(char));
             memcpy(cp_stream_memory, ca_buffer, total_read_bytes);
             debugVerbose(CGICALL, "Read %d bytes from pipe.\n", total_read_bytes);
             b_first_iteration = FALSE;
         }
         else
         { 
-            cp_stream_memory = (char*) secRealloc(cp_stream_memory, total_read_bytes+1);
+            cp_stream_memory = (char*) secRealloc(cp_stream_memory, total_read_bytes);
             memcpy(cp_stream_memory + (total_read_bytes - read_bytes), ca_buffer, read_bytes);
             debugVerbose(CGICALL, "Read totally %d from pipe after realloc.\n", total_read_bytes);
             

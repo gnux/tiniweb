@@ -83,6 +83,7 @@ int writeFileTo(FILE *file, int i_dest_fd)
         c_char = (unsigned char)(i_result);
         
         //debug(CGICALL, "Before write.\n");
+        //TODO: stdout non-Blocking? Fehlerbehandlung
         written_bytes = write(i_dest_fd, &c_char, 1);
         total_written_bytes += written_bytes;
         //debug(CGICALL, "Wrote %d bytes to http client.\n", written_bytes);

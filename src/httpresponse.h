@@ -41,6 +41,8 @@ void sendHTTPResponse(int i_status, int i_content_type, const char* ccp_body);
 
 int sendHTTPResponseHeaderExplicit(const char* cp_status, const char* cp_content_type, int i_content_length);
 
+void sendHTTPAuthorizationResponse(const char* realm, const char* nonce);
+
 char* getStatusCode(int i_status);
 
 char* getContentType(int i_content_type);

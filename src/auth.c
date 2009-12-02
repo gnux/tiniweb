@@ -26,19 +26,14 @@ extern http_request *http_request_;
 static const int SCI_NONCE_LEN = 16;
 static bool sb_unauthorized_message_sent_ = TRUE; // TODO wieder umsetzen
 static char* scp_sent_nonce_ = NULL;
+static const int SCI_VALID_NONCE_TIME = 3600;
 
 bool authenticate(char* cp_path)
 {
-    bool b_auth_field_available = FALSE;
-    
-    if (http_autorization_ != NULL)
-        b_auth_field_available = TRUE;
-    
-    
-    // If no authentication field is available and no unauthorized message (401) was
-    // sent, create nonce and send unauthorized message (401)
-    if (sb_unauthorized_message_sent_ == FALSE)
-    {
+    if (http_autorization_ == NULL){
+        // If no authentication field is available
+        // create nonce and send unauthorized message (401)
+   
         debugVerbose(AUTH, "No 401-Unauthorized message waas sent before.\n");
         int i_result_nonce_len = SCI_NONCE_LEN * 2 + 1;
         scp_sent_nonce_ = secMalloc(i_result_nonce_len * sizeof(char));
@@ -51,69 +46,58 @@ bool authenticate(char* cp_path)
         // TODO send 401
         // Wait for answer
         // Send answer to normalizer/parser
-        
-        
-        
+      
         secFree(scp_sent_nonce_);
     }
     else
     {       
-        if (b_auth_field_available == TRUE)
-        {
-            // If authentication field is available and 401 was already sent -> check if response
-            // is valid
+        // If authentication field is available and 401 was already sent -> check if response
+        // is valid
+    
+        debugVerbose(AUTH, "The Request contains an authentication field.\n");
         
-            debugVerbose(AUTH, "The Request contains an authentication field.\n");
+        if (http_autorization_->cp_nonce && http_autorization_->cp_realm &&
+            http_autorization_->cp_response && http_autorization_->cp_uri &&
+            http_autorization_->cp_username && http_request_->cp_path && 
+            http_request_->cp_method && http_request_->cp_uri)
+        {
+        
+            char* cp_ha1 = NULL;
             
-            if (http_autorization_->cp_nonce && http_autorization_->cp_realm &&
-                http_autorization_->cp_response && http_autorization_->cp_uri &&
-                http_autorization_->cp_username && http_request_->cp_path && 
-                http_request_->cp_method && http_request_->cp_uri)
+            if (getHA1HashFromHTDigestFile(cp_path, http_autorization_->cp_realm, 
+                                       http_autorization_->cp_username, &cp_ha1) == FALSE)
             {
+                // TODO safe exit
+                // send login error
+                return FALSE;
+            }
             
-                char* cp_ha1 = NULL;
-                
-                if (getHA1HashFromHTDigestFile(cp_path, http_autorization_->cp_realm, 
-                                           http_autorization_->cp_username, &cp_ha1) == FALSE)
-                {
-                    // TODO safe exit
-                    // send login error
-                    return FALSE;
-                }
-                
-                // TODO: remove THIS ---------------------------------- START --- just for testing!
-                int i_result_nonce_len = SCI_NONCE_LEN * 2 + 1;
-                scp_sent_nonce_ = secMalloc(i_result_nonce_len * sizeof(char));
-                scp_sent_nonce_ = "c4c544b9722671f08465167eebc2d54f";
-                // TODO -------------------------------------------- END -----------------------
-                
-                
-                
-                if (verifyResponse(cp_ha1, scp_sent_nonce_, http_request_->cp_method, 
-                    http_request_->cp_uri, http_autorization_->cp_response) == FALSE)
-                {
-                    //TODO Send Login Error
-                    debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
-                    return FALSE;
-                }
+            // TODO: remove THIS ---------------------------------- START --- just for testing!
+            int i_result_nonce_len = SCI_NONCE_LEN * 2 + 1;
+            scp_sent_nonce_ = secMalloc(i_result_nonce_len * sizeof(char)); //des is böse und umsonst :-)
+            scp_sent_nonce_ = "c4c544b9722671f08465167eebc2d54f";
+            // TODO -------------------------------------------- END -----------------------
+            
+            
+            
+            if (verifyResponse(cp_ha1, scp_sent_nonce_, http_request_->cp_method, 
+                http_request_->cp_uri, http_autorization_->cp_response) == FALSE)
+            {
+                //TODO Send Login Error
+                debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
+                return FALSE;
+            }
 
-                debugVerbose(AUTH, "Success: The 'response' from the auth field is valid!\n");
-                // TODO free memory!
-                
-                secFree(scp_sent_nonce_);
-            }
-            else
-            {
-                // TODO send Login Error
-            }
+            debugVerbose(AUTH, "Success: The 'response' from the auth field is valid!\n");
+            // TODO free memory!
+            
+            secFree(scp_sent_nonce_);
         }
         else
         {
-            debugVerbose(AUTH, "The Request contains no authentication field.\n");
-            
             // TODO send Login Error
-            
         }
+
     }
     
     return TRUE;
@@ -231,6 +215,7 @@ bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_
             
             secFree(cp_htdigest_compare_line);
             secFree(cp_htdigest_line);
+            //TODO: This can fail.
             fclose(file_htdigest);
             
             return TRUE;
@@ -382,7 +367,8 @@ int createNonce(unsigned char* uca_key, char** cpp_nonce)
     unsigned char uca_nonce[SCI_NONCE_LEN];
     
     memset(uca_text, 0, i_text_len);
-    sprintf((char*)uca_text,"%s",asctime( localtime(&timestamp) ) );  
+    //TODO: localtime, asctime can be NULL
+    sprintf((char*)uca_text,"%x",(unsigned int) timestamp );  
 
     performHMACMD5(uca_text, i_text_len, uca_key, i_text_len, uca_nonce);
     debugVerboseHash(AUTH, uca_nonce, SCI_NONCE_LEN, "A Nonce was created!");

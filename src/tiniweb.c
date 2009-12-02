@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
+#include <time.h>
 
 #include "md5.h"
 #include "secmem.h"
