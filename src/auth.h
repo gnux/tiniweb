@@ -10,14 +10,39 @@
 #include "typedef.h"
 
 /**
- * TODO specify everything
+ * Performs the authentication
  *
+ * @param cp_path the path to the .htdigest file
+ * @return TRUE if the authentication worked, FALSE if not.
  */
-bool authenticate(char** cp_path, bool* b_static);
+bool authenticate(char* cp_path);
 
-bool isHTDigestFileAvailable(char* cp_relative_path, char* cp_realm, char* cp_username, char** cpp_password);
+/**
+ * Sends a login error
+ */
+void sendLoginError();
 
-bool getHTDigestFileInfo(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_password);
+/**
+ * Searches for a .htdigest file within the mapped path
+ *
+ * @param cp_path mapped path
+ * @param b_static does the path map the static or the dynamic ressources
+ * @param bp_digest_file_available boolean to be stored in. Shows if a .htdigest file was found
+ * @param cpp_path_to_htdigest_file path of the htdigest file to be stored in
+ * @return EXIT_FAILURE in cause of an error (or if two .htdigest files were found), otherwise EXIT_SUCCESS
+ */
+int searchForHTDigestFile(char* cp_path, char* cp_cearch_path_root, bool* bp_digest_file_available, char** cpp_path_to_htdigest_file);
+
+/**
+ * Searches for the HA1 String in the .htdigest file
+ *
+ * @param cp_path_to_file path to the .htdigest file
+ * @param cp_realm realm of the user
+ * @param cp_username username of the user
+ * @param cpp_ha1 ha1 sting to be stored in
+ * @return TRUE if the HA1 string was found, FALSE in case of an error
+ */
+bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_ha1);
 
 /**
  * Checks the response from the client, which should be calculated in the following way:
@@ -26,27 +51,15 @@ bool getHTDigestFileInfo(char* cp_path_to_file, char* cp_realm, char* cp_usernam
  *   HA2 = md5( HTTP-Request-Method : URI)
  *   response = md5( HA1 : nonce : HA2 )
  *
- * @param uca_ha1
- * @param uca_nonce Nonce
- * @param i_nonce_len Nonce length
- * @param uca_http_request_method HTTP Request Method
- * @param i_http_request_method_len HTTP Request Method length
- * @param uca_uri URI
- * @param i_uri_len URI length
- * @param uca_response response from the client (this will be checked)
+ * @param cp_ha1
+ * @param cp_nonce Nonce
+ * @param cp_http_request_method HTTP Request Method
+ * @param cp_uri URI
+ * @param cp_response response from the client (this will be checked)
  * @return TRUE if the response was valid, FALSE if not
  */
-bool verifyResponse(unsigned char* uca_ha1, unsigned char* uca_nonce, int i_nonce_len,
-                    unsigned char* uca_http_request_method, int i_http_request_method_len,
-                    unsigned char* uca_uri, int i_uri_len, unsigned char* uca_response);
-
-/**
- * Checks if we already sent a 401-Unauthorized Message back. 
- * It should be impossible for a client to send an HTTP request with 
- * valid "Authorization"-header without prior reception of an "401 
- * Unauthorized message".
- */
-bool unauthorizedMessageSent();
+bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
+                    char* cp_uri, char* cp_response);
 
 /**
  * Implementation of HMAC using MD5 from RFC2104 (http://tools.ietf.org/html/rfc2104)
@@ -60,16 +73,22 @@ bool unauthorizedMessageSent();
 void performHMACMD5(unsigned char* uca_text, int i_text_len, 
                     unsigned char* uca_key, int i_key_len, unsigned char* digest);
                     
-
 /**
  * Creates the nonce for authentication purposes
  *
  * @param uca_key the secret key, providied from the commandline
- * @param uca_nonce nonce to be filled in
+ * @param cpp_nonce nonce to be filled in
  */
-void createNonce(unsigned char* uca_key, unsigned char* uca_nonce);
+int createNonce(unsigned char* uca_key, char** cpp_nonce);
 
-
-
+/**
+ * Converts the hash from an unsigned char to a readable string
+ *
+ * @param ucp_hash hash to be converted
+ * @param i_hash_len hash length
+ * @param cp_hash_nonce readable hast to be stored in
+ * @return EXIT_SUCCESS if everything worked, EXIT_FAILURE if not
+ */
+int convertHash(unsigned char* ucp_hash, int i_hash_len, char** cp_hash_nonce);
 
 #endif

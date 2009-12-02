@@ -9,6 +9,8 @@
 #include "secmem.h"
 #include "debug.h"
 
+int isValid(const char* ccp_input, const size_t i_offset);
+
 /**
  * describes list entry structure for a double-linked list, that holds ptr to memory blocks
  */
@@ -150,11 +152,18 @@ void secAbort(){
 ssize_t secGetline(char** cpp_lineptr, FILE *stream){
 	size_t i_num_reads = 0;
 	ssize_t i_ret = 0;
+	ssize_t i = 0;
 	if(*cpp_lineptr)
 		secFree(*cpp_lineptr);
 		
 	*cpp_lineptr = NULL;
 	i_ret = getline(cpp_lineptr, &i_num_reads, stream);
+	// proof our input, TODO: BAD request
+	if(i_ret == -1)
+		secAbort();
+	for(; i < i_ret; ++i)
+		if(isValid(*cpp_lineptr, i) == EXIT_FAILURE)
+			secAbort();
 	secProof(*cpp_lineptr);
 	secRegister(*cpp_lineptr);
 	

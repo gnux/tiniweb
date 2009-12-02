@@ -12,6 +12,7 @@ static const enum SCE_DEBUG_TYPES
     PARSER,
     ENVVAR,
     CGICALL,
+    STATIC_FILE,
     PATH
     
 } SCE_DEBUG_TYPE;

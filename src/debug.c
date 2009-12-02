@@ -31,6 +31,9 @@ char* getTypeString(int type)
         case PATH:
             return "PATH";
             break;
+        case STATIC_FILE:
+            return "STATIC_FILE";
+            break;
         case MAIN:
             return "MAIN";
             break;

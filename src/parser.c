@@ -22,17 +22,12 @@ static const char* SCCP_CGI_BIN ="/cgi-bin/";
 static const char* SCCP_HTTP_HEADER_FIELD_MARKER = "HTTP_";
 enum SCE_KNOWN_METHODS e_used_method = UNKNOWN;
 
-bool B_CGI_BIN_FOUND = FALSE;
-//bool B_HOST_FOUND = FALSE;
-bool B_BODY_FOUND = FALSE;
-bool B_CONTENT_LENGTH_FOUND = FALSE;
-bool B_SEARCH_AUTORIZATION = FALSE;
-bool B_AUTORIZATION_FOUND = FALSE;
-bool B_RESPONSE_HEADER = FALSE;
-bool B_REQUEST_HEADER = FALSE;
+
 //TODO: really use global variable???
+bool B_CGI_BIN_FOUND = FALSE;
+bool B_AUTORIZATION_FOUND = FALSE;
 http_autorization* http_autorization_ = NULL;
-http_cgi_response *http_cgi_response_ = NULL;
+
 http_request *http_request_ = NULL;
 
 int min(int a, int b){
@@ -41,69 +36,112 @@ int min(int a, int b){
 
 void parse(http_norm *hnp_info){
  	//TODO: BETTER ERROR HANDLING
- 	//parseCgiResponseHeader(hnp_info);
-	if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE){
+ 	
+ 	//We have to check if the first Line is correct else we can abort
+ 	if(parseHttpRequestHeader(hnp_info->cp_first_line) == EXIT_FAILURE){
 			secAbort();
 	}
-//	if(parseRequiredArguments(hnp_info) == EXIT_FAILURE)
-//		secAbort();
-//	B_SEARCH_AUTORIZATION = TRUE;
-//	http_autorization_ = secCalloc(1, sizeof(http_autorization));
-//	http_autorization_->cp_nonce = NULL;
-//	http_autorization_->cp_realm = NULL;
-//	http_autorization_->cp_response = NULL;
-//	http_autorization_->cp_uri = NULL;
-//	http_autorization_->cp_username = NULL;
-
+	//Now we try to find all Arguments
 	if(parseArguments(hnp_info) == EXIT_FAILURE)
 		secAbort();
 	
+	//Let's see what we have found
 	parsePrintStructures();
 }
 
-int parseCgiResponseHeader(http_norm *hnp_info){
-	char* cp_content = NULL;
-	char* cp_status = NULL;
-	bool content_found =FALSE;
-	bool status_found = FALSE;
+http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info){
+	http_cgi_response *http_cgi_response_ = NULL;
+	ssize_t i = 1;
+	ssize_t i_len = 0;
 	http_cgi_response_ = secCalloc(1, sizeof(http_cgi_response));
 	http_cgi_response_->content_type = NULL;
 	http_cgi_response_->status = NULL;
+	http_cgi_response_->server = NULL;
+	http_cgi_response_->connection = NULL;
+	http_cgi_response_->cpp_header_field_body = NULL;
+	http_cgi_response_->cpp_header_field_name = NULL;
+	http_cgi_response_->i_num_fields = 0;
 
 
 	debugVerbose(PARSER, "Check CGI response\n");
 	
-	//Find Content-Type
-	ssize_t i = 0;
+	// it is req that content type is first field!
+	// If there is no field we can abort, if the doesn't has 12chars it can't be content-type so abort
+	if(hnp_info->i_num_fields < 1 || strlen(hnp_info->cpp_header_field_name[0]) != 12)
+		//TODO errror!!!
+		secAbort();
+	
+	//Check if first field is realy content-type set the value to our structure
+	if(strncasecmp("Content-Type",hnp_info->cpp_header_field_name[0],min(strlen(hnp_info->cpp_header_field_name[0]), 12))==0){
+		http_cgi_response_->content_type = hnp_info->cpp_header_field_body[0];				
+	}
+	else
+		//TODO errror!!!
+		secAbort();
+
+	//second can be Status, or no status is provided 
+	//if no Status is provided we have to set it to "200 OK"
+	if(hnp_info->i_num_fields > 1){
+		if(strlen(hnp_info->cpp_header_field_name[1]) == 6)
+			if(strncasecmp("Status",hnp_info->cpp_header_field_name[1],6)==0){
+				http_cgi_response_->status = hnp_info->cpp_header_field_body[1];
+				i++;
+			}
+		if(http_cgi_response_->status == NULL)
+			strAppend(&http_cgi_response_->status, "200 OK");	
+	}
+	
+	// DEFAULTS
+	strAppend(&http_cgi_response_->connection, "close");
+	strAppend(&http_cgi_response_->server, "tiniweb/1.0");
+	
+	// add defaults
+	http_cgi_response_->i_num_fields = 3;
+	http_cgi_response_->cpp_header_field_name = secRealloc(http_cgi_response_->cpp_header_field_name, sizeof(char*) * http_cgi_response_->i_num_fields);
+	http_cgi_response_->cpp_header_field_body = secRealloc(http_cgi_response_->cpp_header_field_body, sizeof(char*) * http_cgi_response_->i_num_fields);
+	
+	http_cgi_response_->cpp_header_field_name[0] = "Server";
+	http_cgi_response_->cpp_header_field_body[0] = http_cgi_response_->server;
+	
+	http_cgi_response_->cpp_header_field_name[1] = "Connection";
+	http_cgi_response_->cpp_header_field_body[1] = http_cgi_response_->connection;
+	
+	http_cgi_response_->cpp_header_field_name[2] = "Content-Type";
+	http_cgi_response_->cpp_header_field_body[2] = http_cgi_response_->content_type;
+	
+	
+	//Find all other fields, but if we find server or connection do nothing	
 	for(; i < hnp_info->i_num_fields; ++i){
 
-		if(i==0 && strlen(hnp_info->cpp_header_field_name[i])>=12)
-			if(strncasecmp("Content-Type",hnp_info->cpp_header_field_name[i],12)==0){
-				cp_content = hnp_info->cpp_header_field_body[i];
-				strAppend(&http_cgi_response_->content_type, cp_content);
-				content_found = TRUE;
-			}
-		if(i==1 && strlen(hnp_info->cpp_header_field_name[i])>=6)
-			if(strncasecmp("Status",hnp_info->cpp_header_field_name[i],6)==0){
-				cp_status = hnp_info->cpp_header_field_body[i];
-				strAppend(&http_cgi_response_->status, cp_status);
-				status_found = TRUE;
-			}
+		i_len = strlen(hnp_info->cpp_header_field_name[i]);
+		if(i_len == 6 && strncasecmp("Server",hnp_info->cpp_header_field_name[i],6)==0)
+			continue;
+		if(i_len == 10 && strncasecmp("Connection",hnp_info->cpp_header_field_name[i],10)==0)
+			continue;
+			
+		++http_cgi_response_->i_num_fields;
+		
+		http_cgi_response_->cpp_header_field_name = secRealloc(http_cgi_response_->cpp_header_field_name, sizeof(char*) * http_cgi_response_->i_num_fields);
+		http_cgi_response_->cpp_header_field_body = secRealloc(http_cgi_response_->cpp_header_field_body, sizeof(char*) * http_cgi_response_->i_num_fields);
+		
+		http_cgi_response_->cpp_header_field_name[http_cgi_response_->i_num_fields - 1] = hnp_info->cpp_header_field_name[i];
+		http_cgi_response_->cpp_header_field_body[http_cgi_response_->i_num_fields - 1] = hnp_info->cpp_header_field_body[i];
+	}
+		
 
-	}
-	if(i==1 && content_found == TRUE && status_found == FALSE){
-		strAppend(&http_cgi_response_->status, "200 OK");
-		status_found = TRUE;
-	}
 
 	debugVerbose(PARSER, "CGI Content: %s\n",http_cgi_response_->content_type);
 	debugVerbose(PARSER, "CGI Status: %s\n",http_cgi_response_->status);
+	debugVerbose(PARSER, "CGI Connection: %s\n",http_cgi_response_->connection);
+	debugVerbose(PARSER, "CGI Server: %s\n",http_cgi_response_->server);
 	
-	if(status_found == TRUE && content_found == TRUE)
-		return EXIT_SUCCESS;
-	else
-		return EXIT_FAILURE;
-
+	//Print all found header fields and bodys
+	for(i = 0; i < http_cgi_response_->i_num_fields; ++i)
+		debugVerbose(PARSER, "%s: %s\n", http_cgi_response_->cpp_header_field_name[i], http_cgi_response_->cpp_header_field_body[i]);
+	
+	//We return our new structure, not everything has to be set watch out for NULL
+	return http_cgi_response_;
+	
 }
 
 
@@ -170,72 +208,11 @@ int parseArguments(http_norm *hnp_info){
 	return EXIT_SUCCESS;
 }
 	
-/*	//
-	
-//		//TODO: provide own function, for req. header field searches!
-//		if(strlen(cp_name)>=4)
-//			if(strncmp(cp_name,"HTTP_HOST",4)==0)
-//				B_HOST_FOUND = TRUE;
-		
-		
-		if(B_SEARCH_AUTORIZATION==TRUE ){
-			if(strlen(cp_name)>=17)
-				if(strncmp(cp_name,"HTTP_AUTORIZATION",17)==0)
-					B_AUTORIZATION_FOUND = TRUE;
-			if(strlen(cp_name)>=13)
-				if(strncmp(cp_name,"HTTP_USERNAME",13)==0){
-					strAppend(&http_autorization_->username, hnp_info->cpp_header_field_body[i]);
-					debugVerbose(PARSER, "Username found!\n");
-				}
-			if(strlen(cp_name)>=10)
-				if(strncmp(cp_name,"HTTP_REALM",10)==0){
-					strAppend(&http_autorization_->realm, hnp_info->cpp_header_field_body[i]);
-					debugVerbose(PARSER, "REALM found!\n");	
-				}
-			if(strlen(cp_name)>=10)
-				if(strncmp(cp_name,"HTTP_NONCE",10)==0){
-					strAppend(&http_autorization_->nonce, hnp_info->cpp_header_field_body[i]);
-					debugVerbose(PARSER, "NONCE found!\n");
-				}
-			if(strlen(cp_name)>=8)
-				if(strncmp(cp_name,"HTTP_URI",8)==0){
-					strAppend(&http_autorization_->uri,hnp_info->cpp_header_field_body[i]);
-					debugVerbose(PARSER, "URI found!\n");
-				}
-			if(strlen(cp_name)>=13)
-				if(strncmp(cp_name,"HTTP_RESPONSE",13)==0){
-					strAppend(&http_autorization_->response,hnp_info->cpp_header_field_body[i]);
-					debugVerbose(PARSER, "RESPONSE found!\n");
-				}
-		
-		}
-		
-//		if(B_CGI_BIN_FOUND == TRUE)
-			
-//	}
-	// set Constants
-//	if(B_CGI_BIN_FOUND == TRUE){
-//		appendToEnvVarList("GATEWAY_INTERFACE", "CGI/1.1");
-//		appendToEnvVarList("SERVER_SOFTWARE", "tiniweb/1.0");
-		//TODO: What does it mean???? Which Content, body???
-		//Just set envvar in case of cgi_bin_found
-		// Just set content length in case of POST, header field must exist
-//		appendToEnvVarList("CONTENT_LENGHT", "0");
-		//TODO:Where to get???
-//		appendToEnvVarList("REMOTE_USER","0");
-		//TODO:Where to get???
-//		appendToEnvVarList("SCRIPT_FILENAME","0");
-//		//TODO:Where to get???
-//		appendToEnvVarList("DOCUMENT_ROOT","0");
-//	}
-//	else{
-//	
-//	}
-//	return EXIT_SUCCESS:	
-//}*/
 
 char* parseFindExplicitHeaderField(http_norm* hnp_info, const char* ccp_what){
 	ssize_t i = 0;
+	//iterate over all header fields and try to find the one we search and return it
+	//if we can't find it return NULL
 	for(; i < hnp_info->i_num_fields; ++i)
 		if(strncasecmp(hnp_info->cpp_header_field_name[i], ccp_what, min(strlen(ccp_what), strlen(hnp_info->cpp_header_field_name[i]))) == 0)
 			return hnp_info->cpp_header_field_body[i];
@@ -247,6 +224,10 @@ int parseAuthorizationInfos(const char* ccp_authstr){
 	//Must start with Digest
 	if(strncasecmp("Digest", ccp_authstr, min(strlen(ccp_authstr), strlen("Digest"))) != 0)
 		return EXIT_FAILURE;
+		
+	//If it is an autorization request all this fields must be available
+	//we check for them and save them in our structur, if something went wrong
+	//exit with EXIT_FAILURE else EXIT_SUCCESS
 	http_autorization_ = secCalloc(1, sizeof(http_autorization));
 	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "username=\"", "\"");
 	if(cp_helper == NULL)
@@ -311,17 +292,25 @@ int parseHttpRequestHeader(char* input){
 }
 
 int parseRequestLine(char* input){
+	
+	//If there is no first Line we return EXIT_FAILURE
+	if(input == NULL)
+		return EXIT_FAILURE;
+	//Check if it contains one out of our three supported Methods
 	ssize_t i_offset = parseRequestMethod(input, 0);
 	// no suitable method? so we break here!
 	if(i_offset == EXIT_FAILURE)
 		return EXIT_FAILURE;
 	http_request_ = secCalloc(1, sizeof(http_request));
 	
+	//Check for an correct URI
 	i_offset = parseRequestURI(input, i_offset);
 	if( i_offset == EXIT_FAILURE){
 		debugVerbose(PARSER, "Failure in request line detected, next step is to abort\n");
 		return EXIT_FAILURE;
 	}
+	//If there is a http-version set it must be our supported one HTTP/1.1 if not EXIT_FAILURE
+	//If there isn't any we set it to HTTP/1.1 in parseHttpVersion
 	if(parseHttpVersion(input, i_offset + 1) == EXIT_FAILURE){
 		debugVerbose(PARSER, "Unknown server protocol, next step is to abort\n");
 		return EXIT_FAILURE;
@@ -351,15 +340,19 @@ int parseRequestMethod(char* input, int offset){
 	int i = offset;
 	char* cp_method = NULL;
 	
+	//Find the end of the first string
 	for(;i_offset_en < strlen(input) && input[i_offset_en] != ' '; ++i_offset_en);
 	cp_method = secGetStringPart(input, 0, i_offset_en - 1);
 	
+	//check if our string is one off our supported methods GET, POST, HEAD
 	for(;i < SCI_NUM_KNOWN_METHODS; ++i)
 		if(strncmp(SCCA_KNOWN_METHODS[i], cp_method, min(strlen(SCCA_KNOWN_METHODS[i]), strlen(cp_method))) == 0){
 			e_used_method = i;
+			//We found a correct Version, return the offset so everyone knows were to go on
 			return i_offset_en + 1;
 		}
-		return EXIT_FAILURE;
+	//We couldn't find it return EXIT_FAILURE
+	return EXIT_FAILURE;
 }
 
 int parseRequestURI(char* input, int offset){
@@ -370,77 +363,139 @@ int parseRequestURI(char* input, int offset){
 	int i_offset_st = 0;
 	int i_offset_en = 0;
 	
-	
+	//if the Uri doesn't start with an "/" it isn't correct so we can return EXIT_FAILURE
 	for(i_offset_st = offset; i_offset_st < strlen(input) && input[i_offset_st] != '/'; ++i_offset_st);
 	if(i_offset_st >= strlen(input)){
 		debugVerbose(PARSER, "No URI found\n");
 		return EXIT_FAILURE;
 	}
 	
+	//First find the end of the uri
 	for(i_offset_en = i_offset_st; i_offset_en < strlen(input) && input[i_offset_en] != ' '; ++i_offset_en);
 	cp_uri = secGetStringPart(input, i_offset_st, i_offset_en - 1);
 	
+	//Check if the URI starts with /cgi-bin/
 	if(strncmp(SCCP_CGI_BIN,cp_uri,min(strlen(SCCP_CGI_BIN), strlen(cp_uri)))==0){
 		B_CGI_BIN_FOUND = TRUE;
 		debugVerbose(PARSER, "CGI bin found\n");
 	}
 	
-	for(i_offset_st = 0; i_offset_st < strlen(cp_uri) && cp_uri[i_offset_st] != '?'; ++i_offset_st);
+	//It is possible that the URI contians an question and/or an fragment
+	//First find our path, it ends after an ?,#,' ', or if the line ends
+	for(i_offset_st = 0; i_offset_st < strlen(cp_uri) && cp_uri[i_offset_st] != '?' && cp_uri[i_offset_st] != '#'; ++i_offset_st);
+	cp_path = secGetStringPart(cp_uri, 0, i_offset_st - 1);
+	
+	//After we found the path we have to check if ther is more in the string
+	//is the next sign an "?" or and "#" set up our query and/or fragment vars
 	if(i_offset_st != strlen(cp_uri)){
-		cp_path = secGetStringPart(cp_uri, 0, i_offset_st - 1);
-		for(i_offset_en = i_offset_st; i_offset_en < strlen(cp_uri) && cp_uri[i_offset_en] != '#'; ++i_offset_en);
-		cp_query = secGetStringPart(cp_uri, i_offset_st + 1, i_offset_en - 1);
-		if(i_offset_en != strlen(cp_uri))
-			cp_fragment = secGetStringPart(cp_uri, i_offset_en + 1, strlen(cp_uri) - 1);
+		if(cp_uri[i_offset_st] == '?'){
+			for(i_offset_en = i_offset_st; i_offset_en < strlen(cp_uri) && cp_uri[i_offset_en] != '#'; ++i_offset_en);
+			cp_query = secGetStringPart(cp_uri, i_offset_st + 1, i_offset_en - 1);
+			if(i_offset_en != strlen(cp_uri))
+				cp_fragment = secGetStringPart(cp_uri, i_offset_en + 1, strlen(cp_uri) - 1);
+		}
+		else
+			cp_fragment = secGetStringPart(cp_uri, i_offset_st + 1, strlen(cp_uri) - 1);
 	}
 	else
 		strAppend(&cp_path, cp_uri);
-
+	
+	//if we found an possible correct path check if the encoding is correct and decode everything
 	if(cp_path){
-		if(validateString(cp_path) == EXIT_FAILURE){
-			debugVerbose(PARSER, "Invalid char detected in URI Path\n");
+		if(validateAbspath(&cp_path) == EXIT_FAILURE){
+			debugVerbose(PARSER, "Invalid encoding detected in URI Path\n");
 			return EXIT_FAILURE;
 		}
 	}
+
 	// Fill up struct, remember it could contain NULL-pointers!
 	http_request_->cp_uri = cp_uri;
 	http_request_->cp_path = cp_path;
 	http_request_->cp_query = cp_query;
 	http_request_->cp_fragment = cp_fragment;
+	
+	//return the correct offset, so in the next stepp we can check if ther is an HTTP-Version or not
 	return offset + strlen(cp_uri);
 }
 
 int parseHttpVersion(char* input, int offset){
 	char* cp_http_version = NULL;
 	
+	//If there isn't anything to read we set the http-version to our supported one
 	if(offset > strlen(input))
 		cp_http_version = secGetStringPart(SCCP_KNOWN_HTTPVERSION, 0, strlen(SCCP_KNOWN_HTTPVERSION));
 	else
 		cp_http_version = secGetStringPart(input, offset, strlen(input));
 	
+	//Check if the Version is correct
 	if(strncmp(cp_http_version, SCCP_KNOWN_HTTPVERSION, min(strlen(SCCP_KNOWN_HTTPVERSION), strlen(cp_http_version))) != 0)
 		return EXIT_FAILURE;
 	appendToEnvVarList("SERVER_PROTOCOL",cp_http_version);
 	return EXIT_SUCCESS;
 }
 
-int validateString(char* cp_string){
-	int i = 0;
+char decode(char* cp_string, ssize_t i_offset){
+	//If we found an % and the next to chars were hexdigit we decode them
+	unsigned char a;
+	unsigned char b;
+	a = cp_string[i_offset + 1];
+	b = cp_string[i_offset + 2];
+	hextodec(&a);
+	hextodec(&b);
+	return a*16 + b;
+}
+
+void hextodec(unsigned char* a){
+	//calculate the correct char
+	if(*a>47 && *a<58)
+		*a -= 48;
+	else if(*a>64 && *a<71)
+		*a -= 55;
+	else if(*a>96 && *a<103)
+		*a -= 87;
+}
+
+int validateAbspath(char** cpp_string){
+	ssize_t i = 0;
+	ssize_t i_offset = 0;
+	unsigned char* cp_decoded = NULL;
 	
-	for(;i<strlen(cp_string); ++i)
-		if(isNonEscapedChar(cp_string, i) == TRUE)
-			return EXIT_FAILURE;
+	cp_decoded = secCalloc(strlen(*cpp_string), sizeof(char));
+	
+	//Check every char of our string for correctness
+	for(;i<strlen(*cpp_string); ++i){
 		
-		return EXIT_SUCCESS;
+		if(isNonEscapedChar(*cpp_string, i) == TRUE)
+			return EXIT_FAILURE;
+		if((*cpp_string)[i] == '%'){
+		
+			cp_decoded[i - i_offset] = decode(*cpp_string, i);
+			//PROOF for NULL!!! TODO: bad request
+			//We don't support 00 or ff
+			if(cp_decoded[i - i_offset] == 0x00 || cp_decoded[i - i_offset] == 0xff)
+				secAbort();
+			i+=2;
+			i_offset +=2;
+		}
+		//watch out if there is an + we make an space if we find one	
+		else if((*cpp_string)[i] == '+')
+			cp_decoded[i-i_offset] = ' ';
+		else
+			cp_decoded[i-i_offset] = (*cpp_string)[i];
+	}
+	secFree(*cpp_string);
+	*cpp_string = cp_decoded;
+	return EXIT_SUCCESS;
 }
 
 bool isNonEscapedChar(char* input, int i_offset){
-	const char* ccp_invalids = " ;?:@&=+$,#";
+	const char* ccp_invalids = " ;?:@&=$,#";
 	int i = 0;
-	
+	//Check if the char is one our blacklist
 	for(; i<strlen(ccp_invalids); ++i)
 		if(input[i_offset] == ccp_invalids[i])
 			return TRUE;
+		
 		if(input[i_offset]=='%'){
 			if(strlen(input) - i_offset < 3)
 				return TRUE;
@@ -453,6 +508,7 @@ bool isNonEscapedChar(char* input, int i_offset){
 }
 
 bool isHexDigit(char input){
+	//check if the char is in a correct hexdigit range
 	if(input>0x29 && input < 0x3A)
 		return TRUE;
 	else if(input>0x40 && input < 0x47)
@@ -464,6 +520,7 @@ bool isHexDigit(char input){
 }
 
 void stringToUpperCase(char* input){
+	//just convert every char from the string to an uppercase char
 	for(int i=0; i<strlen(input);i++){
 		input[i] = toupper(input[i]);
 		if(input[i] == '-')
@@ -472,6 +529,7 @@ void stringToUpperCase(char* input){
 }
 
 void parsePrintStructures(){
+	//if the structure is not NULL print it out
 	debugVerbose(PARSER, "Here we show our structs...\n");
 	if(http_request_){
 		debugVerbose(PARSER, "http_request_->cp_method = %s\n", http_request_->cp_method);
@@ -487,200 +545,49 @@ void parsePrintStructures(){
 		debugVerbose(PARSER, "http_authorization_->cp_uri = %s\n", http_autorization_->cp_uri);
 		debugVerbose(PARSER, "http_authorization_->cp_response = %s\n", http_autorization_->cp_response);
 	}
+//	if(http_cgi_response_){
+//		debugVerbose(PARSER, "http_cgi_response_->content_type = %s\n", http_cgi_response_->content_type);
+//		debugVerbose(PARSER, "http_cgi_response_->status = %s\n", http_cgi_response_->status);
+//	}
 	debugVerbose(PARSER, "...shown\n");
 }
 
-/*bool was_right = TRUE;
-if(offset == 0){
-			for(int i=0; i<=2; i++){
-			was_right = TRUE;
-			for(int j=0; j<strlen(METHOD[i]); j++){
-			if(input[j]!=METHOD[i][j]){
-			was_right = FALSE;
-			break;
-		}
-		}
-		if(was_right==TRUE){
-			selectedMETHOD[i]=TRUE;
-			offset=offsetPP(offset,3);
-			if(i>0){
-			offset=offsetPP(offset,4);
-		}
-		return offset;
-		}
-		}
-		}
-		
-		return EXIT_FAILURE;	
-		}*/
 
-/*	for(int i=0; i<strlen(HTTPVERSION);i++){
-if(HTTPVERSION[i]!=input[offset]){
-			istrue = FALSE;
-			break;
-			}
-			offset = offsetPP(offset,1);
-			}
-			if(istrue==TRUE){
-			//appendToEnvVarList("SERVER_PROTOCOL","HTTP/1.1");	
-			return offset;
-		}
-		else
-			*/
-//return EXIT_FAILURE;
-//}
+char* parseExtention(const char* filename){
 
-
-//if(parseArguments());
-	//char** outputline = NULL;	
-	//MAX_HEADER_BUFSIZE = strlen(hnp_info->cp_header);
-	//int offset = 0;
-	//int arguments_valid = 0;
-	//TODO: remove args 2,3
+	char* cp_extension = NULL;
+	const char* ccp_file_type[] = {"png","html","txt", "css", NULL};
+	char* cp_content_type[] = {"image/png","text/html","text/plain", "text/css", "application/octet-stream"};
+	int i_str_end = strlen(filename)-1;
+	int i_str_beginn = strlen(filename)-1;
+	int i = 0;
+	//find the beginning of our extension
+	for(; i_str_beginn > 0 && filename[i_str_beginn] != '.'; i_str_beginn--)
+	cp_extension = secGetStringPart(filename, i_str_beginn, i_str_end);
 	
-	//if(first_line_valid == EXIT_FAILURE){
-		//TODO: ERROR
-		//}
-		
-		// 	if(selectedMETHOD[0]==TRUE){
-		// 		appendToEnvVarList("REQUEST_METHOD","GET");
-		// 		/*if(hnp_info->cpp_header_field_body != NULL){
-   // 			arguments_valid=EXIT_FAILURE;
-   // 			//TODO: ERROR
-   // 		}
-   // 		else*/
-   // 			arguments_valid = parseArguments(hnp_info,outputline);
-   // 	}
-   // 	else if(selectedMETHOD[1]==TRUE){
-   // 		appendToEnvVarList("REQUEST_METHOD","POST");
-   // 		if(hnp_info->cpp_header_field_body == NULL){
-   // 			arguments_valid=EXIT_FAILURE;
-   // 			//TODO: ERROR
-   // 		}
-   // 		else
-   // 			arguments_valid = parseArguments(hnp_info,outputline);
-   // 	}
-   // 	else if(selectedMETHOD[2]==TRUE){
-   // 		appendToEnvVarList("REQUEST_METHOD","HEAD");
-   // 		if(hnp_info->cpp_header_field_body != NULL){
-   // 			arguments_valid=EXIT_FAILURE;
-   // 			//TODO: ERROR
-   // 		}
-   // 		else
-   // 			arguments_valid = parseArguments(hnp_info,outputline);
-   // 	}
-   // 	else{
-	   // 		//can't happen
-	   // 	}
-	   // 	
-	   // 	if(arguments_valid==EXIT_FAILURE){
-   // 		//TODO: ERROR
-   // 	}
-   // 	debugVerbose(3, "Arguments valid\n");
-   
-   //int parseHttpRequest(char* input, char** outputline, int offset){
-   //	return offset;
-   //}
-   
-   
-   
-   // 	if(input[offset]=='/'){
-   // 		//If it is an cgi request we have to build our path from the uri
-   // 		/*int length = strlen(input)-1;
-   // 		if(strncmp("/cgi-bin/",input+offset,9)==0){
-   // 			cgi_bin_found = TRUE;
-   // 			debugVerbose(3, "CGI bin\n");
-   // 
-   // 			for(int i = offset+9; i< strlen(input)-1;i++){
-   // 				if(input[i]=='/'){
-   // 					save_position = i;
-   // 				}
-   // 				if(isWhiteSpace(input[i])==TRUE || isEOF(input[i])==TRUE || input[i]=='#' || input[i]=='?')
-   // 					break;
-   // 			}
-   // 			strncpy(cgi_path,input+offset+9,save_position);
-   // 			debugVerbose(3, "CGI path %s\n",cgi_path);
-   // 		}
-   // 		
-   // 		//Try to find a fragment and/or the request
-   // 		while(isWhiteSpace(input[offset])==FALSE && isEOF(input[offset])==FALSE){
-   // 			my_char = input[offset];
-   // 						
-   // 			if(input[offset]=='#'){
-   // 				fragment_found = TRUE;
-   // 			}
-   // 			else if(input[offset]=='?'){
-   // 				query_found = TRUE;
-   // 				fragment_found = FALSE;
-   // 			}
-   // 			else if(fragment_found == TRUE){
-   // 				strAppend(&cp_fragment, &my_char);
-   // 			}
-   // 			else if(query_found == TRUE){
-   // 				strAppend(&cp_request, &my_char);
-   // 			}
-   // 			else{
-	   // 				//??
-	   // 			}
-	   // 			
-	   // 			if(isNonEscapedChar(input[offset])==TRUE && query_found == FALSE)
-	   // 				return EXIT_FAILURE;
-	   // 			strAppend(&cp_uri, &my_char);
-	   // 			
-	   // 			offset=offsetPP(offset,1);
-	   // 			
-	   // 		}
-	   // 		if(isEOF(input[offset]==TRUE)){
-   // 			appendToEnvVarList("SERVER_PROTOCOL","HTTP/1.1");
-   // 		}
-   
-   
-   //	appendToEnvVarList("REQUEST_PATH", cp_path);
-   //	appendToEnvVarList("FRAGMENT",cp_fragment);
-   //	appendToEnvVarList("QUERY_STRING",cp_query);
-   //	return offset;
-   //}
-   //	else{
-	   //		return EXIT_FAILURE;
-	   //	}
-	   //	
-	   //}
-	   
-	   // bool isChar(char input){
-   // 	if(input < 32 || input > 126 || input!='\t')
-   // 		return FALSE;
-   // 	else
-   // 		return TRUE;
-   // }
-   
-   
-   
-   
-   // /*bool isWhiteSpace(char input){
-   // 	if(input==' ' || input=='\t')
-   // 			return TRUE;
-   // 	return FALSE;
-   // }
-   // 
-   // bool isNewLine(char input){
-   // 	if(input=='\n')
-   // 		return TRUE;
-   // 	return FALSE;
-   // }
-   // 
-   // 
-   // 
-   // 
-   // bool isEOF(char input){
-   // 	if(input=='\0')
-   // 		return TRUE;
-   // 	return FALSE;
-   // }
-   // 
-   // int offsetPP(int offset, int count){
-   // /*	if(offset+count < MAX_HEADER_BUFSIZE){
-   // 		offset= offset + count;
-   // 	}
-   // 	return offset;*/
-   // }*/
+	//check if the extension is one we support else we set it to default
+	for(;i<4;i++)
+		if(strlen(cp_extension)==strlen(ccp_file_type[i]))
+			if(strncasecmp(cp_extension,ccp_file_type[i],strlen(ccp_file_type[i]))==0)
+				return cp_content_type[i];
+	
+	
+	
+	return cp_content_type[4];
+	
+}
+
+char* parseFilename(const char* cp_filename){
+	
+	char* cp_name = NULL;
+	int i_str_end = strlen(cp_filename)-1;
+	int i_str_beginn = strlen(cp_filename)-1;
+	
+	//find the beginning of our filname and return the found string
+	for(; i_str_beginn > 0 && cp_filename[i_str_beginn] != '/'; i_str_beginn--)
+	cp_name = secGetStringPart(cp_filename, i_str_beginn, i_str_end);
+	
+	return cp_name;
+	
+}
 

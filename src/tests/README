@@ -1,0 +1,12 @@
+=== Simple Testcases for the tiniweb server ===
+Release: 1
+
+The requestXX.in files contain various valid and invalid
+test vectors for the tiniweb server.
+
+The "webroot/" directory contains the test setup for these
+testcases.
+
+Invoke the tiniweb server like:
+$ ./tiniweb --cgi-dir=tests/webroot/cgi-bin \
+            --web-dir=tests/webroot ... < tests/requestXX.in
