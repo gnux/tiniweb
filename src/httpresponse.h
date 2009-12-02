@@ -36,6 +36,8 @@ int sendHTTPErrorMessage(int i_status);
 
 int sendCGIHTTPResponseHeader(http_cgi_response *header);
 
+int sendHTTPAuthorizationResponse(const char* ccp_realm, const char* ccp_nonce);
+
 void sendHTTPResponseHeader(int i_status, int i_content_type, int i_content_length);
 
 void sendHTTPResponse(int i_status, int i_content_type, const char* ccp_body);
