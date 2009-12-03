@@ -219,8 +219,8 @@ int main(int argc, char** argv) {
     }
     */
     
-    processCGIScript("testscript");
-    //processStaticFile("tests/webroot/index.html");
+    //processCGIScript("testscript");
+    processStaticFile("tests/webroot/index.html");
 /*
     if(b_static)
     {
