@@ -6,19 +6,108 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <poll.h>
 
 #include "httpresponse.h"
 #include "typedef.h"
+#include "debug.h"
 #include "normalize.h"
+#include "cgi.h"
 
+extern int si_cgi_timeout_;
+
+int writeToOutputStream(int i_fd, const char* ccp_text)
+{
+    struct pollfd poll_fd[1];
+    int i_text_length = 0;
+    int i_poll_result = 0;
+    int i_num_polls = 1;
+    ssize_t written_bytes = 0;
+    ssize_t total_written_bytes = 0;
+    
+    if(ccp_text == NULL)
+    {
+        return EXIT_FAILURE;
+    }
+    
+    if (setNonblocking(i_fd))
+    {
+        debug(HTTP_RESPONSE, "Setting output stream non-blocking failed.\n");
+        return EXIT_FAILURE;
+    }
+    
+    i_text_length = strlen(ccp_text);
+    
+    poll_fd[0].fd = i_fd;
+    poll_fd[0].events = POLLOUT;
+    poll_fd[0].revents = 0;
+    
+    while(total_written_bytes < i_text_length)
+    {
+        i_poll_result = poll(poll_fd, i_num_polls, si_cgi_timeout_);
+        
+        if(i_poll_result < 0)
+        {
+            debug(HTTP_RESPONSE, "Polling on output stream failed.");
+            return EXIT_FAILURE;
+        }
+        
+        if(i_poll_result == 0)
+        {
+            debug(HTTP_RESPONSE, "Output stream timed out.");
+            return EXIT_FAILURE;
+        }
+        
+        if((poll_fd[0].revents & (POLLERR)) || (!poll_fd[0].revents & (POLLHUP)))
+        {
+            debug(HTTP_RESPONSE, "A problem occurred on the output stream.");
+            return EXIT_FAILURE;
+        }
+        
+        written_bytes = write(poll_fd[0].fd, ccp_text + (total_written_bytes), i_text_length - total_written_bytes);
+        total_written_bytes += written_bytes;
+        if (written_bytes < 0) 
+        {       
+            if(errno != EAGAIN)
+            {
+                debug(HTTP_RESPONSE, "Error while writing on output stream.\n");
+                return EXIT_FAILURE;
+            }
+
+        }
+    }    
+    
+    return EXIT_SUCCESS;
+}
 
 int sendCGIHTTPResponseHeader(http_cgi_response *header)
 {
     int i_index = 0;
+    char* cp_cgi_http_response_header = NULL;
+    
 
     if(header == NULL)
         return EXIT_FAILURE;
         
+    strAppend(&cp_cgi_http_response_header, "HTTP/1.1 ");
+    strAppend(&cp_cgi_http_response_header, header->status);
+    strAppend(&cp_cgi_http_response_header, "\n");
+    
+    for(i_index = 0; i_index < header->i_num_fields; i_index++)
+    {
+        strAppend(&cp_cgi_http_response_header, header->cpp_header_field_name[i_index]);
+        strAppend(&cp_cgi_http_response_header, ": ");
+        strAppend(&cp_cgi_http_response_header, header->cpp_header_field_body[i_index]);
+        strAppend(&cp_cgi_http_response_header, "\n");
+    }
+    
+    strAppend(&cp_cgi_http_response_header, "\n");
+    
+    writeToOutputStream(STDOUT_FILENO, cp_cgi_http_response_header);
+    
+    /*    
     fprintf(stdout, "HTTP/1.1 %s\n", header->status);
     
     for(i_index = 0; i_index < header->i_num_fields; i_index++)
@@ -28,6 +117,7 @@ int sendCGIHTTPResponseHeader(http_cgi_response *header)
     }
     
     fprintf(stdout, "\n");
+    */
     return EXIT_SUCCESS;
 }
 
