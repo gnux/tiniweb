@@ -195,8 +195,8 @@ int main(int argc, char** argv) {
     
     if (mapRequestPath(&cp_mapped_path, &b_static) == FALSE)
     {
-        sendHTTPResponseHeader(STATUS_FORBIDDEN, TEXT_HTML);
-        fprintf(stdout, "<html><body>Forbidden!</body></html>");
+        sendHTTPResponseHeader(STATUS_NOT_FOUND, TEXT_HTML);
+        fprintf(stdout, "<html><body>Not Found!</body></html>");
         secAbort();
     }
     
