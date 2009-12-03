@@ -17,6 +17,7 @@
 #include "secmem.h"
 #include "normalize.h"
 #include "path.h"
+#include "secstring.h"
 
 
 extern char *scp_secret_;

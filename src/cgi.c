@@ -45,7 +45,7 @@ static void closePipes(int ia_pipe_fds[2])
 /**
  * Put a file descriptor into non-blocking mode.
  */
-static int setNonblocking(int i_fd)
+int setNonblocking(int i_fd)
 {
     int old_mode = fcntl(i_fd, F_GETFL);
     if (old_mode < 0) 
@@ -77,12 +77,12 @@ void processCGIScript(const char* cp_path)
     if (pipe(ia_cgi_response_pipe))
     {
         //TODO: safe exit
-        debugVerbose(CGICALL, "Creating pipes to CGI script failed: %d\n", errno);
+        debugVerbose(CGICALL, "Creating pipes to CGI script failed.\n");
     }
     if (setNonblocking(ia_cgi_response_pipe[0]))
     {
         //TODO safe exit
-        debugVerbose(CGICALL, "Setting pipes non-blocking failed: %d\n", errno);
+        debugVerbose(CGICALL, "Setting pipes non-blocking failed.\n");
     }
     
     if(e_used_method == POST)
@@ -400,7 +400,7 @@ FILE* getCGIHeaderResponseStream(int i_source_fd)
     bool b_eof_reached = FALSE;
  
  //TODO: neu mit getc()
-    cp_stream_memory = (char*)secCalloc(total_read_bytes+1, sizeof(char));
+    //cp_stream_memory = (char*)secCalloc(total_read_bytes+1, sizeof(char));
     do 
     {
         // Read data from input pipe
