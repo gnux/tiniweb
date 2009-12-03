@@ -65,6 +65,7 @@ void processStaticFile(const char* ccp_path)
  
 int writeFileTo(FILE *file, int i_dest_fd)
 {
+    //TODO: make non-blocking
     unsigned char c_char = 0;
     int i_result = 0;
     ssize_t written_bytes = 0;

@@ -86,6 +86,7 @@ int writeToOutputStream(int i_fd, const char* ccp_text)
 int sendCGIHTTPResponseHeader(http_cgi_response *header)
 {
     int i_index = 0;
+    int i_success = 0;
     unsigned char* cp_cgi_http_response_header = NULL;
     
 
@@ -106,7 +107,7 @@ int sendCGIHTTPResponseHeader(http_cgi_response *header)
     
     strAppend(&cp_cgi_http_response_header, "\n");
     
-    writeToOutputStream(STDOUT_FILENO, cp_cgi_http_response_header);
+    i_success = writeToOutputStream(STDOUT_FILENO, cp_cgi_http_response_header);
     
     /*    
     fprintf(stdout, "HTTP/1.1 %s\n", header->status);
@@ -119,27 +120,28 @@ int sendCGIHTTPResponseHeader(http_cgi_response *header)
     
     fprintf(stdout, "\n");
     */
-    return EXIT_SUCCESS;
+    return i_success;
 }
 
 int sendHTTPResponseHeaderExplicit(const char* ccp_status, const char* ccp_content_type, int i_content_length)
 {
-    char* cp_http_response_header = NULL;
+    int i_success = 0;
+    unsigned char* ucp_http_response_header = NULL;
 
     if(ccp_content_type == NULL || ccp_status == NULL)
         return EXIT_FAILURE;
         
-    cp_http_response_header = secPrint2String("HTTP/1.1 %s\n", ccp_status);
-    strAppend(&cp_http_response_header, "Server: tiniweb/1.0\n");
-    strAppend(&cp_http_response_header, "Connection: close\n");
-    strAppendFormatString(&cp_http_response_header, "Content-Type: %s\n", ccp_content_type);
+    ucp_http_response_header = secPrint2String("HTTP/1.1 %s\n", ccp_status);
+    strAppend(&ucp_http_response_header, "Server: tiniweb/1.0\n");
+    strAppend(&ucp_http_response_header, "Connection: close\n");
+    strAppendFormatString(&ucp_http_response_header, "Content-Type: %s\n", ccp_content_type);
     
     if(i_content_length >= 0)
     {
-        strAppendFormatString(&cp_http_response_header, "Content-Length: %i\n", i_content_length);
+        strAppendFormatString(&ucp_http_response_header, "Content-Length: %i\n", i_content_length);
     }
     
-    strAppend(&cp_http_response_header, "\n");
+    strAppend(&ucp_http_response_header, "\n");
     
     /*
     fprintf(stdout, "HTTP/1.1 %s\n", ccp_status);
@@ -152,18 +154,30 @@ int sendHTTPResponseHeaderExplicit(const char* ccp_status, const char* ccp_conte
         fprintf(stdout, "Content-Length: %i\n", i_content_length);
     }
     */
-    writeToOutputStream(STDOUT_FILENO, cp_http_response_header);
+    i_success = writeToOutputStream(STDOUT_FILENO, ucp_http_response_header);
         
-    return EXIT_SUCCESS;
+    return i_success;
 }
 
 int sendHTTPAuthorizationResponse(const char* ccp_realm, const char* ccp_nonce)
 {
-    char *cp_body = "<html><body>Access Denied!</body></html>";
+    int i_success = 0;
+    unsigned char* ucp_http_auth_response = NULL;
+    char* cp_body = "<html><body>Access Denied!</body></html>";
 
     if(ccp_realm == NULL || ccp_nonce == NULL)
         return EXIT_FAILURE;
         
+    ucp_http_auth_response = secPrint2String("HTTP/1.1 %s\n", getStatusCode(STATUS_UNAUTHORIZED));
+    strAppend(&ucp_http_auth_response, "Server: tiniweb/1.0\n");
+    strAppend(&ucp_http_auth_response, "Connection: close\n");
+    strAppendFormatString(&ucp_http_auth_response, 
+                          "WWW-Authenticate: Digest realm=\"%s\", nonce=\"%s\"\n", ccp_realm, ccp_nonce);
+    strAppendFormatString(&ucp_http_auth_response, "Content-Type: %s\n", getContentType(TEXT_HTML));
+    strAppendFormatString(&ucp_http_auth_response, "Content-Length: %d\n\n", strlen(cp_body));
+    strAppendFormatString(&ucp_http_auth_response, "%s", cp_body);
+        
+    /*    
     fprintf(stdout, "HTTP/1.1 %s\n", getStatusCode(STATUS_UNAUTHORIZED));
     fprintf(stdout, "Server: tiniweb/1.0\n");
     fprintf(stdout, "Connection: close\n");
@@ -172,8 +186,11 @@ int sendHTTPAuthorizationResponse(const char* ccp_realm, const char* ccp_nonce)
     fprintf(stdout, "Content-Length: %i\n\n", strlen(cp_body));
     
     fprintf(stdout, "%s", cp_body);
+    */
+    
+    i_success = writeToOutputStream(STDOUT_FILENO, ucp_http_auth_response);
         
-    return EXIT_SUCCESS;
+    return i_success;
 }
 
 void sendHTTPResponseHeader(int i_status, int i_content_type, int i_content_length)
