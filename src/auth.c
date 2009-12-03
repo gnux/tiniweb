@@ -49,26 +49,24 @@ bool authenticate(char* cp_path)
     {
         
 	    debugVerbose(AUTH, "No 401-Unauthorized message was sent before.\n");
-        
 	    
 	    if (createNonce(&cp_nonce, timestamp) == EXIT_FAILURE)
 	    {
-	        sendHTTPErrorMessage(STATUS_INTERNAL_SERVER_ERROR);
-	        return FALSE;
+            secExit(STATUS_INTERNAL_SERVER_ERROR);
 	    }
         
         if (getRealmFromHTDigestFile(cp_path, &cp_realm) == FALSE)
         {
             debugVerbose(AUTH, "ERROR: There is no Realm in the .htdigest file!\n");
-            sendHTTPErrorMessage(STATUS_INTERNAL_SERVER_ERROR);
-            return FALSE;
+            secExit(STATUS_INTERNAL_SERVER_ERROR);
         }
 
 	    if (sendHTTPAuthorizationResponse(cp_realm, cp_nonce) == EXIT_FAILURE)
         {
             // TODO what shall we do with the drunken sailor?
         }
-
+        
+        return FALSE;
 	}
 	else
     {    
@@ -86,26 +84,27 @@ bool authenticate(char* cp_path)
 	        if (getHA1HashFromHTDigestFile(cp_path, http_autorization_->cp_realm, 
 	                                       http_autorization_->cp_username, &cp_ha1) == FALSE)
 	        {
-	            sendHTTPErrorMessage(STATUS_LOGIN_FAILED);
-	            return FALSE;
+	            secExit(STATUS_LOGIN_FAILED);
 	        }
+            
+	        if (verifyNonce(http_autorization_->cp_nonce) == FALSE)
+            {
+                secExit(STATUS_LOGIN_FAILED);
+            }
 	        
-	        
-	        
-// 	        if (verifyResponse(cp_ha1, scp_sent_nonce_, http_request_->cp_method, 
-// 	            http_request_->cp_uri, http_autorization_->cp_response) == FALSE)
-// 	        {
-// 	            sendHTTPErrorMessage(STATUS_LOGIN_FAILED);
-// 	            debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
-// 	            return FALSE;
-// 	        }
-// 	
-// 	        debugVerbose(AUTH, "Success: The 'response' from the auth field is valid!\n");
-// 	        secFree(scp_sent_nonce_);
+	        if (verifyResponse(cp_ha1, cp_nonce, http_request_->cp_method, 
+	            http_request_->cp_uri, http_autorization_->cp_response) == FALSE)
+	        {
+                debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
+	            secExit(STATUS_LOGIN_FAILED);
+	        }
+	
+	        debug(AUTH, "Success: The response from the auth field is valid!\n");
+            return TRUE;
 	    }
 	    else
 	    {
-	        sendHTTPErrorMessage(STATUS_LOGIN_FAILED);
+	        secExit(STATUS_LOGIN_FAILED);
 	    }
 	}
     
@@ -220,10 +219,11 @@ bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_
             
             cp_ha1 = secMalloc(32 * sizeof(char));
             strncpy(cp_ha1, cp_htdigest_line + i_line_len, 32);
-            *cpp_ha1 = cp_ha1;
+            (*cpp_ha1) = cp_ha1;
             
             secFree(cp_htdigest_compare_line);
             secFree(cp_htdigest_line);
+            
             //TODO: This can fail.
             fclose(file_htdigest);
             
@@ -236,6 +236,8 @@ bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_
     
     secFree(cp_htdigest_compare_line);
     secFree(cp_htdigest_line);
+    
+    //TODO: This can fail.
     fclose(file_htdigest);
     
     return FALSE;
@@ -274,6 +276,8 @@ bool getRealmFromHTDigestFile(char* cp_path_to_file, char** cpp_realm)
                     debugVerbose(AUTH, "Success: realm: %s found.\n", cp_realm);
                     secFree(cp_htdigest_line);
                     *cpp_realm = cp_realm;
+                    
+                    //TODO: This can fail.
                     fclose(file_htdigest);
                     
                     return TRUE;
@@ -289,6 +293,8 @@ bool getRealmFromHTDigestFile(char* cp_path_to_file, char** cpp_realm)
     }
     
     secFree(cp_htdigest_line);
+    
+    //TODO: This can fail.
     fclose(file_htdigest);
     
     return FALSE;
@@ -369,7 +375,7 @@ bool verifyNonce(char* cp_nonce)
     
     // TODO remove this:
     // timestamp: int int verwandeln
-    i_timestamp_recieved = i_timestamp_current - 5;
+    i_timestamp_recieved = (int) strDecodeHexToUInt(cp_timestamp_hex, 0, i_timestamp_len);
     
     if (i_timestamp_recieved + ci_timelimit < i_timestamp_current || i_timestamp_recieved > i_timestamp_current)
     {
