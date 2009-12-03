@@ -195,16 +195,12 @@ int main(int argc, char** argv) {
     
     if (mapRequestPath(&cp_mapped_path, &b_static) == FALSE)
     {
-        sendHTTPResponseHeader(STATUS_NOT_FOUND, TEXT_HTML);
-        fprintf(stdout, "<html><body>Not Found!</body></html>");
-        secAbort();
+        secExit(STATUS_NOT_FOUND);
     }
     
     if (checkRequestPath(cp_mapped_path) == FALSE)
     {
-        sendHTTPResponseHeader(STATUS_NOT_FOUND, TEXT_HTML);
-        fprintf(stdout, "<html><body>Not Found!</body></html>");
-        secAbort();
+        secExit(STATUS_NOT_FOUND);
     }
     
     cp_search_path_root = b_static ? scp_web_dir_ : scp_cgi_dir_;
@@ -214,9 +210,7 @@ int main(int argc, char** argv) {
         /**
          *  We found two .htdigest Files in the path! File is protected!
          */
-        sendHTTPResponseHeader(STATUS_FORBIDDEN, TEXT_HTML);
-        fprintf(stdout, "<html><body>Forbidden!</body></html>");
-        secAbort();
+        secExit(STATUS_FORBIDDEN);
     }
     
     if (b_digest_file_available)

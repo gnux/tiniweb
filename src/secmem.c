@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include "secmem.h"
 #include "debug.h"
+#include "httpresponse.h"
 
 int isValid(const char* ccp_input, const size_t i_offset);
 
@@ -143,10 +144,27 @@ void secRegister(void *ptr){
 void secAbort(){
 	//TODO:provide error handling! error responses, maybe get used of a secExit function that sends responses!
 	// use secAbort only for internal failures
+
+    sendHTTPErrorMessage(STATUS_INTERNAL_SERVER_ERROR);
+	
 	fprintf(stderr, "-----INTERNAL FAILURE, SERVER IS GOING TO ABORT-----\n");
+	fprintf(stderr, "-----ERROR-MESSAGE: 500 Internal Server Error-----\n");	
+	
 	secCleanup();
 	//TODO: cleanup open files and pipes
 	abort();
+}
+
+void secExit(int i_status){
+	
+	sendHTTPErrorMessage(i_status);
+	
+	fprintf(stderr, "-----FAILURE, SERVER IS GOING TO EXIT-----\n");	
+	fprintf(stderr, "-----ERROR-MESSAGE: %s-----\n",getStatusCode(i_status));
+
+	
+	secCleanup();
+	exit(-1);	
 }
 
 ssize_t secGetline(char** cpp_lineptr, FILE *stream){

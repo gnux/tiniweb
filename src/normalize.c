@@ -5,6 +5,7 @@
 #include "secmem.h"
 #include "normalize.h"
 #include "debug.h"
+#include "httpresponse.h"
 
 static const char *SCCP_BLANK = {" \t"};
 static const char *SCCPA_NEW_LINE[] = {"\r\n", "\n", "\0"};
@@ -25,13 +26,13 @@ http_norm *normalizeHttp(FILE* fp_input, bool b_skipfirstline){
 	if(b_skipfirstline == FALSE){
 	  if(secGetline(&cp_current_line, fp_input) == -1){
 		  debugVerbose(NORMALISE, "Empty input detected\n");
-		  secAbort();
+		  secExit(STATUS_BAD_REQUEST);
 	  }
 	
 	  // TODO: sec_abort!
 	  if(isCharacter(cp_current_line, 0) == EXIT_FAILURE){
 		  debugVerbose(NORMALISE, "Invalid HTTPRequest/Respone line detected\n");
-		  secAbort();
+		  secExit(STATUS_BAD_REQUEST);
 	  }
 	  strAppend(&hnp_http_info->cp_first_line, cp_current_line);
 	}
@@ -45,13 +46,13 @@ http_norm *normalizeHttp(FILE* fp_input, bool b_skipfirstline){
 		i_num_read = 0;
 		if(secGetline(&cp_current_line, fp_input) == -1){
 			debugVerbose(NORMALISE, "No Header Fields detected\n");
-			secAbort();
+			secExit(STATUS_BAD_REQUEST);
 		}
 		// if we find a newline on the beginning of the line, we are still missing at least one header-field
 		// TODO: sec_abort!
 		if(isNewLineChars(cp_current_line, 0) == EXIT_SUCCESS){
 			debugVerbose(NORMALISE, "No Header Fields detected\n");
-			secAbort();
+			secExit(STATUS_BAD_REQUEST);
 		}
 		// we do this as long we find a char on first position
 		if(isCharacter(cp_current_line, 0) == EXIT_SUCCESS)
@@ -65,7 +66,7 @@ http_norm *normalizeHttp(FILE* fp_input, bool b_skipfirstline){
 		//TODO: sec abort
 		if(isValidHeaderFieldStart(cp_current_line, b_skipfirstline) == EXIT_FAILURE){
 			debugVerbose(NORMALISE, "Invalid Header Field detected: %s\n", cp_current_line);
-			secAbort();
+			secExit(STATUS_BAD_REQUEST);
 		}
 		++hnp_http_info->i_num_fields;
 		hnp_http_info->cpp_header_field_name = secRealloc(hnp_http_info->cpp_header_field_name, sizeof(char*) * hnp_http_info->i_num_fields);
@@ -79,7 +80,7 @@ http_norm *normalizeHttp(FILE* fp_input, bool b_skipfirstline){
 			i_num_read = 0;
 			if(secGetline(&cp_current_line, fp_input) == -1){
 				debugVerbose(NORMALISE, "Invalid Header delimiter detected\n");
-				secAbort();
+				secExit(STATUS_BAD_REQUEST);
 			}
 	
 			if(isBlank(cp_current_line, 0) == EXIT_SUCCESS)

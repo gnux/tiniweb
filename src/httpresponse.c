@@ -5,9 +5,11 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "httpresponse.h"
 #include "typedef.h"
+#include "normalize.h"
 
 
 int sendCGIHTTPResponseHeader(http_cgi_response *header)
@@ -29,27 +31,94 @@ int sendCGIHTTPResponseHeader(http_cgi_response *header)
     return EXIT_SUCCESS;
 }
 
-int sendHTTPResponseHeaderExplicit(const char* cp_status, const char* cp_content_type)
+int sendHTTPResponseHeaderExplicit(const char* ccp_status, const char* ccp_content_type, int i_content_length)
 {
-    if(cp_content_type == NULL || cp_status == NULL)
+    if(ccp_content_type == NULL || ccp_status == NULL)
         return EXIT_FAILURE;
         
-    fprintf(stdout, "HTTP/1.1 %s\n", cp_status);
+    fprintf(stdout, "HTTP/1.1 %s\n", ccp_status);
     fprintf(stdout, "Server: tiniweb/1.0\n");
     fprintf(stdout, "Connection: close\n");
-    fprintf(stdout, "Content-Type: %s\n\n", cp_content_type);
+    fprintf(stdout, "Content-Type: %s\n", ccp_content_type);
+    
+    if(i_content_length >= 0)
+    {
+        fprintf(stdout, "Content-Length: %i\n", i_content_length);
+    }
+    
+    fprintf(stdout, "\n");
         
     return EXIT_SUCCESS;
 }
 
-int sendHTTPResponseHeader(int i_status, int i_content_type)
+int sendHTTPAuthorizationResponse(const char* ccp_realm, const char* ccp_nonce)
+{
+    char *cp_body = "<html><body>Access Denied!</body></html>";
+
+    if(ccp_realm == NULL || ccp_nonce == NULL)
+        return EXIT_FAILURE;
+        
+    fprintf(stdout, "HTTP/1.1 %s\n", getStatusCode(STATUS_UNAUTHORIZED));
+    fprintf(stdout, "Server: tiniweb/1.0\n");
+    fprintf(stdout, "Connection: close\n");
+    fprintf(stdout, "WWW-Authenticate: Digest realm=\"%s\", nonce=\"%s\"\n", ccp_realm, ccp_nonce);
+    fprintf(stdout, "Content-Type: %s\n", getContentType(TEXT_HTML));
+    fprintf(stdout, "Content-Length: %i\n\n", strlen(cp_body));
+    
+    fprintf(stdout, "%s", cp_body);
+        
+    return EXIT_SUCCESS;
+}
+
+void sendHTTPResponseHeader(int i_status, int i_content_type, int i_content_length)
 {       
     fprintf(stdout, "HTTP/1.1 %s\n", getStatusCode(i_status));
     fprintf(stdout, "Server: tiniweb/1.0\n");
     fprintf(stdout, "Connection: close\n");
-    fprintf(stdout, "Content-Type: %s\n\n", getContentType(i_content_type));
+    fprintf(stdout, "Content-Type: %s\n", getContentType(i_content_type));
+   
+    if(i_content_length >= 0)
+    {
+        fprintf(stdout, "Content-Length: %i\n", i_content_length);
+    }
+    
+    fprintf(stdout, "\n");
+}
+
+void sendHTTPResponse(int i_status, int i_content_type, const char* ccp_body)
+{
+    int i_content_length = 0;
+    
+    if(ccp_body == NULL)
+    {   
+    
+        i_content_length = strlen(ccp_body);
+    }
+       
+    sendHTTPResponseHeader(i_status, i_content_type, i_content_length);
+    
+    fprintf(stdout, "%s", ccp_body);
+    
+}
+
+
+
+int sendHTTPErrorMessage(int i_status)
+{
+    char* cp_body = NULL;
+    
+    if(i_status > STATUS_OK && i_status <= STATUS_HTTP_VERSION_NOT_SUPPORTED)
+    {
+        strAppend(&cp_body, "<html><body>");
+        strAppend(&cp_body, getStatusCode(i_status));
+        strAppend(&cp_body, "</body></html>");
         
-    return EXIT_SUCCESS;
+        sendHTTPResponse(i_status, TEXT_HTML, cp_body);
+    
+        return EXIT_SUCCESS;
+    }
+    
+    return EXIT_FAILURE;
 }
 
 char* getStatusCode(int status)
