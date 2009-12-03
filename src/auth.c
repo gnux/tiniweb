@@ -52,9 +52,8 @@ bool authenticate(char* cp_path)
 	        sendHTTPErrorMessage(STATUS_INTERNAL_SERVER_ERROR);
 	        return FALSE;
 	    }
-	    
-	    sendHTTPErrorMessage(STATUS_UNAUTHORIZED);
-	    
+
+	    sendHTTPAuthorizationResponse("realm",scp_sent_nonce_);
 	    // TODO send 401
 	    // Wait for answer
 	    // Send answer to normalizer/parser
@@ -360,19 +359,38 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len, unsigned char* uca_
 //------------------------------------------------------------------------
 
 int createNonce(unsigned char* uca_key, char** cpp_nonce)
-{
+{	
+	
     time_t timestamp = time(NULL);
     int i_text_len = 30;
-    unsigned char uca_text[i_text_len];
+    unsigned char *uca_text = NULL;
+    unsigned char uca_time[8];
     unsigned char uca_nonce[SCI_NONCE_LEN];
+    unsigned char **ucpp_nonce_hash = NULL;
+    unsigned char uca_uri_nonce[SCI_NONCE_LEN];
     
-    memset(uca_text, 0, i_text_len);
-    sprintf((char*)uca_text,"%s",asctime( localtime(&timestamp) ) );  
-
-    performHMACMD5(uca_text, i_text_len, uca_key, i_text_len, uca_nonce);
-    debugVerboseHash(AUTH, uca_nonce, SCI_NONCE_LEN, "A Nonce was created!");
+    //memset(uca_text, 0, i_text_len);
     
-    if (convertHash(uca_nonce, SCI_NONCE_LEN, cpp_nonce) == EXIT_FAILURE)
+    
+    //Hash PATH with secret
+    performHMACMD5(http_request_->cp_path,strlen(http_request_->cp_uri),uca_key,SCI_NONCE_LEN,uca_uri_nonce);
+	debugVerboseHash(AUTH, uca_uri_nonce, SCI_NONCE_LEN, "A Nonce for URI was created!");
+	
+    //Write Timestamp+Hashed URI and Hash them with secret
+    
+    //memset(*uca_time, 0, 8);
+    sprintf((char*)uca_time,"%x",timestamp);
+    
+    strAppend(&uca_text,uca_time);
+    debugVerbose(AUTH, uca_time);
+    //convertHash(uca_uri_nonce,SCI_NONCE_LEN,ucpp_nonce_hash); 
+    
+    strAppend(&uca_text,ucpp_nonce_hash);  
+    debugVerboseHash(AUTH, uca_text, SCI_NONCE_LEN, "Timestamp and Hashed URI was created!");
+    performHMACMD5(uca_text, i_text_len, uca_key, SCI_NONCE_LEN, uca_nonce);
+    sprintf((char*)uca_text,"%x", uca_nonce);  
+    
+    if (convertHash(uca_text, SCI_NONCE_LEN, cpp_nonce) == EXIT_FAILURE)
         return EXIT_FAILURE;
     
     return EXIT_SUCCESS;
