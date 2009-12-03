@@ -42,3 +42,4 @@ bool isHexDigit(char c);
 
 
 #endif
+
