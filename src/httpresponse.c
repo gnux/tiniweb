@@ -168,7 +168,7 @@ int sendHTTPAuthorizationResponse(const char* ccp_realm, const char* ccp_nonce)
     if(ccp_realm == NULL || ccp_nonce == NULL)
         return EXIT_FAILURE;
         
-    ucp_http_auth_response = secPrint2String("HTTP/1.1 %s\n", getStatusCode(STATUS_UNAUTHORIZED));
+    cp_http_auth_response = secPrint2String("HTTP/1.1 %s\n", getStatusCode(STATUS_UNAUTHORIZED));
     strAppend(&cp_http_auth_response, "Server: tiniweb/1.0\n");
     strAppend(&cp_http_auth_response, "Connection: close\n");
     strAppendFormatString(&cp_http_auth_response, 
@@ -198,10 +198,10 @@ int sendHTTPResponseHeader(int i_status, int i_content_type, int i_content_lengt
     int i_success = 0;
     char* cp_http_response_header = NULL;
     
-    cp_http_auth_response = secPrint2String("HTTP/1.1 %s\n", getStatusCode(i_status));
-    strAppend(&cp_http_auth_response, "Server: tiniweb/1.0\n");
-    strAppend(&cp_http_auth_response, "Connection: close\n");
-    strAppendFormatString(&cp_http_auth_response, "Content-Type: %s\n", getContentType(i_content_type));
+    cp_http_response_header = secPrint2String("HTTP/1.1 %s\n", getStatusCode(i_status));
+    strAppend(&cp_http_response_header, "Server: tiniweb/1.0\n");
+    strAppend(&cp_http_response_header, "Connection: close\n");
+    strAppendFormatString(&cp_http_response_header, "Content-Type: %s\n", getContentType(i_content_type));
     
     if(i_content_length >= 0)
     {
