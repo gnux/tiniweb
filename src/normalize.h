@@ -8,7 +8,7 @@ int isBlank(const char* ccp_input, const size_t i_offset);
 int isNewLineChars(const char* ccp_input, const size_t i_offset);
 int isCharacter(const char* ccp_input, const size_t i_offset);
 int isValidHeaderFieldStart(const char* ccp_input, bool b_skipfirstline);
-void strAppend(char** cpp_output, const char* ccp_input);
+//void strAppend(char** cpp_output, const char* ccp_input);
 void getHeaderFieldBody(char** cpp_output, const char* ccp_input);
 void getHeaderFieldName(char** cpp_output, const char* ccp_input);
 void printHttpNorm(http_norm* hnp_http_info);

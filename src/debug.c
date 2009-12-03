@@ -33,6 +33,8 @@ char* getTypeString(int type)
             break;
         case STATIC_FILE:
             return "STATIC_FILE";
+        case HTTP_RESPONSE:
+            return "HTTP_RESPONSE";
             break;
         case MAIN:
             return "MAIN";

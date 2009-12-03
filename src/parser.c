@@ -15,6 +15,7 @@
 #include "debug.h"
 #include "envvar.h"
 #include "httpresponse.h"
+#include "secstring.h"
 
 static const char* SCCA_KNOWN_METHODS[] = {"GET", "POST", "HEAD"};
 static const int SCI_NUM_KNOWN_METHODS = 3;
@@ -441,31 +442,30 @@ int parseHttpVersion(char* input, int offset){
 	return EXIT_SUCCESS;
 }
 
-char decode(char* cp_string, ssize_t i_offset){
-	//If we found an % and the next to chars were hexdigit we decode them
-	unsigned char a;
-	unsigned char b;
-	a = cp_string[i_offset + 1];
-	b = cp_string[i_offset + 2];
-	hextodec(&a);
-	hextodec(&b);
-	return a*16 + b;
-}
 
-void hextodec(unsigned char* a){
-	//calculate the correct char
-	if(*a>47 && *a<58)
-		*a -= 48;
-	else if(*a>64 && *a<71)
-		*a -= 55;
-	else if(*a>96 && *a<103)
-		*a -= 87;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 int validateAbspath(char** cpp_string){
 	ssize_t i = 0;
 	ssize_t i_offset = 0;
-	unsigned char* cp_decoded = NULL;
+	char* cp_decoded = NULL;
 	
 	cp_decoded = secCalloc(strlen(*cpp_string), sizeof(char));
 	
@@ -476,10 +476,10 @@ int validateAbspath(char** cpp_string){
 			return EXIT_FAILURE;
 		if((*cpp_string)[i] == '%'){
 		
-			cp_decoded[i - i_offset] = decode(*cpp_string, i);
+			cp_decoded[i - i_offset] = (unsigned char) strDecodeHexToUInt(*cpp_string, i, 2);//decode(*cpp_string, i);
 			//PROOF for NULL!!! TODO: bad request
 			//We don't support 00 or ff
-			if(cp_decoded[i - i_offset] == 0x00 || cp_decoded[i - i_offset] == 0xff)
+			if(cp_decoded[i - i_offset] == 0x00 )//|| cp_decoded[i - i_offset] == 0xff)
 				secExit(STATUS_BAD_REQUEST);
 			i+=2;
 			i_offset +=2;
@@ -495,18 +495,18 @@ int validateAbspath(char** cpp_string){
 	return EXIT_SUCCESS;
 }
 
-bool isNonEscapedChar(char* input, int i_offset){
+bool isNonEscapedChar(char* cp_input, int i_offset){
 	const char* ccp_invalids = " ;?:@&=$,#";
 	int i = 0;
 	//Check if the char is one our blacklist
 	for(; i<strlen(ccp_invalids); ++i)
-		if(input[i_offset] == ccp_invalids[i])
+		if(cp_input[i_offset] == ccp_invalids[i])
 			return TRUE;
 		
-		if(input[i_offset]=='%'){
-			if(strlen(input) - i_offset < 3)
+		if(cp_input[i_offset]=='%'){
+			if(strlen(cp_input) - i_offset < 3)
 				return TRUE;
-			else if(isHexDigit(input[i_offset + 1]) == FALSE || isHexDigit(input[i_offset + 2]) == FALSE)
+			else if(isHexDigit(cp_input[i_offset + 1]) == FALSE || isHexDigit(cp_input[i_offset + 2]) == FALSE)
 				return TRUE;
 			else;
 		}
@@ -514,26 +514,26 @@ bool isNonEscapedChar(char* input, int i_offset){
 		return FALSE;
 }
 
-bool isHexDigit(char input){
-	//check if the char is in a correct hexdigit range
-	if(input>0x29 && input < 0x3A)
-		return TRUE;
-	else if(input>0x40 && input < 0x47)
-		return TRUE;
-	else if(input>0x60 && input < 0x67)
-		return TRUE;
-	else
-		return FALSE;
-}
+// bool isHexDigit(char c){
+// 	//check if the char is in a correct hexdigit range
+// 	if(c>0x29 && c < 0x3A)
+// 		return TRUE;
+// 	else if(c>0x40 && c < 0x47)
+// 		return TRUE;
+// 	else if(c>0x60 && c < 0x67)
+// 		return TRUE;
+// 	else
+// 		return FALSE;
+// }
 
-void stringToUpperCase(char* input){
-	//just convert every char from the string to an uppercase char
-	for(int i=0; i<strlen(input);i++){
-		input[i] = toupper(input[i]);
-		if(input[i] == '-')
-			input[i] = '_';
-	}	
-}
+// void stringToUpperCase(char* input){
+// 	//just convert every char from the string to an uppercase char
+// 	for(int i=0; i<strlen(input);i++){
+// 		input[i] = toupper(input[i]);
+// 		if(input[i] == '-')
+// 			input[i] = '_';
+// 	}	
+// }
 
 void parsePrintStructures(){
 	//if the structure is not NULL print it out
@@ -560,17 +560,17 @@ void parsePrintStructures(){
 }
 
 
-char* parseExtention(const char* filename){
+char* parseExtension(const char* cp_filename){
 
 	char* cp_extension = NULL;
 	const char* ccp_file_type[] = {"png","html","txt", "css", NULL};
-	char* cp_content_type[] = {"image/png","text/html","text/plain", "text/css", "application/octet-stream"};
-	int i_str_end = strlen(filename)-1;
-	int i_str_beginn = strlen(filename)-1;
+    char* cp_content_type[] = {"image/png","text/html","text/plain", "text/css", "application/octet-stream"};
+	int i_str_end = strlen(cp_filename)-1;
+	int i_str_beginn = strlen(cp_filename)-1;
 	int i = 0;
 	//find the beginning of our extension
-	for(; i_str_beginn > 0 && filename[i_str_beginn] != '.'; i_str_beginn--)
-	cp_extension = secGetStringPart(filename, i_str_beginn, i_str_end);
+	for(; i_str_beginn > 0 && cp_filename[i_str_beginn] != '.'; i_str_beginn--)
+	cp_extension = secGetStringPart(cp_filename, i_str_beginn, i_str_end);
 	
 	//check if the extension is one we support else we set it to default
 	for(;i<4;i++)

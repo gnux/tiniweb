@@ -17,9 +17,10 @@
 #include "secmem.h"
 #include "normalize.h"
 #include "path.h"
-#include "httpresponse.h"
+#include "secstring.h"
 #include "parser.h"
 #include "envvar.h"
+#include "httpresponse.h"
 
 
 extern char *scp_secret_;
@@ -29,6 +30,7 @@ extern char *scp_web_dir_;
 
 static const int SCI_NONCE_LEN = 16;
 static const int SCI_VALID_NONCE_TIMEOUT = 3600;
+static const int SCI_VALID_NONCE_TIME = 3600;
 
 bool authenticate(char* cp_path)
 {
@@ -222,6 +224,7 @@ bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_
             
             secFree(cp_htdigest_compare_line);
             secFree(cp_htdigest_line);
+            //TODO: This can fail.
             fclose(file_htdigest);
             
             return TRUE;
