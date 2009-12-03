@@ -22,12 +22,12 @@ typedef unsigned char bool;
 int min(int a, int b);
 
 typedef struct http_norm {
-  char *cp_first_line;
+  unsigned char *cp_first_line;
   int i_num_fields;
-  char **cpp_header_field_name;
-  char **cpp_header_field_body;
-  char *cp_header;
-  char *cp_body;
+  unsigned char **cpp_header_field_name;
+  unsigned char **cpp_header_field_body;
+  unsigned char *cp_header;
+  unsigned char *cp_body;
 } http_norm;
 
 typedef struct http_autorization{
