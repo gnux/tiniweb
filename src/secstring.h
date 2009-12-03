@@ -18,3 +18,4 @@ void *secGetStringPart(const char* ccp_string, ssize_t start, ssize_t end);
 
 
 #endif
+

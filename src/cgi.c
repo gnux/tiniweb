@@ -20,8 +20,8 @@
 #include "secmem.h"
 #include "typedef.h"
 
-static const int MAX_HEADER_SIZE = 100;
-static const int SCI_BUF_SIZE = 100;
+static const int MAX_HEADER_SIZE = 8192;
+static const int SCI_BUF_SIZE = 256;
 
 extern int si_cgi_timeout_;
 extern const enum SCE_KNOWN_METHODS e_used_method;
