@@ -34,6 +34,7 @@ bool authenticate(char* cp_path)
 {
     char* cp_ha1 = NULL;
     char* cp_nonce = NULL;
+    time_t timestamp = time(NULL);
 
     /**
      * It should be impossible for a client to send an HTTP request with 
@@ -45,18 +46,19 @@ bool authenticate(char* cp_path)
     {
         
 	    debugVerbose(AUTH, "No 401-Unauthorized message was sent before.\n");
-	    int i_result_nonce_len = SCI_NONCE_LEN * 2 + 1;
+        
 	    
-	    if (createNonce((unsigned char*)scp_secret_, &cp_nonce) == EXIT_FAILURE)
+	    if (createNonce(&cp_nonce, timestamp) == EXIT_FAILURE)
 	    {
 	        sendHTTPErrorMessage(STATUS_INTERNAL_SERVER_ERROR);
 	        return FALSE;
 	    }
 
-	    sendHTTPAuthorizationResponse("realm",cp_nonce);
-	    // TODO send 401
-	    // Wait for answer
-	    // Send answer to normalizer/parser
+	    if (sendHTTPAuthorizationResponse("testrealm",cp_nonce) == EXIT_FAILURE)
+        {
+            
+        }
+
 	}
 	else
     {    
@@ -228,6 +230,33 @@ bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_
     return FALSE;
 }
 
+bool getRealmFromHTDigestFile(char* cp_path_to_file, char** cpp_realm)
+{
+    int i_htdigest_line_len = 72;
+    int i_char_index = 0;
+    char* cp_mode = "r";
+    char* cp_htdigest_line = NULL;
+    
+    FILE* file_htdigest = fopen(cp_path_to_file, cp_mode);
+
+    if (file_htdigest == NULL)
+    {
+        debugVerbose(AUTH, "ERROR, '.htdigest'-file could not be opened.\n");
+        return FALSE;
+    }
+    
+    cp_htdigest_line = secMalloc(i_htdigest_line_len);
+    
+//     while( fgets(cp_htdigest_line, i_htdigest_line_len, file_htdigest) )
+//     {
+//         
+//         
+//     }
+    
+    secFree(cp_htdigest_line);
+    return FALSE;
+}
+
 bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
                     char* cp_uri, char* cp_response)
 {
@@ -269,6 +298,61 @@ bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
     }
     
     secFree(cp_expected_converted_response);
+    return TRUE;
+}
+
+bool verifyNonce(char* cp_nonce)
+{
+    // Set timelimit to one hour
+    const int ci_timelimit = 3600;
+    
+    int i_timestamp_len = 8;
+    int i_hash_len = SCI_NONCE_LEN * 2 - 1;
+    int i_timestamp_current = time(NULL);
+    int i_timestamp_recieved = 0;
+    char* cp_timestamp_hex = NULL;
+    char* cp_path_hash = NULL;
+    char* cp_hmac = NULL;
+    char* cp_nonce_calculated = NULL;
+    
+    debugVerbose(AUTH, "######### string len: %i !\n", strlen(cp_nonce));
+    
+    if (strlen(cp_nonce) < i_timestamp_len + i_hash_len * 2)
+    {
+        debugVerbose(AUTH, "ERROR: Nonce length is too small!\n");
+        return FALSE;
+    }
+    cp_timestamp_hex = secGetStringPart(cp_nonce, 0, i_timestamp_len - 1);
+    cp_path_hash = secGetStringPart(cp_nonce, i_timestamp_len, i_timestamp_len + i_hash_len);
+    cp_hmac = secGetStringPart(cp_nonce, i_timestamp_len + i_hash_len, strlen(cp_nonce) - 1);
+    
+    debugVerbose(AUTH, "Timestamp Hex: %s \n", cp_timestamp_hex);
+    debugVerbose(AUTH, "Path Hash: %s \n", cp_path_hash);
+    debugVerbose(AUTH, "HMACMD5 Hash: %s \n", cp_hmac);
+    
+    // TODO remove this:
+    // timestamp: int int verwandeln
+    i_timestamp_recieved = i_timestamp_current - 5;
+    
+    if (i_timestamp_recieved + ci_timelimit < i_timestamp_current || i_timestamp_recieved > i_timestamp_current)
+    {
+        debugVerbose(AUTH, "ERROR: Recieved Timestamp is not valid! (Out of Time)\n", cp_hmac);
+        return FALSE;
+    }
+    
+    if (createNonce(&cp_nonce_calculated, i_timestamp_recieved) == EXIT_FAILURE)
+    {
+        return FALSE;
+    }
+    
+    if (strlen(cp_nonce_calculated) != strlen(cp_nonce) || strncmp(cp_nonce_calculated, cp_nonce, strlen(cp_nonce)) != 0)
+    {
+        debugVerbose(AUTH, "ERROR: Recieved Nonce: %s does not match calculated nonce: %s\n", cp_nonce, cp_nonce_calculated);
+        return FALSE;
+    }
+    
+    debugVerbose(AUTH, "Success: Nonces equal!\n");
+
     return TRUE;
 }
 
@@ -350,9 +434,8 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len, unsigned char* uca_
 // END-FOREIGN-CODE (RFC2104)
 //------------------------------------------------------------------------
 
-int createNonce(unsigned char* uca_key, char** cpp_nonce)
+int createNonce(char** cpp_nonce, time_t timestamp)
 {	
-    time_t timestamp = time(NULL);
     char uca_time[9];
     md5_state_t path_state;
     unsigned char uca_path_nonce[SCI_NONCE_LEN];
@@ -406,6 +489,9 @@ int createNonce(unsigned char* uca_key, char** cpp_nonce)
     strAppend(cpp_nonce, cp_time_path_hmac);
     debugVerbose(AUTH, "Concatenated (time : md5(path) : hmacmd5(time : md5(path))): %s\n", *cpp_nonce);
 
+    // TODO remove!
+    //verifyNonce(*cpp_nonce);
+    
     return EXIT_SUCCESS;
 }
 
@@ -430,5 +516,4 @@ int convertHash(unsigned char* ucp_hash, int i_hash_len, char** cp_hash_nonce)
     
     return EXIT_SUCCESS;
 }
-
 
