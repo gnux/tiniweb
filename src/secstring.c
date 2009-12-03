@@ -63,4 +63,18 @@ void strAppend(char** cpp_output, const char* ccp_input){
 	(*cpp_output)[i_len_new - 1] = '\0';
 }
 
+void strAppendFormatString(char** cpp_output, const char* cucp_format, ...)
+{
+	unsigned char* ucp_form = NULL;
+	va_list va;
+  va_start(va, cucp_format);
+  if(vasprintf((char**) &ucp_form, (char*) cucp_format, va) == -1 || ucp_form == NULL)
+  {
+	  secAbort();
+  }
+  strAppend(cpp_output, ucp_form);
+  free(ucp_form);
+  va_end(va);
+
+}
 
