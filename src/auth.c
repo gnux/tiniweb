@@ -64,7 +64,7 @@ bool authenticate(char* cp_path)
 
 	    if (sendHTTPAuthorizationResponse(cp_realm, cp_nonce) == EXIT_FAILURE)
         {
-            
+            // TODO what shall we do with the drunken sailor?
         }
 
 	}
