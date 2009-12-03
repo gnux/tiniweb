@@ -29,11 +29,11 @@ extern char *scp_web_dir_;
 
 static const int SCI_NONCE_LEN = 16;
 static const int SCI_VALID_NONCE_TIMEOUT = 3600;
-static char* scp_sent_nonce_ = NULL;
 
 bool authenticate(char* cp_path)
 {
     char* cp_ha1 = NULL;
+    char* cp_nonce = NULL;
 
     /**
      * It should be impossible for a client to send an HTTP request with 
@@ -41,27 +41,25 @@ bool authenticate(char* cp_path)
      * Unauthorized message".
      */
 
-	if(http_autorization_ == NULL){
-	    debugVerbose(AUTH, "No 401-Unauthorized message waas sent before.\n");
+	if(http_autorization_ == NULL)
+    {
+        
+	    debugVerbose(AUTH, "No 401-Unauthorized message was sent before.\n");
 	    int i_result_nonce_len = SCI_NONCE_LEN * 2 + 1;
-	    scp_sent_nonce_ = secMalloc(i_result_nonce_len * sizeof(char));
 	    
-	    if (createNonce((unsigned char*)scp_secret_, &scp_sent_nonce_) == EXIT_FAILURE)
+	    if (createNonce((unsigned char*)scp_secret_, &cp_nonce) == EXIT_FAILURE)
 	    {
-	        secFree(scp_sent_nonce_);
 	        sendHTTPErrorMessage(STATUS_INTERNAL_SERVER_ERROR);
 	        return FALSE;
 	    }
 
-	    sendHTTPAuthorizationResponse("realm",scp_sent_nonce_);
+	    sendHTTPAuthorizationResponse("realm",cp_nonce);
 	    // TODO send 401
 	    // Wait for answer
 	    // Send answer to normalizer/parser
 	}
-	else{    
-      
-	    //secFree(scp_sent_nonce_);
-	
+	else
+    {    
 	    // If authentication field is available and 401 was already sent -> check if response
 	    // is valid
 	
@@ -80,24 +78,18 @@ bool authenticate(char* cp_path)
 	            return FALSE;
 	        }
 	        
-	        // TODO: remove THIS ---------------------------------- START --- just for testing!
-	        int i_result_nonce_len = SCI_NONCE_LEN * 2 + 1;
-	        scp_sent_nonce_ = secMalloc(i_result_nonce_len * sizeof(char));
-	        scp_sent_nonce_ = "c4c544b9722671f08465167eebc2d54f";
-	        // TODO -------------------------------------------- END -----------------------
 	        
 	        
-	        
-	        if (verifyResponse(cp_ha1, scp_sent_nonce_, http_request_->cp_method, 
-	            http_request_->cp_uri, http_autorization_->cp_response) == FALSE)
-	        {
-	            sendHTTPErrorMessage(STATUS_LOGIN_FAILED);
-	            debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
-	            return FALSE;
-	        }
-	
-	        debugVerbose(AUTH, "Success: The 'response' from the auth field is valid!\n");
-	        secFree(scp_sent_nonce_);
+// 	        if (verifyResponse(cp_ha1, scp_sent_nonce_, http_request_->cp_method, 
+// 	            http_request_->cp_uri, http_autorization_->cp_response) == FALSE)
+// 	        {
+// 	            sendHTTPErrorMessage(STATUS_LOGIN_FAILED);
+// 	            debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
+// 	            return FALSE;
+// 	        }
+// 	
+// 	        debugVerbose(AUTH, "Success: The 'response' from the auth field is valid!\n");
+// 	        secFree(scp_sent_nonce_);
 	    }
 	    else
 	    {
@@ -360,39 +352,60 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len, unsigned char* uca_
 
 int createNonce(unsigned char* uca_key, char** cpp_nonce)
 {	
-	
     time_t timestamp = time(NULL);
-    int i_text_len = 30;
-    unsigned char *uca_text = NULL;
-    unsigned char uca_time[8];
-    unsigned char uca_nonce[SCI_NONCE_LEN];
-    unsigned char **ucpp_nonce_hash = NULL;
-    unsigned char uca_uri_nonce[SCI_NONCE_LEN];
+    char uca_time[9];
+    md5_state_t path_state;
+    unsigned char uca_path_nonce[SCI_NONCE_LEN];
+    char* cp_path_hash = NULL;
+    char* cp_concatenated_time_path = NULL;
+    unsigned char uca_time_path_hmac[SCI_NONCE_LEN];
+    char* cp_time_path_hmac = NULL;
     
-    //memset(uca_text, 0, i_text_len);
+    // Creating of the MD5 Hash of the Request Path
+    md5_init(&path_state);
+    md5_append(&path_state, (unsigned char*)http_request_->cp_path, strlen(http_request_->cp_path));
+    md5_finish(&path_state, uca_path_nonce);
     
-    
-    //Hash PATH with secret
-    performHMACMD5(http_request_->cp_path,strlen(http_request_->cp_uri),uca_key,SCI_NONCE_LEN,uca_uri_nonce);
-	debugVerboseHash(AUTH, uca_uri_nonce, SCI_NONCE_LEN, "A Nonce for URI was created!");
-	
-    //Write Timestamp+Hashed URI and Hash them with secret
-    
-    //memset(*uca_time, 0, 8);
-    sprintf((char*)uca_time,"%x",timestamp);
-    
-    strAppend(&uca_text,uca_time);
-    debugVerbose(AUTH, uca_time);
-    //convertHash(uca_uri_nonce,SCI_NONCE_LEN,ucpp_nonce_hash); 
-    
-    strAppend(&uca_text,ucpp_nonce_hash);  
-    debugVerboseHash(AUTH, uca_text, SCI_NONCE_LEN, "Timestamp and Hashed URI was created!");
-    performHMACMD5(uca_text, i_text_len, uca_key, SCI_NONCE_LEN, uca_nonce);
-    sprintf((char*)uca_text,"%x", uca_nonce);  
-    
-    if (convertHash(uca_text, SCI_NONCE_LEN, cpp_nonce) == EXIT_FAILURE)
+    if (convertHash(uca_path_nonce, SCI_NONCE_LEN, &cp_path_hash) == EXIT_FAILURE)
+    {
+        debugVerbose(AUTH, "ERROR: Converting of Path Hash did not work!");
         return EXIT_FAILURE;
+    }
     
+    debugVerbose(AUTH, "Hash of the Path: %s\n", cp_path_hash);
+
+    // Convert timestamp to Hex:
+    memset(uca_time, 0, 9);
+    sprintf((char*)uca_time,"%x",(unsigned int)timestamp);
+    debugVerbose(AUTH, "Created the timestamp in Hex: %s\n", uca_time);
+    
+    /** 
+     *  STEP 1:
+     *  Concatenate timestamp hex and path hash
+     */
+    strAppend(&cp_concatenated_time_path, (char*)uca_time);
+    strAppend(&cp_concatenated_time_path, cp_path_hash);
+    debugVerbose(AUTH, "Concatenation of timestamp hex and Path hash: %s\n", cp_concatenated_time_path);
+    
+    /** 
+     *  STEP 2:
+     *  Calculate HMACMD5
+     */
+    performHMACMD5((unsigned char*)cp_concatenated_time_path, strlen(cp_concatenated_time_path), (unsigned char*)scp_secret_, strlen(scp_secret_), uca_time_path_hmac);
+    if (convertHash(uca_time_path_hmac, SCI_NONCE_LEN, &cp_time_path_hmac) == EXIT_FAILURE)
+    {
+        debugVerbose(AUTH, "ERROR: Converting of HMACMD5 Hash (Time and Path) did not work!");
+        return EXIT_FAILURE;
+    }
+    debugVerbose(AUTH, "Calculated HMACMD5 of time and Path: %s\n", cp_time_path_hmac);
+    
+    /** 
+     *  Concatenate STEP 1 and STEP 2:
+     */
+    strAppend(cpp_nonce, cp_concatenated_time_path);
+    strAppend(cpp_nonce, cp_time_path_hmac);
+    debugVerbose(AUTH, "Concatenated (time : md5(path) : hmacmd5(time : md5(path))): %s\n", *cpp_nonce);
+
     return EXIT_SUCCESS;
 }
 

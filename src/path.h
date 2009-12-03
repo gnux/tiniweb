@@ -53,6 +53,14 @@ bool convertToRealPath(char** cp_path);
 bool checkPath(char* ca_path);
 
 /**
+ * Checks if a path exists and if it is a folder
+ *
+ * @param ca_path the path/file
+ * @return TRUE if the path/file exists FALSE if not
+ */
+bool checkCommadlinePath(char* cp_path);
+
+/**
  * Checks if a path/file exists and if the expected ressource is a regular file
  *
  * @param ca_path the path/file
