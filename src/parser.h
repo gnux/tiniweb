@@ -150,4 +150,6 @@ char* parseExtention(const char* filepath);
  */
 char* parseFilename(const char* filepath);
 
+void hextodec(unsigned char* a);
+
 #endif /*PARSER_H_*/

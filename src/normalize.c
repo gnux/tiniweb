@@ -6,6 +6,7 @@
 #include "normalize.h"
 #include "debug.h"
 #include "httpresponse.h"
+#include "secstring.h"
 
 static const char *SCCP_BLANK = {" \t"};
 static const char *SCCPA_NEW_LINE[] = {"\r\n", "\n", "\0"};
@@ -242,31 +243,31 @@ int isValid(const char* ccp_input, const size_t i_offset){
 	return EXIT_FAILURE;
 }
 
-void strAppend(char** cpp_output, const char* ccp_input){
-	if(ccp_input == NULL)
-	  return;
-	if(!*cpp_output){
-		*cpp_output = secCalloc(1, sizeof(char));
-		(*cpp_output)[0] = '\0';
-	}
-	
-	size_t i_len_input = strlen(ccp_input);
-	size_t i_len_output = strlen(*cpp_output);
-	size_t i_len_new = i_len_input + i_len_output + 1;
-	
-	// prevent overflow
-	// TODO: search for possible overflows!
-	if(i_len_new < i_len_input || i_len_new < i_len_output){
-		debugVerbose(NORMALISE, "Error in strAppend possible buffer overflow detected!\n");
-		secAbort();
-	}
-	
-	*cpp_output = secRealloc(*cpp_output, i_len_new);
-	strncat(*cpp_output, ccp_input, i_len_input);
-	
-	// just be sure to delimit with '\0'
-	(*cpp_output)[i_len_new - 1] = '\0';
-}
+// void strAppend(char** cpp_output, const char* ccp_input){
+// 	if(ccp_input == NULL)
+// 	  return;
+// 	if(!*cpp_output){
+// 		*cpp_output = secCalloc(1, sizeof(char));
+// 		(*cpp_output)[0] = '\0';
+// 	}
+// 	
+// 	size_t i_len_input = strlen(ccp_input);
+// 	size_t i_len_output = strlen(*cpp_output);
+// 	size_t i_len_new = i_len_input + i_len_output + 1;
+// 	
+// 	// prevent overflow
+// 	// TODO: search for possible overflows!
+// 	if(i_len_new < i_len_input || i_len_new < i_len_output){
+// 		debugVerbose(NORMALISE, "Error in strAppend possible buffer overflow detected!\n");
+// 		secAbort();
+// 	}
+// 	
+// 	*cpp_output = secRealloc(*cpp_output, i_len_new);
+// 	strncat(*cpp_output, ccp_input, i_len_input);
+// 	
+// 	// just be sure to delimit with '\0'
+// 	(*cpp_output)[i_len_new - 1] = '\0';
+// }
 
 int isValidHeaderFieldStart(const char* ccp_input, bool b_skipfirstline){
 	size_t i_offset_token;

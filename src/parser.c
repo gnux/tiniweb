@@ -15,6 +15,7 @@
 #include "debug.h"
 #include "envvar.h"
 #include "httpresponse.h"
+#include "secstring.h"
 
 static const char* SCCA_KNOWN_METHODS[] = {"GET", "POST", "HEAD"};
 static const int SCI_NUM_KNOWN_METHODS = 3;

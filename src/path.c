@@ -11,6 +11,7 @@
 #include "debug.h"
 #include "normalize.h"
 #include "secmem.h"
+#include "secstring.h"
 
 extern char *scp_web_dir_;
 extern char *scp_cgi_dir_;

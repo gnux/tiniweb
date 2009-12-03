@@ -1,0 +1,20 @@
+/** tiniweb
+ * \file secstring.h
+ * \author Georg Neubauer
+ */
+
+#ifndef __SEC_STRING_H__
+#define __SEC_STRING_H__
+
+#include <stdlib.h>
+#include <stdio.h>
+
+
+
+void strAppend(char** cpp_output, const char* ccp_input);
+
+
+void *secGetStringPart(const char* ccp_string, ssize_t start, ssize_t end);
+
+
+#endif
