@@ -33,3 +33,4 @@ void stringToUpperCase(unsigned char* ucp_input);
 unsigned char hextodec(unsigned char a);
 
 #endif
+

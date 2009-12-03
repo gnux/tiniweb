@@ -86,7 +86,7 @@ int writeToOutputStream(int i_fd, const char* ccp_text)
 int sendCGIHTTPResponseHeader(http_cgi_response *header)
 {
     int i_index = 0;
-    char* cp_cgi_http_response_header = NULL;
+    unsigned char* cp_cgi_http_response_header = NULL;
     
 
     if(header == NULL)
@@ -124,9 +124,24 @@ int sendCGIHTTPResponseHeader(http_cgi_response *header)
 
 int sendHTTPResponseHeaderExplicit(const char* ccp_status, const char* ccp_content_type, int i_content_length)
 {
+    char* cp_http_response_header = NULL;
+
     if(ccp_content_type == NULL || ccp_status == NULL)
         return EXIT_FAILURE;
         
+    cp_http_response_header = secPrint2String("HTTP/1.1 %s\n", ccp_status);
+    strAppend(&cp_http_response_header, "Server: tiniweb/1.0\n");
+    strAppend(&cp_http_response_header, "Connection: close\n");
+    strAppendFormatString(&cp_http_response_header, "Content-Type: %s\n", ccp_content_type);
+    
+    if(i_content_length >= 0)
+    {
+        strAppendFormatString(&cp_http_response_header, "Content-Length: %i\n", i_content_length);
+    }
+    
+    strAppend(&cp_http_response_header, "\n");
+    
+    /*
     fprintf(stdout, "HTTP/1.1 %s\n", ccp_status);
     fprintf(stdout, "Server: tiniweb/1.0\n");
     fprintf(stdout, "Connection: close\n");
@@ -136,8 +151,8 @@ int sendHTTPResponseHeaderExplicit(const char* ccp_status, const char* ccp_conte
     {
         fprintf(stdout, "Content-Length: %i\n", i_content_length);
     }
-    
-    fprintf(stdout, "\n");
+    */
+    writeToOutputStream(STDOUT_FILENO, cp_http_response_header);
         
     return EXIT_SUCCESS;
 }
