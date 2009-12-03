@@ -8,8 +8,8 @@
 #include "httpresponse.h"
 #include "secstring.h"
 
-static const unsigned char *SCUCP_BLANK = {" \t"};
-static const unsigned char *SCUCPA_NEW_LINE[] = {"\r\n", "\n", "\0"};
+static const char *SCCP_BLANK = {" \t"};
+static const char *SCCPA_NEW_LINE[] = {"\r\n", "\n", "\0"};
 
 //TODO: proof every line first for valid chars!!! sec getline???
 
@@ -21,7 +21,7 @@ http_norm *normalizeHttp(FILE* fp_input, bool b_skipfirstline){
 	hnp_http_info->cpp_header_field_body = NULL;
 	hnp_http_info->cp_header = NULL;
 	hnp_http_info->cp_body = NULL;
-	unsigned char *cp_current_line = NULL;
+	char *cp_current_line = NULL;
 	size_t i_num_read = 0;
 	
 	if(b_skipfirstline == FALSE){
@@ -206,8 +206,8 @@ void getHeaderFieldBody(char** cpp_output, const char* ccp_input){
 }
 
 int isBlank(const char* ccp_input, const size_t i_offset){
-	for(size_t i = 0; SCUCP_BLANK[i] != '\0'; ++i)
-		if(ccp_input[i_offset] == SCUCP_BLANK[i])
+	for(size_t i = 0; SCCP_BLANK[i] != '\0'; ++i)
+		if(ccp_input[i_offset] == SCCP_BLANK[i])
 			return EXIT_SUCCESS;
 	return EXIT_FAILURE;
 }
@@ -216,12 +216,12 @@ int isNewLineChars(const char* ccp_input, const size_t i_offset){
 	size_t i = 0;
 	size_t j = 0;
 	while(1){
-		if(SCUCPA_NEW_LINE[i][0] == '\0')
+		if(SCCPA_NEW_LINE[i][0] == '\0')
 			return EXIT_FAILURE;
-		for(j=0; SCUCPA_NEW_LINE[i][j]; ++j)
-			if(SCUCPA_NEW_LINE[i][j] != ccp_input[i_offset + j])
+		for(j=0; SCCPA_NEW_LINE[i][j]; ++j)
+			if(SCCPA_NEW_LINE[i][j] != ccp_input[i_offset + j])
 				break;
-		if(SCUCPA_NEW_LINE[i][j] == '\0')
+		if(SCCPA_NEW_LINE[i][j] == '\0')
 			return EXIT_SUCCESS;
 		++i;
 	}

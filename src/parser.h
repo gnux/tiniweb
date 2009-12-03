@@ -92,14 +92,8 @@ int validateAbspath(char** cp_string);
  * @param input a char pointer to an string you want to get checked
  * @param offset point where you want to start co check
  */
-bool isNonEscapedChar(unsigned char* input, int i_offset);
+bool isNonEscapedChar(char* cp_input, int i_offset);
 
-/**
- * Tries to check if the escaped chars hexdigit is correct
- * 
- * @params input char whiche should get checked
- */
-bool isHexDigit(char input);
 
 
 
@@ -141,7 +135,7 @@ void parsePrintStructures();
  * Parse the last characters until it finds the first "." afterwoods it checks if we know
  * the extension and returns the defined values
  */
-unsigned char* parseExtention(const unsigned char* filename);
+char* parseExtension(const char* cp_filename);
 
  /**
  * Parse the last characters until it finds the first "/" returns everything after "/" to 

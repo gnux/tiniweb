@@ -50,7 +50,7 @@ void processStaticFile(const char* ccp_path)
         return;
     }
     
-    cp_content_type = parseExtention(ccp_path);
+    cp_content_type = parseExtension(ccp_path);
 
     sendHTTPResponseHeaderExplicit("200 OK", cp_content_type, i_content_length);
     debugVerbose(STATIC_FILE, "Sent HTTP response to client.\n");
