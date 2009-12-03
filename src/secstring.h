@@ -10,6 +10,9 @@
 #include <stdio.h>
 
 
+unsigned char* secPrint2String(const unsigned char* ucp_format, ...);
+
+void strAppendFormatString(char** cpp_output, const char* cucp_format, ...);
 
 void strAppend(char** cpp_output, const char* ccp_input);
 
