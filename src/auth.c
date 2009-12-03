@@ -34,6 +34,7 @@ bool authenticate(char* cp_path)
 {
     char* cp_ha1 = NULL;
     char* cp_nonce = NULL;
+    char* cp_realm = NULL;
     time_t timestamp = time(NULL);
 
     /**
@@ -53,8 +54,15 @@ bool authenticate(char* cp_path)
 	        sendHTTPErrorMessage(STATUS_INTERNAL_SERVER_ERROR);
 	        return FALSE;
 	    }
+        
+        if (getRealmFromHTDigestFile(cp_path, &cp_realm) == FALSE)
+        {
+            debugVerbose(AUTH, "ERROR: There is no Realm in the .htdigest file!\n");
+            sendHTTPErrorMessage(STATUS_INTERNAL_SERVER_ERROR);
+            return FALSE;
+        }
 
-	    if (sendHTTPAuthorizationResponse("testrealm",cp_nonce) == EXIT_FAILURE)
+	    if (sendHTTPAuthorizationResponse(cp_realm, cp_nonce) == EXIT_FAILURE)
         {
             
         }
@@ -233,9 +241,10 @@ bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_
 bool getRealmFromHTDigestFile(char* cp_path_to_file, char** cpp_realm)
 {
     int i_htdigest_line_len = 72;
-    int i_char_index = 0;
     char* cp_mode = "r";
     char* cp_htdigest_line = NULL;
+    char* cp_realm = NULL;
+    bool b_separator_found = FALSE;
     
     FILE* file_htdigest = fopen(cp_path_to_file, cp_mode);
 
@@ -247,13 +256,38 @@ bool getRealmFromHTDigestFile(char* cp_path_to_file, char** cpp_realm)
     
     cp_htdigest_line = secMalloc(i_htdigest_line_len);
     
-//     while( fgets(cp_htdigest_line, i_htdigest_line_len, file_htdigest) )
-//     {
-//         
-//         
-//     }
+    while( fgets(cp_htdigest_line, i_htdigest_line_len, file_htdigest) )
+    {
+        for (int i = 0; i < i_htdigest_line_len; i++)
+        {
+            if (cp_htdigest_line[i] == ':')
+            {
+                if (b_separator_found == FALSE)
+                {
+                    b_separator_found = TRUE;
+                }
+                else
+                {
+                    debugVerbose(AUTH, "Success: realm: %s found.\n", cp_realm);
+                    secFree(cp_htdigest_line);
+                    *cpp_realm = cp_realm;
+                    fclose(file_htdigest);
+                    
+                    return TRUE;
+                }
+            }
+            
+            if (b_separator_found == TRUE && cp_htdigest_line[i] != ':')
+            {
+                strAppend(&cp_realm, secGetStringPart(cp_htdigest_line, i, i));
+            }
+        }
+        
+    }
     
     secFree(cp_htdigest_line);
+    fclose(file_htdigest);
+    
     return FALSE;
 }
 
