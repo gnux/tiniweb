@@ -464,7 +464,7 @@ int parseHttpVersion(char* input, int offset){
 int validateAbspath(char** cpp_string){
 	ssize_t i = 0;
 	ssize_t i_offset = 0;
-	unsigned char* cp_decoded = NULL;
+	char* cp_decoded = NULL;
 	
 	cp_decoded = secCalloc(strlen(*cpp_string), sizeof(char));
 	

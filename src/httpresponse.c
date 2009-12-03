@@ -61,7 +61,7 @@ int writeToOutputStream(int i_fd, const char* ccp_text)
             return EXIT_FAILURE;
         }
         
-        if((poll_fd[0].revents & (POLLERR)) || (!poll_fd[0].revents & (POLLHUP)))
+        if((poll_fd[0].revents & (POLLERR)) || ((!poll_fd[0].revents) & (POLLHUP)))
         {
             debug(HTTP_RESPONSE, "A problem occurred on the output stream.");
             return EXIT_FAILURE;
