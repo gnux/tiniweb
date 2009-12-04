@@ -175,6 +175,7 @@ int main(int argc, char** argv) {
     debugVerbose(MAIN, "SECRET = %s \n", scp_secret_);
     debugVerbose(MAIN, "CGI_TIMEOUT = %d \n", si_cgi_timeout_);
     
+    
 	http_norm *hnp_info = normalizeHttp(stdin, FALSE);
 	
 	initEnvVarList("GATEWAY_INTERFACE","CGI/1.1");
@@ -220,16 +221,16 @@ int main(int argc, char** argv) {
     }
     
     
-    //processCGIScript("testscript");
-    processStaticFile("tests/webroot/index.html");
+    processCGIScript("../cgi-bin/testscript");
+    //processStaticFile("tests/webroot/index.html");
 /*
     if(b_static)
     {
-        processStaticFile("tests/werbroot/index.html");
+        processStaticFile(cp_mapped_path);
     }
     else
     {
-        processCGIScript("testscript");
+        processCGIScript("cgi-bin/testscript");
     }
     */
     secCleanup();

@@ -587,13 +587,32 @@ char* parseFilename(const char* cp_filename){
 	
 	char* cp_name = NULL;
 	int i_str_end = strlen(cp_filename)-1;
-	int i_str_beginn = strlen(cp_filename)-1;
+	int i_str_begin = strlen(cp_filename)-1;
 	
 	//find the beginning of our filname and return the found string
-	for(; i_str_beginn > 0 && cp_filename[i_str_beginn] != '/'; i_str_beginn--)
-	cp_name = secGetStringPart(cp_filename, i_str_beginn, i_str_end);
+	for(; i_str_begin >= 0 && cp_filename[i_str_begin] != '/'; i_str_begin--)	
+	    cp_name = secGetStringPart(cp_filename, i_str_begin, i_str_end);
 	
 	return cp_name;
+	
+}
+
+char* parseFilepath(const char* cp_filename){
+	
+	char* cp_path = NULL;
+	int i_str_end = strlen(cp_filename)-1;
+	int i_str_begin = 0;
+	
+	//find the end of the path and return the found string
+	while(i_str_end > 0)
+	{
+	    i_str_end--;
+	    if(cp_filename[i_str_end] == '/')
+	        break;
+	}
+	cp_path = secGetStringPart(cp_filename, i_str_begin, i_str_end);
+	
+	return cp_path;
 	
 }
 

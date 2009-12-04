@@ -16,6 +16,8 @@
 #include "httpresponse.h"
 #include "pipe.h"
 #include "secmem.h"
+
+extern int si_cgi_timeout_;
  
 extern const enum SCE_KNOWN_METHODS e_used_method;
 
@@ -112,7 +114,7 @@ int writeFileTo(int i_fd, int i_dest_fd)
     while (1)
     {
     
-        i_success = pollPipes(&my_pipe, 5000, 1);
+        i_success = pollPipes(&my_pipe, si_cgi_timeout_, 1);
         
         if(i_success == 1)
         {

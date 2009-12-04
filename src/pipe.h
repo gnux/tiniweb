@@ -27,5 +27,7 @@ int pollPipes(io_pipe **pipes, int i_timeout, unsigned int i_num_pipes);
 
 int servePipe(io_pipe *pi);
 
+void printPipe(io_pipe *pi, const char* ccp_caption);
+
 #endif
 
