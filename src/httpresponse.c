@@ -234,9 +234,8 @@ int sendHTTPResponse(int i_status, int i_content_type, const char* ccp_body)
     int i_content_length = 0;
     int i_success = 0;
     
-    if(ccp_body == NULL)
-    {   
-    
+    if(ccp_body != NULL)
+    {       
         i_content_length = strlen(ccp_body);
     }
        
