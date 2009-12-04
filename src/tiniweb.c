@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
     char* cp_path_to_htdigest_file = NULL;
     char* cp_search_path_root = NULL;
     bool b_digest_file_available = FALSE;
-    
+    /*
     if (mapRequestPath(&cp_mapped_path, &b_static) == FALSE)
     {
         secExit(STATUS_FORBIDDEN);
@@ -219,9 +219,9 @@ int main(int argc, char** argv) {
         authenticate(cp_path_to_htdigest_file);
     }
     
-    
-    //processCGIScript("testscript");
-    processStaticFile("tests/webroot/index.html");
+    */
+    processCGIScript("testscript");
+    //processStaticFile("tests/webroot/index.html");
 /*
     if(b_static)
     {

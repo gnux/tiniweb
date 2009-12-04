@@ -1,6 +1,8 @@
 #ifndef __DEBUG_H__
 #define __DEBUG_H__
-#include <stdlib.h>
+
+//Do NOT include stdlib!
+
 #include "typedef.h"
 
 static const enum SCE_DEBUG_TYPES
@@ -14,6 +16,7 @@ static const enum SCE_DEBUG_TYPES
     CGICALL,
     STATIC_FILE,
     HTTP_RESPONSE,
+    PIPE,
     PATH
     
 } SCE_DEBUG_TYPE;

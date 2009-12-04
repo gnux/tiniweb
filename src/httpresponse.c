@@ -14,7 +14,7 @@
 #include "typedef.h"
 #include "debug.h"
 #include "normalize.h"
-#include "cgi.h"
+#include "pipe.h"
 #include "secstring.h"
 
 extern int si_cgi_timeout_;

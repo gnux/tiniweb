@@ -8,7 +8,7 @@
 
 void processStaticFile(const char* path);
 
-int writeFileTo(FILE *file, int i_dest_fd);
+int writeFileTo(int i_fd, int i_dest_fd);
 
 #endif
 

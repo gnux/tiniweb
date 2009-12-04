@@ -19,6 +19,7 @@
 #include "envvar.h"
 #include "secmem.h"
 #include "typedef.h"
+#include "pipe.h"
 
 static const int MAX_HEADER_SIZE = 8192;
 static const int SCI_BUF_SIZE = 256;
@@ -40,20 +41,6 @@ static void closePipes(int ia_pipe_fds[2])
     {
         close(ia_pipe_fds[1]);
     }
-}
-
-/**
- * Put a file descriptor into non-blocking mode.
- */
-int setNonblocking(int i_fd)
-{
-    int old_mode = fcntl(i_fd, F_GETFL);
-    if (old_mode < 0) 
-    {
-        return -1;
-    }     
-
-    return fcntl(i_fd, F_SETFL, old_mode | O_NONBLOCK);
 }
 
 void processCGIScript(const char* cp_path) 

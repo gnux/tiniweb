@@ -14,15 +14,19 @@
 #include "debug.h"
 #include "parser.h"
 #include "httpresponse.h"
+#include "pipe.h"
+#include "secmem.h"
  
 extern const enum SCE_KNOWN_METHODS e_used_method;
 
 void processStaticFile(const char* ccp_path)
 {
     FILE* file = NULL;
+    int i_fd = -1;
     struct stat stat_buffer;
     char* cp_content_type = NULL;
     int i_content_length = 0;
+    int i_success = 0;
     
     if(ccp_path == NULL)
     {
@@ -41,8 +45,7 @@ void processStaticFile(const char* ccp_path)
     i_content_length = stat_buffer.st_size;
     
     file = fopen(ccp_path, "r");
-    
-    
+        
     if(file == NULL)
     {
         debugVerbose(STATIC_FILE, "Opening file %s failed: %d\n", ccp_path, errno);
@@ -50,26 +53,96 @@ void processStaticFile(const char* ccp_path)
         return;
     }
     
-    cp_content_type = parseExtension(ccp_path);
-
-    sendHTTPResponseHeaderExplicit("200 OK", cp_content_type, i_content_length);
-    debugVerbose(STATIC_FILE, "Sent HTTP response to client.\n");
-    
-    if(e_used_method != HEAD)
+    i_fd = fileno(file);
+    if(i_fd < 0)
     {
-        writeFileTo(file, STDOUT_FILENO);
+        //TODO: safe exit
+        return;
     }
     
-    fclose(file);
+    cp_content_type = parseExtension(ccp_path);
+
+    i_success = sendHTTPResponseHeaderExplicit("200 OK", cp_content_type, i_content_length);
+    
+    if(i_success == EXIT_FAILURE)
+    {
+        //TODO: safe exit
+    }
+    
+    debugVerbose(STATIC_FILE, "Sent HTTP response header to client.\n");
+    
+    if(e_used_method != HEAD)
+    { 
+        i_success = writeFileTo(i_fd, STDOUT_FILENO);
+        
+        if(i_success == EXIT_FAILURE)
+        {
+            debugVerbose(STATIC_FILE, "Sending file failed.\n");
+            close(i_fd);
+            //TODO: safe exit
+            return;
+        }
+        
+        debugVerbose(STATIC_FILE, "Sent file to client.\n");
+    }
+    
+    if(close(i_fd) != 0)
+    {
+        //TODO: safe exit?
+        debugVerbose(STATIC_FILE, "Could not close file.\n");
+    }
+      
 }
- 
+
+int writeFileTo(int i_fd, int i_dest_fd)
+{
+    
+    int i_success = -1;
+    io_pipe *my_pipe = NULL;
+    
+    my_pipe = secMalloc(sizeof(io_pipe));
+
+    i_success = initPipe(my_pipe, i_fd, STDOUT_FILENO);
+
+    if(i_success == EXIT_FAILURE)
+    {
+        return EXIT_FAILURE;
+    }
+    
+    while (1)
+    {
+    
+        i_success = pollPipes(&my_pipe, 5000, 1);
+        
+        if(i_success == 1)
+        {
+            return EXIT_SUCCESS;
+        }
+        if(i_success == -1)
+        {
+            return EXIT_FAILURE;
+        }
+        
+        i_success = servePipe(my_pipe);
+        
+        if(i_success == EXIT_FAILURE)
+        {
+            return EXIT_FAILURE;
+        }
+
+        if((my_pipe->i_in_eof) && (my_pipe->i_out_eof))
+        {
+            return EXIT_SUCCESS;
+        }     
+    }
+}
+
+/* 
 int writeFileTo(FILE *file, int i_dest_fd)
 {
-    //TODO: make non-blocking
-    unsigned char c_char = 0;
+    char c_char[2] = {'\0', '\0'};
     int i_result = 0;
-    ssize_t written_bytes = 0;
-    ssize_t total_written_bytes = 0;
+    int i_success = 0;
  
     do 
     {
@@ -81,10 +154,17 @@ int writeFileTo(FILE *file, int i_dest_fd)
             return EXIT_SUCCESS;
         }
             
-        c_char = (unsigned char)(i_result);
+        c_char[0] = (char)(i_result);
+        //debug(STATIC_FILE, "writing %c %d\n", c_char[0], c_char[0]);
+        i_success = writeToOutputStream(i_dest_fd, c_char);
+        
+        if(i_success == EXIT_FAILURE)
+        {
+            return EXIT_FAILURE;
+        }
+        
         
         //debug(CGICALL, "Before write.\n");
-        //TODO: stdout non-Blocking? Fehlerbehandlung
         written_bytes = write(i_dest_fd, &c_char, 1);
         total_written_bytes += written_bytes;
         //debug(CGICALL, "Wrote %d bytes to http client.\n", written_bytes);
@@ -92,7 +172,8 @@ int writeFileTo(FILE *file, int i_dest_fd)
         {       
             return EXIT_FAILURE;
         } 
+        
     } while (1);
 
 }
-
+*/

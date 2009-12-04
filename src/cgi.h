@@ -18,6 +18,4 @@ int pipeThrough(int i_source_fd, int i_dest_fd, bool b_is_source_non_blocking,
 
 FILE* getCGIHeaderResponseStream(int i_source_fd);
 
-int setNonblocking(int i_fd);
-
 #endif
