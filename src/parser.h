@@ -57,7 +57,7 @@ int parseRequestLine(char* input);
  * Checks if  the Method is one out of our supported methods "GET","POST","HEAD"
  * 
  * @param input a char pointer to an string you want to get checked
- * @param offset point where you want to start co check
+ * @param offset point where you want to start to check
  */
 int parseRequestMethod(char* input, int offset);
 
@@ -67,7 +67,7 @@ int parseRequestMethod(char* input, int offset);
  * normal chars are alloud everything else has to be escaped, validateString function checks for that
  * 
  * @param input a char pointer to an string you want to get checked
- * @param offset point where you want to start co check
+ * @param offset point where you want to start to check
  */
 int parseRequestURI(char* input, int offset);
 
@@ -75,7 +75,7 @@ int parseRequestURI(char* input, int offset);
  * Checks if the HttpVersion is supported, if no HttpVersion is given we set the following "HTTP/1.1"
  * 
  * @param input a char pointer to an string you want to get checked
- * @param offset point where you want to start co check
+ * @param offset point where you want to start to check
  */
 int parseHttpVersion(char* input, int offset);
 
@@ -90,14 +90,14 @@ int validateAbspath(char** cp_string);
  * Tries to find non excaped chars, if one is found we abort
  * 
  * @param input a char pointer to an string you want to get checked
- * @param offset point where you want to start co check
+ * @param offset point where you want to start to check
  */
 bool isNonEscapedChar(char* input, int i_offset);
 
 /**
  * Tries to check if the escaped chars hexdigit is correct
  * 
- * @params input char whiche should get checked
+ * @params input char which should get checked
  */
 bool isHexDigit(char input);
 
@@ -112,7 +112,7 @@ void stringToUpperCase(char* input);
  * Takes the string you are searching for and returns the header fieldbody if it could
  * be found, or NULL if not
  * 
- * @param hnp_info pointer to http_norm whiche should contain
+ * @param hnp_info pointer to http_norm which should contain
  * @param ccp_what pointer to string you want to find
  */
 char* parseFindExplicitHeaderField(http_norm* hnp_info, const char* ccp_what);
@@ -121,15 +121,17 @@ char* parseFindExplicitHeaderField(http_norm* hnp_info, const char* ccp_what);
  * Takes the beginning char and the end char and returns everything between them, watch out
  * it only finds the first time where it occures
  * 
- * @param ccp_string pointer to string
- * @param ccp_stdelim
- * @param ccp_endelim
+ * @param ccp_string const char pointer to string
+ * @param ccp_stdelim const char pointer to beginning char
+ * @param ccp_endelim const char pointer to end char
  */
 char* parseSubstringByDelimStrings(const char* ccp_string, const char* ccp_stdelim, const char* ccp_endelim);
 
 /**
  * If we find an Autorization field with our function parseFindExplicitHeaderField, we start
  * to look for all necessary fields we need to check if the autorization could be correct
+ * 
+ * @param ccp_authstr const char pointer to the Authorization String
  */
 int parseAuthorizationInfos(const char* ccp_authstr);
 
@@ -141,12 +143,16 @@ void parsePrintStructures();
  /**
  * Parse the last characters until it finds the first "." afterwoods it checks if we know
  * the extension and returns the defined values
+ * 
+ * @param filepath const char pointer to the Filepath
  */
 char* parseExtention(const char* filepath);
 
  /**
  * Parse the last characters until it finds the first "/" returns everything after "/" to 
  * end of File
+ * 
+ * @param filepath const char pointer to the Filepath
  */
 char* parseFilename(const char* filepath);
 
