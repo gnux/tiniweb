@@ -197,7 +197,7 @@ int main(int argc, char** argv) {
     
     if (mapRequestPath(&cp_mapped_path, &b_static) == FALSE)
     {
-        secExit(STATUS_FORBIDDEN);
+        secExit(STATUS_NOT_FOUND);
     }
     
     if (checkRequestPath(cp_mapped_path) == FALSE)
