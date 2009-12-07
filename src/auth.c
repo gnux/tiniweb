@@ -91,8 +91,14 @@ bool authenticate(char* cp_path)
             {
                 secExit(STATUS_LOGIN_FAILED);
             }
+            
+            debug(AUTH, "####### HA1: %s\n", cp_ha1);
+            debug(AUTH, "####### http_autorization_->cp_nonce: %s\n", http_autorization_->cp_nonce);
+            debug(AUTH, "####### http_request_->cp_method: %s\n", http_request_->cp_method);
+            debug(AUTH, "####### http_request_->cp_uri: %s\n", http_request_->cp_uri);
+            debug(AUTH, "####### http_autorization_->cp_response: %s\n", http_autorization_->cp_response);
 	        
-	        if (verifyResponse(cp_ha1, cp_nonce, http_request_->cp_method, 
+	        if (verifyResponse(cp_ha1, http_autorization_->cp_nonce, http_request_->cp_method, 
 	            http_request_->cp_uri, http_autorization_->cp_response) == FALSE)
 	        {
                 debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
