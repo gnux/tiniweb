@@ -99,7 +99,7 @@ long strDecodeHexToUInt(char* cp_string, ssize_t i_offset, ssize_t i_len){
 	ssize_t i;
 	if(i_offset + i_len > strlen(cp_string))
 		i_len = strlen(cp_string) - i_offset;
-	for(i = 0; i < i_offset; ++i)
+	for(i = 0; i < i_len; ++i)
 	{
 		result = result << 4;
 		result += hextodec(cp_string[i_offset + i]);

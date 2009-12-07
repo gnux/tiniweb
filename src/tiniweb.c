@@ -194,9 +194,11 @@ int main(int argc, char** argv) {
     char* cp_search_path_root = NULL;
     bool b_digest_file_available = FALSE;
     
+    testHash();
+    
     if (mapRequestPath(&cp_mapped_path, &b_static) == FALSE)
     {
-        secExit(STATUS_FORBIDDEN);
+        secExit(STATUS_NOT_FOUND);
     }
     
     if (checkRequestPath(cp_mapped_path) == FALSE)

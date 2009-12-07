@@ -295,6 +295,9 @@ char* getStatusCode(int status)
         case STATUS_HTTP_VERSION_NOT_SUPPORTED:
             return "505 HTTP Version Not Supported";
             break;
+        case STATUS_LOGIN_FAILED:
+            return "450 Login Failed";
+            break;
         default:
             return "200 OK";
     };  

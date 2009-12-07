@@ -18,88 +18,101 @@
 #include "normalize.h"
 #include "path.h"
 #include "secstring.h"
+#include "parser.h"
+#include "envvar.h"
+#include "httpresponse.h"
 
 
 extern char *scp_secret_;
 extern http_autorization* http_autorization_;
 extern http_request *http_request_;
+extern char *scp_web_dir_;
 
 static const int SCI_NONCE_LEN = 16;
-static bool sb_unauthorized_message_sent_ = TRUE; // TODO wieder umsetzen
-static char* scp_sent_nonce_ = NULL;
+static const int SCI_VALID_NONCE_TIMEOUT = 3600;
 static const int SCI_VALID_NONCE_TIME = 3600;
 
 bool authenticate(char* cp_path)
 {
-    if (http_autorization_ == NULL){
-        // If no authentication field is available
-        // create nonce and send unauthorized message (401)
-   
-        debugVerbose(AUTH, "No 401-Unauthorized message waas sent before.\n");
-        int i_result_nonce_len = SCI_NONCE_LEN * 2 + 1;
-        scp_sent_nonce_ = secMalloc(i_result_nonce_len * sizeof(char));
+    char* cp_ha1 = NULL;
+    char* cp_nonce = NULL;
+    char* cp_realm = NULL;
+    time_t timestamp = time(NULL);
+
+    /**
+     * It should be impossible for a client to send an HTTP request with 
+     * valid "Authorization"-header without prior reception of an "401 
+     * Unauthorized message".
+     */
+
+	if(http_autorization_ == NULL)
+    {
         
-        if (createNonce((unsigned char*)scp_secret_, &scp_sent_nonce_) == EXIT_FAILURE)
+	    debugVerbose(AUTH, "No 401-Unauthorized message was sent before.\n");
+	    
+	    if (createNonce(&cp_nonce, timestamp) == EXIT_FAILURE)
+	    {
+            secExit(STATUS_INTERNAL_SERVER_ERROR);
+	    }
+        
+        if (getRealmFromHTDigestFile(cp_path, &cp_realm) == FALSE)
         {
-            secFree(scp_sent_nonce_);
+            debugVerbose(AUTH, "ERROR: There is no Realm in the .htdigest file!\n");
+            secExit(STATUS_INTERNAL_SERVER_ERROR);
+        }
+
+	    if (sendHTTPAuthorizationResponse(cp_realm, cp_nonce) == EXIT_FAILURE)
+        {
+            // TODO what shall we do with the drunken sailor?
         }
         
-        // TODO send 401
-        // Wait for answer
-        // Send answer to normalizer/parser
-      
-        secFree(scp_sent_nonce_);
-    }
-    else
-    {       
-        // If authentication field is available and 401 was already sent -> check if response
-        // is valid
-    
-        debugVerbose(AUTH, "The Request contains an authentication field.\n");
-        
-        if (http_autorization_->cp_nonce && http_autorization_->cp_realm &&
-            http_autorization_->cp_response && http_autorization_->cp_uri &&
-            http_autorization_->cp_username && http_request_->cp_path && 
-            http_request_->cp_method && http_request_->cp_uri)
-        {
-        
-            char* cp_ha1 = NULL;
+        return FALSE;
+	}
+	else
+    {    
+	    // If authentication field is available and 401 was already sent -> check if response
+	    // is valid
+	
+	    debugVerbose(AUTH, "The Request contains an authentication field.\n");
+	    
+	    if (http_autorization_->cp_nonce && http_autorization_->cp_realm &&
+	        http_autorization_->cp_response && http_autorization_->cp_uri &&
+	        http_autorization_->cp_username && http_request_->cp_path && 
+	        http_request_->cp_method)
+	    {
+	    
+	        if (getHA1HashFromHTDigestFile(cp_path, http_autorization_->cp_realm, 
+	                                       http_autorization_->cp_username, &cp_ha1) == FALSE)
+	        {
+	            secExit(STATUS_LOGIN_FAILED);
+	        }
             
-            if (getHA1HashFromHTDigestFile(cp_path, http_autorization_->cp_realm, 
-                                       http_autorization_->cp_username, &cp_ha1) == FALSE)
+	        if (verifyNonce(http_autorization_->cp_nonce) == FALSE)
             {
-                // TODO safe exit
-                // send login error
-                return FALSE;
+                secExit(STATUS_LOGIN_FAILED);
             }
             
-            // TODO: remove THIS ---------------------------------- START --- just for testing!
-            int i_result_nonce_len = SCI_NONCE_LEN * 2 + 1;
-            scp_sent_nonce_ = secMalloc(i_result_nonce_len * sizeof(char)); //des is böse und umsonst :-)
-            scp_sent_nonce_ = "c4c544b9722671f08465167eebc2d54f";
-            // TODO -------------------------------------------- END -----------------------
-            
-            
-            
-            if (verifyResponse(cp_ha1, scp_sent_nonce_, http_request_->cp_method, 
-                http_request_->cp_uri, http_autorization_->cp_response) == FALSE)
-            {
-                //TODO Send Login Error
+            debug(AUTH, "####### HA1: %s\n", cp_ha1);
+            debug(AUTH, "####### http_autorization_->cp_nonce: %s\n", http_autorization_->cp_nonce);
+            debug(AUTH, "####### http_request_->cp_method: %s\n", http_request_->cp_method);
+            debug(AUTH, "####### http_autorization_->cp_uri: %s\n", http_autorization_->cp_uri);
+            debug(AUTH, "####### http_autorization_->cp_response: %s\n", http_autorization_->cp_response);
+	        
+	        if (verifyResponse(cp_ha1, http_autorization_->cp_nonce, http_request_->cp_method, 
+	            http_autorization_->cp_uri, http_autorization_->cp_response) == FALSE)
+	        {
                 debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
-                return FALSE;
-            }
-
-            debugVerbose(AUTH, "Success: The 'response' from the auth field is valid!\n");
-            // TODO free memory!
-            
-            secFree(scp_sent_nonce_);
-        }
-        else
-        {
-            // TODO send Login Error
-        }
-
-    }
+	            secExit(STATUS_LOGIN_FAILED);
+	        }
+	
+	        debug(AUTH, "Success: The response from the auth field is valid!\n");
+            return TRUE;
+	    }
+	    else
+	    {
+	        secExit(STATUS_LOGIN_FAILED);
+	    }
+	}
     
     return TRUE;
 }
@@ -186,7 +199,7 @@ bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_
     char* cp_htdigest_compare_line = NULL;
     char* cp_ha1 = NULL;
     int i_line_len = strlen(cp_username) + strlen(cp_realm) + 2;
-    int i_htdigest_line_len = i_line_len + 32;
+    int i_htdigest_line_len = i_line_len + 32 + 1;
         
     FILE* file_htdigest = fopen(cp_path_to_file, cp_mode);
 
@@ -210,12 +223,12 @@ bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_
         {
             debugVerbose(AUTH, "Success, expected line found in '.htdigest'-file\n");
             
-            cp_ha1 = secMalloc(32 * sizeof(char));
-            strncpy(cp_ha1, cp_htdigest_line + i_line_len, 32);
-            *cpp_ha1 = cp_ha1;
+            strAppend(&cp_ha1, cp_htdigest_line + i_line_len);
+            (*cpp_ha1) = cp_ha1;
             
             secFree(cp_htdigest_compare_line);
             secFree(cp_htdigest_line);
+            
             //TODO: This can fail.
             fclose(file_htdigest);
             
@@ -228,6 +241,65 @@ bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_
     
     secFree(cp_htdigest_compare_line);
     secFree(cp_htdigest_line);
+    
+    //TODO: This can fail.
+    fclose(file_htdigest);
+    
+    return FALSE;
+}
+
+bool getRealmFromHTDigestFile(char* cp_path_to_file, char** cpp_realm)
+{
+    int i_htdigest_line_len = 72;
+    char* cp_mode = "r";
+    char* cp_htdigest_line = NULL;
+    char* cp_realm = NULL;
+    bool b_separator_found = FALSE;
+    
+    FILE* file_htdigest = fopen(cp_path_to_file, cp_mode);
+
+    if (file_htdigest == NULL)
+    {
+        debugVerbose(AUTH, "ERROR, '.htdigest'-file could not be opened.\n");
+        return FALSE;
+    }
+    
+    cp_htdigest_line = secMalloc(i_htdigest_line_len);
+    
+    while( fgets(cp_htdigest_line, i_htdigest_line_len, file_htdigest) )
+    {
+        for (int i = 0; i < i_htdigest_line_len; i++)
+        {
+            if (cp_htdigest_line[i] == ':')
+            {
+                if (b_separator_found == FALSE)
+                {
+                    b_separator_found = TRUE;
+                }
+                else
+                {
+                    debugVerbose(AUTH, "Success: realm: %s found.\n", cp_realm);
+                    secFree(cp_htdigest_line);
+                    *cpp_realm = cp_realm;
+                    
+                    //TODO: This can fail.
+                    fclose(file_htdigest);
+                    
+                    return TRUE;
+                }
+            }
+            
+            if (b_separator_found == TRUE && cp_htdigest_line[i] != ':')
+            {
+                strAppend(&cp_realm, secGetStringPart(cp_htdigest_line, i, i));
+            }
+        }
+        
+    }
+    
+    secFree(cp_htdigest_line);
+    
+    //TODO: This can fail.
     fclose(file_htdigest);
     
     return FALSE;
@@ -236,34 +308,52 @@ bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_
 bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
                     char* cp_uri, char* cp_response)
 {
+    
     md5_state_t ha2_state;
     md5_state_t expected_response_state;
     unsigned char uca_ha2[SCI_NONCE_LEN];
     unsigned char uca_expected_response[SCI_NONCE_LEN];
     char* cp_expected_converted_response = NULL;
+    char* cp_ha2_string = NULL;
+    
+    // Insert the ':'
+    strAppend(&cp_ha1, ":");
+    strAppend(&cp_nonce, ":");
+    strAppend(&cp_http_request_method, ":");
+    
     int i_result = -1;
     int i_nonce_len = strlen(cp_nonce);
     int i_http_request_method_len = strlen(cp_http_request_method);
     int i_uri_len = strlen(cp_uri);
+    int i_ha1_len = strlen(cp_ha1);
+    int i_ha2_len = 0;
     
     // Calculate HA2:
     md5_init(&ha2_state);
     md5_append(&ha2_state, (unsigned char*)cp_http_request_method, i_http_request_method_len);
     md5_append(&ha2_state, (unsigned char*)cp_uri, i_uri_len);
     md5_finish(&ha2_state, uca_ha2);
+    convertHash(uca_ha2, SCI_NONCE_LEN, &cp_ha2_string);
+    i_ha2_len = strlen(cp_ha2_string);
+    
+    
+//     debugVerbose(AUTH, "##### HA1:        %s\n", cp_ha1);
+//     debugVerbose(AUTH, "##### Nonce:      %s\n", cp_nonce);
+//     debugVerbose(AUTH, "##### HA2:        %s\n", cp_ha2_string);
+//     debugVerbose(AUTH, "######## HA2 ReqMeth: %s, URI: %s\n", cp_http_request_method, cp_uri);
     
     // Calculate expected response:
     md5_init(&expected_response_state);
-    md5_append(&expected_response_state, (unsigned char*)cp_ha1, SCI_NONCE_LEN);
+    md5_append(&expected_response_state, (unsigned char*)cp_ha1, i_ha1_len);
     md5_append(&expected_response_state, (unsigned char*)cp_nonce, i_nonce_len);
-    md5_append(&expected_response_state, (unsigned char*)uca_ha2, SCI_NONCE_LEN);
+    md5_append(&expected_response_state, (unsigned char*)cp_ha2_string, i_ha2_len);
     md5_finish(&expected_response_state, uca_expected_response);
+    convertHash(uca_expected_response, SCI_NONCE_LEN, &cp_expected_converted_response);
 
     // TODO remove this debug output:
-    debugVerbose(AUTH, "Hash from client: %s\n", cp_response);
-    debugVerboseHash(AUTH, uca_expected_response, SCI_NONCE_LEN, "Expected Hash   :");
+//     debugVerbose(AUTH, "Hash from client: %s\n", cp_response);
+//     debugVerbose(AUTH, "HExpected Hash:   %s\n", cp_expected_converted_response);
     
-    convertHash(uca_expected_response, SCI_NONCE_LEN, &cp_expected_converted_response);
     
     i_result = strncmp(cp_response, cp_expected_converted_response, SCI_NONCE_LEN * 2);
     if (i_result != 0)
@@ -277,9 +367,57 @@ bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
     return TRUE;
 }
 
-bool unauthorizedMessageSent()
+bool verifyNonce(char* cp_nonce)
 {
-    return sb_unauthorized_message_sent_;
+    // Set timelimit to one hour
+    const int ci_timelimit = 3600;
+    
+    int i_timestamp_len = 8;
+    int i_hash_len = SCI_NONCE_LEN * 2 - 1;
+    int i_timestamp_current = time(NULL);
+    int i_timestamp_recieved = 0;
+    char* cp_timestamp_hex = NULL;
+    char* cp_path_hash = NULL;
+    char* cp_hmac = NULL;
+    char* cp_nonce_calculated = NULL;
+    
+    debugVerbose(AUTH, "######### string len: %i !\n", strlen(cp_nonce));
+    
+    if (strlen(cp_nonce) < i_timestamp_len + i_hash_len * 2)
+    {
+        debugVerbose(AUTH, "ERROR: Nonce length is too small!\n");
+        return FALSE;
+    }
+    cp_timestamp_hex = secGetStringPart(cp_nonce, 0, i_timestamp_len - 1);
+    cp_path_hash = secGetStringPart(cp_nonce, i_timestamp_len, i_timestamp_len + i_hash_len);
+    cp_hmac = secGetStringPart(cp_nonce, i_timestamp_len + i_hash_len, strlen(cp_nonce) - 1);
+    
+    debugVerbose(AUTH, "Timestamp Hex: %s \n", cp_timestamp_hex);
+    debugVerbose(AUTH, "Path Hash: %s \n", cp_path_hash);
+    debugVerbose(AUTH, "HMACMD5 Hash: %s \n", cp_hmac);
+    
+    i_timestamp_recieved = (int) strDecodeHexToUInt(cp_timestamp_hex, 0, i_timestamp_len);
+    
+    if (i_timestamp_recieved + ci_timelimit < i_timestamp_current || i_timestamp_recieved > i_timestamp_current)
+    {
+        debugVerbose(AUTH, "ERROR: Recieved Timestamp is not valid! (Out of Time)\n", cp_hmac);
+        return FALSE;
+    }
+    
+    if (createNonce(&cp_nonce_calculated, i_timestamp_recieved) == EXIT_FAILURE)
+    {
+        return FALSE;
+    }
+    
+    if (strlen(cp_nonce_calculated) != strlen(cp_nonce) || strncmp(cp_nonce_calculated, cp_nonce, strlen(cp_nonce)) != 0)
+    {
+        debugVerbose(AUTH, "ERROR: Recieved Nonce: %s does not match calculated nonce: %s\n", cp_nonce, cp_nonce_calculated);
+        return FALSE;
+    }
+    
+    debugVerbose(AUTH, "Success: Nonces equal!\n");
+
+    return TRUE;
 }
 
 //------------------------------------------------------------------------
@@ -360,22 +498,73 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len, unsigned char* uca_
 // END-FOREIGN-CODE (RFC2104)
 //------------------------------------------------------------------------
 
-int createNonce(unsigned char* uca_key, char** cpp_nonce)
-{
-    time_t timestamp = time(NULL);
-    int i_text_len = 30;
-    unsigned char uca_text[i_text_len];
-    unsigned char uca_nonce[SCI_NONCE_LEN];
+int createNonce(char** cpp_nonce, time_t timestamp)
+{	
+    char uca_time[9];
+    md5_state_t path_state;
+    unsigned char uca_path_nonce[SCI_NONCE_LEN + 1];
+    char* cp_path_hash = NULL;
+    char* cp_concatenated_time_path = NULL;
+    unsigned char uca_time_path_hmac[SCI_NONCE_LEN + 1];
+    char* cp_time_path_hmac = NULL;
     
-    memset(uca_text, 0, i_text_len);
-    //TODO: localtime, asctime can be NULL
-    sprintf((char*)uca_text,"%x",(unsigned int) timestamp );  
-
-    performHMACMD5(uca_text, i_text_len, uca_key, i_text_len, uca_nonce);
-    debugVerboseHash(AUTH, uca_nonce, SCI_NONCE_LEN, "A Nonce was created!");
+    uca_path_nonce[SCI_NONCE_LEN] = '\0';
+    uca_time_path_hmac[SCI_NONCE_LEN] = '\0';
     
-    if (convertHash(uca_nonce, SCI_NONCE_LEN, cpp_nonce) == EXIT_FAILURE)
+    debugVerbose(AUTH,"Hex von 14: %x\n",14);
+    
+    // Creating of the MD5 Hash of the Request Path
+    md5_init(&path_state);
+    md5_append(&path_state, (unsigned char*)http_request_->cp_path, strlen(http_request_->cp_path));
+    md5_finish(&path_state, uca_path_nonce);
+    
+    debugVerbose(AUTH, "###  uca_path_nonce lenght is: %i\n", strlen((char*)uca_path_nonce));
+    
+    if (convertHash(uca_path_nonce, SCI_NONCE_LEN, &cp_path_hash) == EXIT_FAILURE)
+    {
+        debugVerbose(AUTH, "ERROR: Converting of Path Hash did not work!");
         return EXIT_FAILURE;
+    }
+    
+    debugVerbose(AUTH, "Hash of the Path: %s\n", cp_path_hash);
+    debugVerbose(AUTH, "Length of hashed Path: %i\n", strlen(cp_path_hash));
+
+    // Convert timestamp to Hex:
+    memset(uca_time, 0, 9);
+    sprintf((char*)uca_time,"%x",(unsigned int)timestamp);
+    debugVerbose(AUTH, "Created the timestamp in Hex: %s\n", uca_time);
+    debugVerbose(AUTH, "Length of timestamp hex: %i\n", strlen(uca_time));
+    
+    /** 
+     *  STEP 1:
+     *  Concatenate timestamp hex and path hash
+     */
+    strAppend(&cp_concatenated_time_path, (char*)uca_time);
+    strAppend(&cp_concatenated_time_path, cp_path_hash);
+    debugVerbose(AUTH, "Concatenation of timestamp hex and Path hash: %s\n", cp_concatenated_time_path);
+    debugVerbose(AUTH, "Length of Concatenation of timestamp hex and Path hash: %i\n", strlen(cp_concatenated_time_path));
+    
+    /** 
+     *  STEP 2:
+     *  Calculate HMACMD5
+     */
+    performHMACMD5((unsigned char*)cp_concatenated_time_path, strlen(cp_concatenated_time_path), 
+                   (unsigned char*)scp_secret_, strlen(scp_secret_), uca_time_path_hmac);
+    if (convertHash(uca_time_path_hmac, SCI_NONCE_LEN, &cp_time_path_hmac) == EXIT_FAILURE)
+    {
+        debugVerbose(AUTH, "ERROR: Converting of HMACMD5 Hash (Time and Path) did not work!");
+        return EXIT_FAILURE;
+    }
+    debugVerbose(AUTH, "Calculated HMACMD5 of time and Path: %s\n", cp_time_path_hmac);
+    debugVerbose(AUTH, "###  Path+Time HMAC lenght is: %i\n", strlen(cp_time_path_hmac));
+    /** 
+     *  Concatenate STEP 1 and STEP 2:
+     */
+    strAppend(cpp_nonce, cp_concatenated_time_path);
+    strAppend(cpp_nonce, cp_time_path_hmac);
+    debugVerbose(AUTH, "Concatenated (time : md5(path) : hmacmd5(time : md5(path))): %s\n", *cpp_nonce);
+	
+	debugVerbose(AUTH, "###  Nonce lenght is: %i\n", strlen(*cpp_nonce));
     
     return EXIT_SUCCESS;
 }
@@ -383,23 +572,54 @@ int createNonce(unsigned char* uca_key, char** cpp_nonce)
 int convertHash(unsigned char* ucp_hash, int i_hash_len, char** cp_hash_nonce)
 {
     int i_result_nonce_len = (i_hash_len * 2) + 1;
-    char* cp_tmp_nonce_container = NULL;
+    //char* cp_tmp_nonce_container = NULL;
     
     if (i_result_nonce_len < i_hash_len)
         return EXIT_FAILURE;
     
-    cp_tmp_nonce_container = secMalloc(3 * sizeof(char));
+   // cp_tmp_nonce_container = secMalloc(3 * sizeof(char));
     
     for (int i = 0; i < i_hash_len; i++)
     {
-        sprintf(cp_tmp_nonce_container, "%x", ucp_hash[i]);
-        cp_tmp_nonce_container[2] = '\0';
-        strAppend(cp_hash_nonce, cp_tmp_nonce_container);
+        //sprintf(cp_tmp_nonce_container, "%x", ucp_hash[i]);
+        //cp_tmp_nonce_container[2] = '\0';
+        //strAppend(cp_hash_nonce, cp_tmp_nonce_container);
+        if(ucp_hash[i] <= 15)
+        {
+            strAppendFormatString(cp_hash_nonce,"0%x",ucp_hash[i]);
+        }
+        else
+        {
+            strAppendFormatString(cp_hash_nonce,"%x",ucp_hash[i]);
+        }
     }
     
-    secFree(cp_tmp_nonce_container);    
+    //secFree(cp_tmp_nonce_container);    
     
     return EXIT_SUCCESS;
 }
 
+void testHash() 
+{
+    md5_state_t hash_state;
+    unsigned char result[17];
+    char* method = "GET:";
+    char* uri = "/tests/webroot/index.html";
+    char* resultstring = NULL;
+    
+    debugVerbose(AUTH, "########## Bin Daaaaa, Wer noch? \n");
+    
+    md5_init(&hash_state);
+    md5_append(&hash_state, (unsigned char*)method, strlen(method));
+    md5_append(&hash_state, (unsigned char*)uri, strlen(uri));
+    md5_finish(&hash_state, result);
+    
+    debugVerbose(AUTH, "########## Bin Daaaaa, Wer noch?2 \n");
+    
+    result[16] = '\0';
+    
+    convertHash(result, 16, &resultstring);
+    debugVerbose(AUTH, "########## HashTest: %s, Length: %i\n", resultstring, strlen(resultstring));
+    
+}
 

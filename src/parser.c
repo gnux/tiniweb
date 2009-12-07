@@ -311,8 +311,8 @@ int parseRequestLine(char* input){
 		debugVerbose(PARSER, "Failure in request line detected, next step is to abort\n");
 		return EXIT_FAILURE;
 	}
-	//If there is a http-version set it must be our supported one HTTP/1.1 if not EXIT_FAILURE
-	//If there isn't any we set it to HTTP/1.1 in parseHttpVersion
+	//If there is a http-version set it must be our supported one HTTP/1.1 if not
+	//Bad Request if there isn't one or Wrong HTTP Version if it is not the supported one
 	if(parseHttpVersion(input, i_offset + 1) == EXIT_FAILURE){
 		debugVerbose(PARSER, "Unknown server protocol, next step is to abort\n");
 		return EXIT_FAILURE;
@@ -430,7 +430,8 @@ int parseHttpVersion(char* input, int offset){
 	
 	//If there isn't anything to read we set the http-version to our supported one
 	if(offset > strlen(input))
-		cp_http_version = secGetStringPart(SCCP_KNOWN_HTTPVERSION, 0, strlen(SCCP_KNOWN_HTTPVERSION));
+		secExit(STATUS_BAD_REQUEST);
+		//cp_http_version = secGetStringPart(SCCP_KNOWN_HTTPVERSION, 0, strlen(SCCP_KNOWN_HTTPVERSION));
 	else
 		cp_http_version = secGetStringPart(input, offset, strlen(input));
 	
