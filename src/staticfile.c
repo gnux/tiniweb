@@ -97,7 +97,7 @@ void processStaticFile(const char* ccp_path)
       
 }
 
-int writeFileTo(int i_fd, int i_dest_fd)
+int writeFileTo(int i_src_fd, int i_dest_fd)
 {
     
     int i_success = -1;
@@ -105,7 +105,7 @@ int writeFileTo(int i_fd, int i_dest_fd)
     
     my_pipe = secMalloc(sizeof(io_pipe));
 
-    i_success = initPipe(my_pipe, i_fd, STDOUT_FILENO);
+    i_success = initPipe(my_pipe, i_src_fd, STDOUT_FILENO);
 
     if(i_success == EXIT_FAILURE)
     {

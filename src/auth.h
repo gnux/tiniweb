@@ -108,4 +108,7 @@ int createNonce(char** cpp_nonce, time_t timestamp);
  */
 int convertHash(unsigned char* ucp_hash, int i_hash_len, char** cp_hash_nonce);
 
+// TODO remove when finished!
+void testHash();
+
 #endif
