@@ -27,6 +27,7 @@ void parse(http_norm *hnp_info);
  * Return EXIT_SUCESS or EXIT_FAILURE
  * 
  * @param hnp_info Struct provided by the Normalizer
+ * @return http_cgi_response Struct defined in typedef.h
  */
 http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info);
 /**
@@ -34,6 +35,7 @@ http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info);
  * an make them to upper Case by calling the stringToUpperCase funktion
  * 
  * @param hnp_info Struct provided by the Normalizer
+ * @return EXIT_FAILURE if something went wrong, EXIT_SUCCESS if everything was right
  */
 int parseArguments(http_norm *hnp_info);
 
@@ -41,6 +43,7 @@ int parseArguments(http_norm *hnp_info);
  * Calls parseRequestLine
  * 
  * @param input a char pointer to an string you want to get checked
+ * @return EXIT_FAILURE if something went wrong, EXIT_SUCCESS if everything was right
  */
 int parseHttpRequestHeader(char* input);
 
@@ -49,6 +52,7 @@ int parseHttpRequestHeader(char* input);
  * request-Line = method SPACE request-uri [http-version]
  * 
  * @param input a char pointer to an string you want to get checked
+ * @return EXIT_FAILURE if something went wrong, EXIT_SUCCESS if everything was right
  */
 int parseRequestLine(char* input);
 
@@ -58,6 +62,7 @@ int parseRequestLine(char* input);
  * 
  * @param input a char pointer to an string you want to get checked
  * @param offset point where you want to start to check
+ * @return EXIT_FAILURE if something went wrong, pr the Offset how fare he has parsed the string
  */
 int parseRequestMethod(char* input, int offset);
 
@@ -68,6 +73,7 @@ int parseRequestMethod(char* input, int offset);
  * 
  * @param input a char pointer to an string you want to get checked
  * @param offset point where you want to start to check
+ * @return EXIT_FAILURE if something went wrong, pr the Offset how fare he has parsed the string
  */
 int parseRequestURI(char* input, int offset);
 
@@ -76,6 +82,7 @@ int parseRequestURI(char* input, int offset);
  * 
  * @param input a char pointer to an string you want to get checked
  * @param offset point where you want to start to check
+ * @return EXIT_SUCCESS if we found the rigth method, or it terminates with secEXIT
  */
 int parseHttpVersion(char* input, int offset);
 
@@ -83,6 +90,7 @@ int parseHttpVersion(char* input, int offset);
  * Checks if the String is correct and Special characters are escaped with "%" hexdigit hexdigit
  * 
  * @param cp_string double pointer prove the correctness and decode, written back to cp_string
+ * @return EXIT_SUCCESS if we found the rigth method, or it terminates with secEXIT
  */
 int validateAbspath(char** cp_string);
 
@@ -91,6 +99,7 @@ int validateAbspath(char** cp_string);
  * 
  * @param input a char pointer to an string you want to get checked
  * @param offset point where you want to start to check
+ * @return TRUE if it is an non escaped char or FALSE
  */
 bool isNonEscapedChar(char* input, int i_offset);
 
@@ -98,6 +107,7 @@ bool isNonEscapedChar(char* input, int i_offset);
  * Tries to check if the escaped chars hexdigit is correct
  * 
  * @params input char which should get checked
+ * @return TRUE if it is an Hex Digit or FALSE if not
  */
 bool isHexDigit(char input);
 
@@ -114,6 +124,7 @@ void stringToUpperCase(char* input);
  * 
  * @param hnp_info pointer to http_norm which should contain
  * @param ccp_what pointer to string you want to find
+ * @return char pointer to the found Header Field or NULL
  */
 char* parseFindExplicitHeaderField(http_norm* hnp_info, const char* ccp_what);
 
@@ -124,6 +135,7 @@ char* parseFindExplicitHeaderField(http_norm* hnp_info, const char* ccp_what);
  * @param ccp_string const char pointer to string
  * @param ccp_stdelim const char pointer to beginning char
  * @param ccp_endelim const char pointer to end char
+ * @return char pointer to the found String or NULL
  */
 char* parseSubstringByDelimStrings(const char* ccp_string, const char* ccp_stdelim, const char* ccp_endelim);
 
@@ -132,6 +144,7 @@ char* parseSubstringByDelimStrings(const char* ccp_string, const char* ccp_stdel
  * to look for all necessary fields we need to check if the autorization could be correct
  * 
  * @param ccp_authstr const char pointer to the Authorization String
+ * @return EXIT_SUCCESS if all Fields have been found or EXIT_FAILURE if not
  */
 int parseAuthorizationInfos(const char* ccp_authstr);
 
@@ -145,6 +158,7 @@ void parsePrintStructures();
  * the extension and returns the defined values
  * 
  * @param filepath const char pointer to the Filepath
+ * @return char* which points to the extension
  */
 char* parseExtention(const char* filepath);
 
@@ -153,6 +167,7 @@ char* parseExtention(const char* filepath);
  * end of File
  * 
  * @param filepath const char pointer to the Filepath
+ * @return char* which points to the filepath
  */
 char* parseFilename(const char* filepath);
 
