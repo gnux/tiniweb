@@ -45,7 +45,7 @@ static void closePipes(int ia_pipe_fds[2])
 /**
  * Put a file descriptor into non-blocking mode.
  */
-static int setNonblocking(int i_fd)
+int setNonblocking(int i_fd)
 {
     int old_mode = fcntl(i_fd, F_GETFL);
     if (old_mode < 0) 
@@ -77,12 +77,12 @@ void processCGIScript(const char* cp_path)
     if (pipe(ia_cgi_response_pipe))
     {
         //TODO: safe exit
-        debugVerbose(CGICALL, "Creating pipes to CGI script failed: %d\n", errno);
+        debugVerbose(CGICALL, "Creating pipes to CGI script failed.\n");
     }
     if (setNonblocking(ia_cgi_response_pipe[0]))
     {
         //TODO safe exit
-        debugVerbose(CGICALL, "Setting pipes non-blocking failed: %d\n", errno);
+        debugVerbose(CGICALL, "Setting pipes non-blocking failed.\n");
     }
     
     if(e_used_method == POST)
@@ -400,7 +400,7 @@ FILE* getCGIHeaderResponseStream(int i_source_fd)
     bool b_eof_reached = FALSE;
  
  //TODO: neu mit getc()
-    cp_stream_memory = (char*)secCalloc(total_read_bytes+1, sizeof(char));
+    //cp_stream_memory = (char*)secCalloc(total_read_bytes+1, sizeof(char));
     do 
     {
         // Read data from input pipe
@@ -428,14 +428,14 @@ FILE* getCGIHeaderResponseStream(int i_source_fd)
         if (b_first_iteration == TRUE)
         {
         //TODO: find solution to valgrind problem
-            cp_stream_memory = (char*)secCalloc(total_read_bytes+1, sizeof(char));
+            cp_stream_memory = (char*)secCalloc(total_read_bytes, sizeof(char));
             memcpy(cp_stream_memory, ca_buffer, total_read_bytes);
             debugVerbose(CGICALL, "Read %d bytes from pipe.\n", total_read_bytes);
             b_first_iteration = FALSE;
         }
         else
         { 
-            cp_stream_memory = (char*) secRealloc(cp_stream_memory, total_read_bytes+1);
+            cp_stream_memory = (char*) secRealloc(cp_stream_memory, total_read_bytes);
             memcpy(cp_stream_memory + (total_read_bytes - read_bytes), ca_buffer, read_bytes);
             debugVerbose(CGICALL, "Read totally %d from pipe after realloc.\n", total_read_bytes);
             

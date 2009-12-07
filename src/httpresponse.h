@@ -32,13 +32,17 @@ static const enum SCE_CONTENT_TYPE_
     
 } SCE_CONTENT_TYPE;
 
+int writeToOutputStream(int i_fd, const char* ccp_text);
+
 int sendHTTPErrorMessage(int i_status);
 
 int sendCGIHTTPResponseHeader(http_cgi_response *header);
 
-void sendHTTPResponseHeader(int i_status, int i_content_type, int i_content_length);
+int sendHTTPAuthorizationResponse(const char* ccp_realm, const char* ccp_nonce);
 
-void sendHTTPResponse(int i_status, int i_content_type, const char* ccp_body);
+int sendHTTPResponseHeader(int i_status, int i_content_type, int i_content_length);
+
+int sendHTTPResponse(int i_status, int i_content_type, const char* ccp_body);
 
 int sendHTTPResponseHeaderExplicit(const char* cp_status, const char* cp_content_type, int i_content_length);
 

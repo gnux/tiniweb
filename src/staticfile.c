@@ -50,7 +50,7 @@ void processStaticFile(const char* ccp_path)
         return;
     }
     
-    cp_content_type = parseExtention(ccp_path);
+    cp_content_type = parseExtension(ccp_path);
 
     sendHTTPResponseHeaderExplicit("200 OK", cp_content_type, i_content_length);
     debugVerbose(STATIC_FILE, "Sent HTTP response to client.\n");
@@ -65,6 +65,7 @@ void processStaticFile(const char* ccp_path)
  
 int writeFileTo(FILE *file, int i_dest_fd)
 {
+    //TODO: make non-blocking
     unsigned char c_char = 0;
     int i_result = 0;
     ssize_t written_bytes = 0;
@@ -83,6 +84,7 @@ int writeFileTo(FILE *file, int i_dest_fd)
         c_char = (unsigned char)(i_result);
         
         //debug(CGICALL, "Before write.\n");
+        //TODO: stdout non-Blocking? Fehlerbehandlung
         written_bytes = write(i_dest_fd, &c_char, 1);
         total_written_bytes += written_bytes;
         //debug(CGICALL, "Wrote %d bytes to http client.\n", written_bytes);

@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
+#include <time.h>
 
 #include "md5.h"
 #include "secmem.h"
@@ -195,7 +196,7 @@ int main(int argc, char** argv) {
     
     if (mapRequestPath(&cp_mapped_path, &b_static) == FALSE)
     {
-        secExit(STATUS_FORBIDDEN);
+        secExit(STATUS_NOT_FOUND);
     }
     
     if (checkRequestPath(cp_mapped_path) == FALSE)
@@ -207,9 +208,9 @@ int main(int argc, char** argv) {
     
     if (searchForHTDigestFile(cp_mapped_path, cp_search_path_root, &b_digest_file_available, &cp_path_to_htdigest_file) == EXIT_FAILURE)
     {
-        /**
-         *  We found two .htdigest Files in the path! File is protected!
-         */
+        
+         //  We found two .htdigest Files in the path! File is protected!
+         
         secExit(STATUS_FORBIDDEN);
     }
     
@@ -217,6 +218,9 @@ int main(int argc, char** argv) {
     {
         authenticate(cp_path_to_htdigest_file);
     }
+    
+    
+    //processCGIScript("testscript");
     processStaticFile("tests/webroot/index.html");
 /*
     if(b_static)

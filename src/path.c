@@ -11,6 +11,7 @@
 #include "debug.h"
 #include "normalize.h"
 #include "secmem.h"
+#include "secstring.h"
 
 extern char *scp_web_dir_;
 extern char *scp_cgi_dir_;
@@ -74,7 +75,7 @@ bool performPathChecking(char** cpp_path_cgi, char** cpp_path_web)
         return FALSE;
     }
     
-    if (checkPath(*cpp_path_cgi) == FALSE || checkPath(*cpp_path_web) == FALSE)
+    if (checkCommadlinePath(*cpp_path_cgi) == FALSE || checkCommadlinePath(*cpp_path_web) == FALSE)
     {
         return FALSE;
     }
@@ -107,6 +108,21 @@ bool convertToRealPath(char** cp_path)
 }
 
 bool checkPath(char* ca_path)
+{
+    struct stat buffer;
+    int i_result = lstat(ca_path, &buffer);
+    
+    if (i_result == 0)
+    {
+        debugVerbose(PATH, "Success: Directory Checked: Directory/File %s is valid!\n", ca_path);
+        return TRUE;
+    }
+
+    debugVerbose(PATH, "ERROR: Directory Checked: Directory/File %s is NOT valid!\n", ca_path);
+    return FALSE;
+}
+
+bool checkCommadlinePath(char* ca_path)
 {
     struct stat buffer;
     int i_result = lstat(ca_path, &buffer);
@@ -327,7 +343,7 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
     char* cp_relative_path = http_request_->cp_path;
     int i_relative_path_len = strlen(cp_relative_path);
 
-    strAppend(&cp_relative_path_without_first_letter, cp_relative_path + 1);
+    strAppend(&cp_relative_path_without_first_letter, cp_relative_path);
     
     if (i_relative_path_len >= i_cgi_bin_len && strncmp(cp_relative_path, cp_cgi_bin, i_cgi_bin_len) == 0)
     {

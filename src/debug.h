@@ -13,6 +13,7 @@ static const enum SCE_DEBUG_TYPES
     ENVVAR,
     CGICALL,
     STATIC_FILE,
+    HTTP_RESPONSE,
     PATH
     
 } SCE_DEBUG_TYPE;

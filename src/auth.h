@@ -45,6 +45,15 @@ int searchForHTDigestFile(char* cp_path, char* cp_cearch_path_root, bool* bp_dig
 bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_username, char** cpp_ha1);
 
 /**
+ * Searches for a realm in the .htdigest file
+ *
+ * @param cp_path_to_file path to the .htdigest file
+ * @param cpp_realm realm sting to be stored in
+ * @return TRUE if the realm string was found, FALSE in case of an error
+ */
+bool getRealmFromHTDigestFile(char* cp_path_to_file, char** cpp_realm);
+
+/**
  * Checks the response from the client, which should be calculated in the following way:
  *
  *   HA1 = md5( username : realm : password )
@@ -62,6 +71,14 @@ bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
                     char* cp_uri, char* cp_response);
 
 /**
+ * 
+ * 
+ * @param cp_nonce 
+ * @return 
+ */
+bool verifyNonce(char* cp_nonce);
+
+/**
  * Implementation of HMAC using MD5 from RFC2104 (http://tools.ietf.org/html/rfc2104)
  * 
  * @param uca_text pointer to data stream
@@ -76,10 +93,10 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len,
 /**
  * Creates the nonce for authentication purposes
  *
- * @param uca_key the secret key, providied from the commandline
  * @param cpp_nonce nonce to be filled in
+ * @param timestamp timestamp to create the nonce with
  */
-int createNonce(unsigned char* uca_key, char** cpp_nonce);
+int createNonce(char** cpp_nonce, time_t timestamp);
 
 /**
  * Converts the hash from an unsigned char to a readable string

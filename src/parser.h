@@ -92,21 +92,14 @@ int validateAbspath(char** cp_string);
  * @param input a char pointer to an string you want to get checked
  * @param offset point where you want to start co check
  */
-bool isNonEscapedChar(char* input, int i_offset);
+bool isNonEscapedChar(char* cp_input, int i_offset);
 
-/**
- * Tries to check if the escaped chars hexdigit is correct
- * 
- * @params input char whiche should get checked
- */
-bool isHexDigit(char input);
 
-/**
- * Transforms an String to an Upper Case String
- * 
- * @params char pointer to string wich should get transformed
- */
-void stringToUpperCase(char* input);
+
+
+
+
+
 
 /**
  * Takes the string you are searching for and returns the header fieldbody if it could
@@ -142,12 +135,14 @@ void parsePrintStructures();
  * Parse the last characters until it finds the first "." afterwoods it checks if we know
  * the extension and returns the defined values
  */
-char* parseExtention(const char* filepath);
+char* parseExtension(const char* cp_filename);
 
  /**
  * Parse the last characters until it finds the first "/" returns everything after "/" to 
  * end of File
  */
 char* parseFilename(const char* filepath);
+
+
 
 #endif /*PARSER_H_*/
