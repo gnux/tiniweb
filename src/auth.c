@@ -499,7 +499,7 @@ int createNonce(char** cpp_nonce, time_t timestamp)
     md5_append(&path_state, (unsigned char*)http_request_->cp_path, strlen(http_request_->cp_path));
     md5_finish(&path_state, uca_path_nonce);
     
-    debugVerbose(AUTH, "###  uca_path_nonce lenght is: %i\n", strlen(uca_path_nonce));
+    debugVerbose(AUTH, "###  uca_path_nonce lenght is: %i\n", strlen((char*)uca_path_nonce));
     
     if (convertHash(uca_path_nonce, SCI_NONCE_LEN, &cp_path_hash) == EXIT_FAILURE)
     {
@@ -530,7 +530,7 @@ int createNonce(char** cpp_nonce, time_t timestamp)
      */
     performHMACMD5((unsigned char*)cp_concatenated_time_path, strlen(cp_concatenated_time_path), (unsigned char*)scp_secret_, strlen(scp_secret_), uca_time_path_hmac);
     debugVerbose(AUTH, "###  Path+ Time lenght is: %i\n", strlen(cp_concatenated_time_path));
-    debugVerbose(AUTH, "###  Path+Time HMAC lenght is: %i\n", strlen(uca_time_path_hmac));
+    debugVerbose(AUTH, "###  Path+Time HMAC lenght is: %i\n", strlen((char*)uca_time_path_hmac));
     debugVerbose(AUTH, "###  Path+Time HMAC string is: %x\n", uca_time_path_hmac);
      debugVerbose(AUTH, "### SCI_NONCE_LEN lenght is: %i\n", SCI_NONCE_LEN);
     if (convertHash(uca_time_path_hmac, SCI_NONCE_LEN, &cp_time_path_hmac) == EXIT_FAILURE)
@@ -539,7 +539,7 @@ int createNonce(char** cpp_nonce, time_t timestamp)
         return EXIT_FAILURE;
     }
     debugVerbose(AUTH, "Calculated HMACMD5 of time and Path: %s\n", cp_time_path_hmac);
-    debugVerbose(AUTH, "###  Path+Time HMAC lenght is: %i\n", strlen(uca_time_path_hmac));
+    debugVerbose(AUTH, "###  Path+Time HMAC lenght is: %i\n", strlen((char*)uca_time_path_hmac));
     /** 
      *  Concatenate STEP 1 and STEP 2:
      */
