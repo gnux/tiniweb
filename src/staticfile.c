@@ -64,7 +64,8 @@ void processStaticFile(const char* ccp_path)
     
     cp_content_type = parseExtension(ccp_path);
 
-    i_success = sendHTTPResponseHeaderExplicit("200 OK", cp_content_type, i_content_length);
+
+    //i_success = sendHTTPResponseHeaderExplicit("200 OK", cp_content_type, i_content_length);
     
     if(i_success == EXIT_FAILURE)
     {

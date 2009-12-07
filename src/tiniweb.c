@@ -194,10 +194,11 @@ int main(int argc, char** argv) {
     char* cp_path_to_htdigest_file = NULL;
     char* cp_search_path_root = NULL;
     bool b_digest_file_available = FALSE;
+    bool b_authenticated = TRUE;
     
     if (mapRequestPath(&cp_mapped_path, &b_static) == FALSE)
     {
-        secExit(STATUS_FORBIDDEN);
+        secExit(STATUS_NOT_FOUND);
     }
     
     if (checkRequestPath(cp_mapped_path) == FALSE)
@@ -217,22 +218,21 @@ int main(int argc, char** argv) {
     
     if (b_digest_file_available)
     {
-        authenticate(cp_path_to_htdigest_file);
+        b_authenticated = authenticate(cp_path_to_htdigest_file);
+    }
+
+    if(b_authenticated == TRUE)
+    {
+        if(b_static)
+        {
+            processStaticFile(cp_mapped_path);
+        }
+        else
+        {
+            processCGIScript(cp_mapped_path);
+        }
     }
     
-    
-    processCGIScript("../cgi-bin/testscript");
-    //processStaticFile("tests/webroot/index.html");
-/*
-    if(b_static)
-    {
-        processStaticFile(cp_mapped_path);
-    }
-    else
-    {
-        processCGIScript("cgi-bin/testscript");
-    }
-    */
     secCleanup();
     return EXIT_SUCCESS;
 }
