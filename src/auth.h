@@ -18,11 +18,6 @@
 bool authenticate(char* cp_path);
 
 /**
- * Sends a login error
- */
-void sendLoginError();
-
-/**
  * Searches for a .htdigest file within the mapped path
  *
  * @param cp_path mapped path
@@ -71,10 +66,10 @@ bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
                     char* cp_uri, char* cp_response);
 
 /**
+ * Verifies the given nonce
  * 
- * 
- * @param cp_nonce 
- * @return 
+ * @param cp_nonce the nonce to verify
+ * @return TRUE if the nonce is valid, FALSE if not
  */
 bool verifyNonce(char* cp_nonce);
 
@@ -107,8 +102,5 @@ int createNonce(char** cpp_nonce, time_t timestamp);
  * @return EXIT_SUCCESS if everything worked, EXIT_FAILURE if not
  */
 int convertHash(unsigned char* ucp_hash, int i_hash_len, char** cp_hash_nonce);
-
-// TODO remove when finished!
-void testHash();
 
 #endif
