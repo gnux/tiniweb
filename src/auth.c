@@ -579,3 +579,25 @@ int convertHash(unsigned char* ucp_hash, int i_hash_len, char** cp_hash_nonce)
     return EXIT_SUCCESS;
 }
 
+void testHash() 
+{
+    md5_state_t hash_state;
+    unsigned char result[17];
+    char* teststring = "TollerText";
+    char* resultstring = NULL;
+    
+    debugVerbose(AUTH, "########## Bin Daaaaa, Wer noch? \n");
+    
+    md5_init(&hash_state);
+    md5_append(&hash_state, (unsigned char*)teststring, strlen(teststring));
+    md5_finish(&hash_state, result);
+    
+    debugVerbose(AUTH, "########## Bin Daaaaa, Wer noch?2 \n");
+    
+    result[16] = '\0';
+    
+    convertHash(result, 16, &resultstring);
+    debugVerbose(AUTH, "########## HashTest: %s, Length: %i\n", resultstring, strlen(resultstring));
+    
+}
+
