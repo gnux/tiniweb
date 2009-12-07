@@ -32,7 +32,8 @@ void secCleanup() {
 	// clean up all registered pointers
 	while (lep_memory_handles_first) {
 		lep_iterate = lep_memory_handles_first->lep_next;
-		memset(lep_memory_handles_first->vp_ptr, 0x00,lep_memory_handles_first->i_len);
+		if(lep_memory_handles_first->i_len)
+			memset(lep_memory_handles_first->vp_ptr, 0x00,lep_memory_handles_first->i_len);
 		free(lep_memory_handles_first->vp_ptr);
 		memset(lep_memory_handles_first, 0x00, sizeof(list_entry));
 		free(lep_memory_handles_first);
@@ -74,6 +75,7 @@ void secAddNewEntry()
 		lep_memory_handles_last = lep_memory_handles_last->lep_next;
 	}
 	lep_memory_handles_last->lep_next = 0;
+	lep_memory_handles_last->i_len = 0;
 }
 
 void *secMalloc(size_t size)
@@ -139,7 +141,8 @@ void secFree(void *ptr) {
 	le = secFindElement(ptr);
 	if(!le)
 		return;
-	memset(le->vp_ptr, 0x00, le->i_len);
+	if(le->i_len)
+		memset(le->vp_ptr, 0x00, le->i_len);
 	free(le->vp_ptr);
 	if (le->lep_before)
 		le->lep_before->lep_next = le->lep_next;

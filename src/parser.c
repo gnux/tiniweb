@@ -466,7 +466,7 @@ int validateAbspath(char** cpp_string){
 	ssize_t i_offset = 0;
 	char* cp_decoded = NULL;
 	
-	cp_decoded = secCalloc(strlen(*cpp_string), sizeof(char));
+	cp_decoded = secCalloc(strlen(*cpp_string) + 1, sizeof(char));
 	
 	//Check every char of our string for correctness
 	for(;i<strlen(*cpp_string); ++i){
