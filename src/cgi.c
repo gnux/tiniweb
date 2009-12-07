@@ -50,8 +50,9 @@ void processCGIScript(const char* cp_path)
     int ia_cgi_post_body_pipe[2] = {-1, -1};
     pid_t pid_child = 0;
     //TODO: the filename and path should not be cleaned up
+    char* cpa_cgi_args[2];
+    char* cp_path_to_file = parseFilepath(cp_path);   
     char* cp_file_name = parseFilename(cp_path);
-    char* cpa_cgi_args[] = {cp_file_name, NULL};
     
     debugVerbose(CGICALL, "filename: %s.\n", cp_file_name);
 
@@ -63,7 +64,7 @@ void processCGIScript(const char* cp_path)
     appendToEnvVarList("TEST_VARIABLE3", "this is just a third test");
     
     printEnvVarList();
-  */  
+  */ 
     
     if (pipe(ia_cgi_response_pipe))
     {
@@ -94,6 +95,11 @@ void processCGIScript(const char* cp_path)
         case 0:
             /* We are the child process */
             
+            cpa_cgi_args[0] = malloc(sizeof(char)*(strlen(cp_file_name) + 1));
+            secProof(cpa_cgi_args[0]);
+            strncpy(cpa_cgi_args[0], cp_file_name, strlen(cp_file_name) + 1);   
+            cpa_cgi_args[1] = NULL;
+            
             i_success = clearenv();
             if(i_success == -1)
             {
@@ -105,16 +111,16 @@ void processCGIScript(const char* cp_path)
             {
                 //TODO: safe exit
                 debugVerbose(CGICALL, "Applying environment variables failed.\n");
-            }
+            }            
             
-            secCleanup();
-            
-            i_success = chdir("../cgi-bin/");
+            i_success = chdir(cp_path_to_file);
             if(i_success == -1)
             {
                 //TODO: safe exit
                 debugVerbose(CGICALL, "Changing directory failed.\n");
             }
+            
+            secCleanup();
             
             // Duplicate the pipes to stdIN / stdOUT
             if (dup2(ia_cgi_response_pipe[1], STDOUT_FILENO) < 0)
@@ -137,18 +143,19 @@ void processCGIScript(const char* cp_path)
             closePipes(ia_cgi_response_pipe);
 
             // Execute the cgi script
-            execv(cp_path, cpa_cgi_args);
+            execv(cpa_cgi_args[0], cpa_cgi_args);
 
             debugVerbose(CGICALL, "Executing CGI script failed.\n");
             /* Abort child "immediately" with _exit */
-            //TODO: safe exit
-            break;
+            //TODO: exit
+            exit(-1);
 
         case -1:
             // Error case
 
             closePipes(ia_cgi_post_body_pipe);
             closePipes(ia_cgi_response_pipe);
+            //TODO: safe exit
 
         default:
             // Parent
