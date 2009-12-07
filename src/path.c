@@ -334,6 +334,7 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
     char* cp_cgi_bin = "/cgi-bin";
     char* cp_web_dir = "/";
     char* cp_relative_path_without_first_letter = NULL;
+    char* cp_relative_path_without_cgi_bin = NULL;
     int i_cgi_bin_len = strlen(cp_cgi_bin);
     int i_web_dir_len = strlen(cp_web_dir);
     
@@ -348,11 +349,13 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
     if (i_relative_path_len >= i_cgi_bin_len && strncmp(cp_relative_path, cp_cgi_bin, i_cgi_bin_len) == 0)
     {
         strAppend(cpp_final_path, scp_cgi_dir_);
-        strAppend(cpp_final_path, cp_relative_path_without_first_letter);
+        strAppend(&cp_relative_path_without_cgi_bin, cp_relative_path_without_first_letter + i_cgi_bin_len);
+        strAppend(cpp_final_path, cp_relative_path_without_cgi_bin);
         
         if (convertToRealPath(cpp_final_path) == FALSE)
         {
             secFree(cp_relative_path_without_first_letter);
+            secFree(cp_relative_path_without_cgi_bin);
             return FALSE;
         }
         
@@ -373,6 +376,8 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
          {
             (*cb_static) = TRUE;
          }
+         
+         secFree(cp_relative_path_without_cgi_bin);
     }
     else
     {
