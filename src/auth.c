@@ -488,11 +488,16 @@ int createNonce(char** cpp_nonce, time_t timestamp)
 {	
     char uca_time[9];
     md5_state_t path_state;
-    unsigned char uca_path_nonce[SCI_NONCE_LEN];
+    unsigned char uca_path_nonce[SCI_NONCE_LEN + 1];
     char* cp_path_hash = NULL;
     char* cp_concatenated_time_path = NULL;
-    unsigned char uca_time_path_hmac[SCI_NONCE_LEN];
+    unsigned char uca_time_path_hmac[SCI_NONCE_LEN + 1];
     char* cp_time_path_hmac = NULL;
+    
+    uca_path_nonce[SCI_NONCE_LEN] = '\0';
+    uca_time_path_hmac[SCI_NONCE_LEN] = '\0';
+    
+    debugVerbose(AUTH,"Hex von 14: %x\n",14);
     
     // Creating of the MD5 Hash of the Request Path
     md5_init(&path_state);
@@ -508,45 +513,41 @@ int createNonce(char** cpp_nonce, time_t timestamp)
     }
     
     debugVerbose(AUTH, "Hash of the Path: %s\n", cp_path_hash);
+    debugVerbose(AUTH, "Length of hashed Path: %i\n", strlen(cp_path_hash));
 
     // Convert timestamp to Hex:
     memset(uca_time, 0, 9);
     sprintf((char*)uca_time,"%x",(unsigned int)timestamp);
     debugVerbose(AUTH, "Created the timestamp in Hex: %s\n", uca_time);
+    debugVerbose(AUTH, "Length of timestamp hex: %i\n", strlen(uca_time));
     
     /** 
      *  STEP 1:
      *  Concatenate timestamp hex and path hash
      */
     strAppend(&cp_concatenated_time_path, (char*)uca_time);
-    debugVerbose(AUTH, "###  Time lenght is: %i\n", strlen(cp_concatenated_time_path));
     strAppend(&cp_concatenated_time_path, cp_path_hash);
-    debugVerbose(AUTH, "###  Path Hash lenght is: %i\n", strlen(cp_path_hash));
     debugVerbose(AUTH, "Concatenation of timestamp hex and Path hash: %s\n", cp_concatenated_time_path);
+    debugVerbose(AUTH, "Length of Concatenation of timestamp hex and Path hash: %i\n", strlen(cp_concatenated_time_path));
     
     /** 
      *  STEP 2:
      *  Calculate HMACMD5
      */
-    performHMACMD5((unsigned char*)cp_concatenated_time_path, strlen(cp_concatenated_time_path), (unsigned char*)scp_secret_, strlen(scp_secret_), uca_time_path_hmac);
-    debugVerbose(AUTH, "###  Path+ Time lenght is: %i\n", strlen(cp_concatenated_time_path));
-    debugVerbose(AUTH, "###  Path+Time HMAC lenght is: %i\n", strlen((char*)uca_time_path_hmac));
-    debugVerbose(AUTH, "###  Path+Time HMAC string is: %x\n", uca_time_path_hmac);
-     debugVerbose(AUTH, "### SCI_NONCE_LEN lenght is: %i\n", SCI_NONCE_LEN);
+    performHMACMD5((unsigned char*)cp_concatenated_time_path, strlen(cp_concatenated_time_path), 
+                   (unsigned char*)scp_secret_, strlen(scp_secret_), uca_time_path_hmac);
     if (convertHash(uca_time_path_hmac, SCI_NONCE_LEN, &cp_time_path_hmac) == EXIT_FAILURE)
     {
         debugVerbose(AUTH, "ERROR: Converting of HMACMD5 Hash (Time and Path) did not work!");
         return EXIT_FAILURE;
     }
     debugVerbose(AUTH, "Calculated HMACMD5 of time and Path: %s\n", cp_time_path_hmac);
-    debugVerbose(AUTH, "###  Path+Time HMAC lenght is: %i\n", strlen((char*)uca_time_path_hmac));
+    debugVerbose(AUTH, "###  Path+Time HMAC lenght is: %i\n", strlen(cp_time_path_hmac));
     /** 
      *  Concatenate STEP 1 and STEP 2:
      */
     strAppend(cpp_nonce, cp_concatenated_time_path);
-    debugVerbose(AUTH, "###  cp_concatenated_time_path lenght is: %i\n", strlen(cp_concatenated_time_path));
     strAppend(cpp_nonce, cp_time_path_hmac);
-    debugVerbose(AUTH, "### cp_time_path_hmac after hash lenght is: %i\n", strlen(cp_time_path_hmac));
     debugVerbose(AUTH, "Concatenated (time : md5(path) : hmacmd5(time : md5(path))): %s\n", *cpp_nonce);
 	
 	debugVerbose(AUTH, "###  Nonce lenght is: %i\n", strlen(*cpp_nonce));
@@ -571,7 +572,14 @@ int convertHash(unsigned char* ucp_hash, int i_hash_len, char** cp_hash_nonce)
         //sprintf(cp_tmp_nonce_container, "%x", ucp_hash[i]);
         //cp_tmp_nonce_container[2] = '\0';
         //strAppend(cp_hash_nonce, cp_tmp_nonce_container);
-        strAppendFormatString(cp_hash_nonce,"%x",ucp_hash[i]);
+        if(ucp_hash[i] <= 15)
+        {
+            strAppendFormatString(cp_hash_nonce,"0%x",ucp_hash[i]);
+        }
+        else
+        {
+            strAppendFormatString(cp_hash_nonce,"%x",ucp_hash[i]);
+        }
     }
     
     //secFree(cp_tmp_nonce_container);    
