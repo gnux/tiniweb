@@ -77,12 +77,12 @@ void secAbort();
  */
 void secExit(int i_status);
 
-/**
- * secGetline routine, is used like getline but uses secMemory functions
- * every given pointer is tried to free, and new pointers are registered
- * therefor every pointer should be secure
- */
-ssize_t secGetline(char** cpp_lineptr, FILE *stream);
+// /**
+// * secGetline routine, is used like getline but uses secMemory functions
+// * every given pointer is tried to free, and new pointers are registered
+// * therefor every pointer should be secure
+// */
+// ssize_t secGetline(char** cpp_lineptr, FILE *stream);
 
 // void *secGetStringPart(const char* ccp_string, ssize_t start, ssize_t end);
 

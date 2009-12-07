@@ -7,13 +7,14 @@
 #include "debug.h"
 #include "httpresponse.h"
 #include "secstring.h"
+#include "pipe.h"
 
 static const char *SCCP_BLANK = {" \t"};
 static const char *SCCPA_NEW_LINE[] = {"\r\n", "\n", "\0"};
 
 //TODO: proof every line first for valid chars!!! sec getline???
 
-http_norm *normalizeHttp(FILE* fp_input, bool b_skipfirstline){
+http_norm *normalizeHttp(int fd, bool b_skipfirstline){
 	http_norm *hnp_http_info;
 	hnp_http_info = secCalloc(1, sizeof(http_norm));
 	hnp_http_info->i_num_fields = 0;
@@ -25,7 +26,7 @@ http_norm *normalizeHttp(FILE* fp_input, bool b_skipfirstline){
 	size_t i_num_read = 0;
 	
 	if(b_skipfirstline == FALSE){
-	  if(secGetline(&cp_current_line, fp_input) == -1){
+	  if(secGetlineFromFDWithPollin(&cp_current_line, fd) == -1){
 		  debugVerbose(NORMALISE, "Empty input detected\n");
 		  secExit(STATUS_BAD_REQUEST);
 	  }
@@ -45,7 +46,7 @@ http_norm *normalizeHttp(FILE* fp_input, bool b_skipfirstline){
 		// because there must be add least on header field... we will abort if we found non
 		// TODO: sec_abort!
 		i_num_read = 0;
-		if(secGetline(&cp_current_line, fp_input) == -1){
+		if(secGetlineFromFDWithPollin(&cp_current_line, fd) == -1){
 			debugVerbose(NORMALISE, "No Header Fields detected\n");
 			secExit(STATUS_BAD_REQUEST);
 		}
@@ -79,7 +80,7 @@ http_norm *normalizeHttp(FILE* fp_input, bool b_skipfirstline){
 			// TODO: sec_abort, or error message!
 			// Header has to end with endl!
 			i_num_read = 0;
-			if(secGetline(&cp_current_line, fp_input) == -1){
+			if(secGetlineFromFDWithPollin(&cp_current_line, fd) == -1){
 				debugVerbose(NORMALISE, "Invalid Header delimiter detected\n");
 				secExit(STATUS_BAD_REQUEST);
 			}
@@ -301,3 +302,63 @@ int isValidHeaderFieldStart(const char* ccp_input, bool b_skipfirstline){
 	return EXIT_SUCCESS;
 }
 
+// ssize_t readFromNonWithPolling(int fd, char* cp_header, ssize_t len, int timeout){
+// 	struct pollfd poll_fd;
+// 	int i_poll_result;
+// 	if(fd==NULL || cp_header == NULL)
+// 		return EXIT_FAILURE;
+// 	if(len == 0)
+// 		return 0;
+// 	poll_fd.fd = fd;
+// 	poll_fd.events = POLLIN;
+// 	poll_fd.revents = 0;
+// 	/* poll */
+//     i_poll_result = poll(poll_fd, 1, timeout);
+//     if (i_poll_result == -1) 
+//     {
+//         debugVerbose(PIPE, "I/O error during poll.\n");
+//         //TODO: safe exit
+//         return EXIT_FAILURE;
+// 
+//     } else if (i_poll_result == 0) 
+//     {
+//         fprintf(stderr, "poll timed out\n");
+//         //TODO: safe exit
+//         return EXIT_FAILURE;
+//     }
+// 
+//     /* Evaluate poll */
+//     for(i_index = 0; i_index <= i_in_idx; i_index++)
+//     {
+//         int i_pipe_index = ia_io_idx_to_pipe_index_map[i_index];
+//         //debugVerbose(PIPE, "%i POLLIN: %d, POLLHUP: %d, POLLERR: %d\n", i_index, poll_fds[i_index].revents & POLLIN, 
+//         //             poll_fds[i_index].revents & POLLHUP, poll_fds[i_index].revents & POLLERR);
+//         pipes[i_pipe_index]->i_in_eof = pipes[i_pipe_index]->i_in_eof || 
+//                                         (poll_fds[i_index].revents & ~POLLIN && !(poll_fds[i_index].revents & POLLIN));
+//         pipes[i_pipe_index]->i_in_ready = pipes[i_pipe_index]->i_in_ready || (poll_fds[i_index].revents & POLLIN);
+//     }
+//   
+//     for(i_index = i_in_idx + 1; i_index <= i_out_idx; i_index++)
+//     {
+//         int i_pipe_index = ia_io_idx_to_pipe_index_map[i_index];
+//         pipes[i_pipe_index]->i_out_eof = pipes[i_pipe_index]->i_out_eof || (poll_fds[i_index].revents & ~POLLOUT);
+//         pipes[i_pipe_index]->i_out_ready = pipes[i_pipe_index]->i_out_ready || (poll_fds[i_index].revents & POLLOUT);    
+//     }
+// 
+//     return 0;
+// }
+// 
+// void* getCompleteHeaderData(int fd){
+// 	char* cp_header;
+// 	ssize_t i;
+// 	char current;
+// 	cp_header = secCalloc(MAX_HEADER_SIZE, sizeof(char));
+// 	
+// 	for(i=0; i<MAX_HEADER_SIZE; ++i)
+// 	{
+// 		if(readFromNonWithPolling(fd,&cp_header[i],1) == EXIT_FAILURE)
+// 			secAbort();
+// 		
+// 	}
+// 	
+// }
