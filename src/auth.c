@@ -78,7 +78,7 @@ bool authenticate(char* cp_path)
 	    if (http_autorization_->cp_nonce && http_autorization_->cp_realm &&
 	        http_autorization_->cp_response && http_autorization_->cp_uri &&
 	        http_autorization_->cp_username && http_request_->cp_path && 
-	        http_request_->cp_method && http_request_->cp_uri)
+	        http_request_->cp_method)
 	    {
 	    
 	        if (getHA1HashFromHTDigestFile(cp_path, http_autorization_->cp_realm, 
@@ -95,11 +95,11 @@ bool authenticate(char* cp_path)
             debug(AUTH, "####### HA1: %s\n", cp_ha1);
             debug(AUTH, "####### http_autorization_->cp_nonce: %s\n", http_autorization_->cp_nonce);
             debug(AUTH, "####### http_request_->cp_method: %s\n", http_request_->cp_method);
-            debug(AUTH, "####### http_request_->cp_uri: %s\n", http_request_->cp_uri);
+            debug(AUTH, "####### http_autorization_->cp_uri: %s\n", http_autorization_->cp_uri);
             debug(AUTH, "####### http_autorization_->cp_response: %s\n", http_autorization_->cp_response);
 	        
 	        if (verifyResponse(cp_ha1, http_autorization_->cp_nonce, http_request_->cp_method, 
-	            http_request_->cp_uri, http_autorization_->cp_response) == FALSE)
+	            http_autorization_->cp_uri, http_autorization_->cp_response) == FALSE)
 	        {
                 debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
 	            secExit(STATUS_LOGIN_FAILED);
@@ -199,7 +199,7 @@ bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_
     char* cp_htdigest_compare_line = NULL;
     char* cp_ha1 = NULL;
     int i_line_len = strlen(cp_username) + strlen(cp_realm) + 2;
-    int i_htdigest_line_len = i_line_len + 32;
+    int i_htdigest_line_len = i_line_len + 32 + 1;
         
     FILE* file_htdigest = fopen(cp_path_to_file, cp_mode);
 
@@ -223,8 +223,7 @@ bool getHA1HashFromHTDigestFile(char* cp_path_to_file, char* cp_realm, char* cp_
         {
             debugVerbose(AUTH, "Success, expected line found in '.htdigest'-file\n");
             
-            cp_ha1 = secMalloc(32 * sizeof(char));
-            strncpy(cp_ha1, cp_htdigest_line + i_line_len, 32);
+            strAppend(&cp_ha1, cp_htdigest_line + i_line_len);
             (*cpp_ha1) = cp_ha1;
             
             secFree(cp_htdigest_compare_line);
@@ -310,34 +309,51 @@ bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
                     char* cp_uri, char* cp_response)
 {
     
-    
     md5_state_t ha2_state;
     md5_state_t expected_response_state;
     unsigned char uca_ha2[SCI_NONCE_LEN];
     unsigned char uca_expected_response[SCI_NONCE_LEN];
     char* cp_expected_converted_response = NULL;
+    char* cp_ha2_string = NULL;
+    
+    // Insert the ':'
+    strAppend(&cp_ha1, ":");
+    strAppend(&cp_nonce, ":");
+    strAppend(&cp_http_request_method, ":");
+    
     int i_result = -1;
     int i_nonce_len = strlen(cp_nonce);
     int i_http_request_method_len = strlen(cp_http_request_method);
     int i_uri_len = strlen(cp_uri);
+    int i_ha1_len = strlen(cp_ha1);
+    int i_ha2_len = 0;
+    
     // Calculate HA2:
     md5_init(&ha2_state);
     md5_append(&ha2_state, (unsigned char*)cp_http_request_method, i_http_request_method_len);
     md5_append(&ha2_state, (unsigned char*)cp_uri, i_uri_len);
     md5_finish(&ha2_state, uca_ha2);
+    convertHash(uca_ha2, SCI_NONCE_LEN, &cp_ha2_string);
+    i_ha2_len = strlen(cp_ha2_string);
+    
+    
+//     debugVerbose(AUTH, "##### HA1:        %s\n", cp_ha1);
+//     debugVerbose(AUTH, "##### Nonce:      %s\n", cp_nonce);
+//     debugVerbose(AUTH, "##### HA2:        %s\n", cp_ha2_string);
+//     debugVerbose(AUTH, "######## HA2 ReqMeth: %s, URI: %s\n", cp_http_request_method, cp_uri);
     
     // Calculate expected response:
     md5_init(&expected_response_state);
-    md5_append(&expected_response_state, (unsigned char*)cp_ha1, SCI_NONCE_LEN);
+    md5_append(&expected_response_state, (unsigned char*)cp_ha1, i_ha1_len);
     md5_append(&expected_response_state, (unsigned char*)cp_nonce, i_nonce_len);
-    md5_append(&expected_response_state, (unsigned char*)uca_ha2, SCI_NONCE_LEN);
+    md5_append(&expected_response_state, (unsigned char*)cp_ha2_string, i_ha2_len);
     md5_finish(&expected_response_state, uca_expected_response);
+    convertHash(uca_expected_response, SCI_NONCE_LEN, &cp_expected_converted_response);
 
     // TODO remove this debug output:
-    debugVerbose(AUTH, "Hash from client: %s\n", cp_response);
-    debugVerboseHash(AUTH, uca_expected_response, SCI_NONCE_LEN, "Expected Hash   :");
+//     debugVerbose(AUTH, "Hash from client: %s\n", cp_response);
+//     debugVerbose(AUTH, "HExpected Hash:   %s\n", cp_expected_converted_response);
     
-    convertHash(uca_expected_response, SCI_NONCE_LEN, &cp_expected_converted_response);
     
     i_result = strncmp(cp_response, cp_expected_converted_response, SCI_NONCE_LEN * 2);
     if (i_result != 0)
@@ -380,8 +396,6 @@ bool verifyNonce(char* cp_nonce)
     debugVerbose(AUTH, "Path Hash: %s \n", cp_path_hash);
     debugVerbose(AUTH, "HMACMD5 Hash: %s \n", cp_hmac);
     
-    // TODO remove this:
-    // timestamp: int int verwandeln
     i_timestamp_recieved = (int) strDecodeHexToUInt(cp_timestamp_hex, 0, i_timestamp_len);
     
     if (i_timestamp_recieved + ci_timelimit < i_timestamp_current || i_timestamp_recieved > i_timestamp_current)
@@ -551,8 +565,6 @@ int createNonce(char** cpp_nonce, time_t timestamp)
     debugVerbose(AUTH, "Concatenated (time : md5(path) : hmacmd5(time : md5(path))): %s\n", *cpp_nonce);
 	
 	debugVerbose(AUTH, "###  Nonce lenght is: %i\n", strlen(*cpp_nonce));
-    // TODO remove!
-    //verifyNonce(*cpp_nonce);
     
     return EXIT_SUCCESS;
 }
@@ -591,13 +603,15 @@ void testHash()
 {
     md5_state_t hash_state;
     unsigned char result[17];
-    char* teststring = "TollerText";
+    char* method = "GET:";
+    char* uri = "/tests/webroot/index.html";
     char* resultstring = NULL;
     
     debugVerbose(AUTH, "########## Bin Daaaaa, Wer noch? \n");
     
     md5_init(&hash_state);
-    md5_append(&hash_state, (unsigned char*)teststring, strlen(teststring));
+    md5_append(&hash_state, (unsigned char*)method, strlen(method));
+    md5_append(&hash_state, (unsigned char*)uri, strlen(uri));
     md5_finish(&hash_state, result);
     
     debugVerbose(AUTH, "########## Bin Daaaaa, Wer noch?2 \n");
