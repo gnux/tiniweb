@@ -10,37 +10,40 @@
 #include "typedef.h"
 
 /**
- * 
+ * Sorts the path in a double array. The result will be e.g:
  *
- * @param cp_path 
- * @param cppp_sorted_path 
- * @return 
+ *   cpp_path[0] = "Juhu/"
+ *   cpp_path[0][0] = 'J'
+ *
+ * @param cp_path the path to sort
+ * @param cppp_sorted_path the sorted path to be stored in
+ * @return number of folders
  */
 int getSortedPath(char* cp_path, char*** cppp_sorted_path);
 
 /**
- * 
+ * Function to free the allocated memory from the sorted path above
  *
- * @param cp_path 
- * @param i_num_folders 
- * @return 
+ * @param cpp_path the path to be freed
+ * @param i_num_folders the number of folders (cp_path[i_num_folders][x])
  */
 void freeSortedPath(char** cpp_path, int i_num_folders);
 
 /**
- * 
+ * Checks the two given commandline paths
  *
- * @param cpp_path_cgi 
- * @param cpp_path_web 
- * @return 
+ * @param cpp_path_cgi path of the cgi directory
+ * @param cpp_path_web path of the web dir
+ * @return TRUE if everything worked, FALSE if not
  */
 bool performPathChecking(char** cpp_path_cgi, char** cpp_path_web);
 
 /**
- * 
+ * Uses the function realpath(...) to construct the real path (without '..', '.' 
+ *  and '///')
  *
- * @param cp_path 
- * @return 
+ * @param cp_path the path to convert
+ * @return TRUE if it worked, FALSE if not
  */
 bool convertToRealPath(char** cp_path);
 
@@ -69,34 +72,35 @@ bool checkCommadlinePath(char* cp_path);
 bool checkRequestPath(char* cp_path);
 
 /**
- * 
+ * Checks if the first Directory contains the second Directory. This can be useful
+ * whrn checking, if the cgi dir contains the web dir
  *
- * @param cpp_path_cgi 
- * @param cpp_path_web 
- * @return 
+ * @param cpp_path_cgi the first directory
+ * @param cpp_path_web the second directory
+ * @return TRUE if the first Dir contains the second dir, FALSE if not
  */
 bool checkIfFirstDirContainsSecondDir(char* ca_path_cgi, char* ca_path_web);
 
 /**
- * 
- *
- * @param cpp_path
+ * Deletes Cycles like 'foo/..' from the path. The '.' well be deleted too
+ *   This Function is not used in our implementation any more. It is still in the
+ *   Code, because of possible future extensions.
+ * @param cpp_path the path from which teh cycles should be removed.
  */
 void deleteCyclesFromPath(char** cpp_path);
 
 /**
- * 
+ * Checks if the path is an absolute path (starts with '/')
  *
- * @param cpp_path
- * @return 
+ * @param cpp_path the path to check
+ * @return TRUE if it is an absolute path, false if not
  */
 bool isAbsolutePath(char * cp_path);
 
 /**
- * 
+ * Constructs the absolute path
  *
- * @param cpp_path
- * @return 
+ * @param cpp_path the relative path, which becomes an absulute path
  */
 void constructAbsolutePath(char** cpp_path);
 
@@ -108,10 +112,5 @@ void constructAbsolutePath(char** cpp_path);
  * @return TRUE in case of success, FALSE in case of an error
  */
 bool mapRequestPath(char** cpp_final_path, bool *cb_static);
-
-
-// TODO remove if not needed any more
-void testPathChecking();
-
 
 #endif
