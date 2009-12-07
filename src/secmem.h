@@ -8,6 +8,8 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "typedef.h"
+
 
 /** secMalloc routine, wrapper for malloc that registers allocated memory
  * \param size size of memory to allocate
@@ -86,6 +88,6 @@ ssize_t secGetline(char** cpp_lineptr, FILE *stream);
 
 
 //TODO: remove this function, if not needed anymore
-void sec_test();
+//void sec_test();
 
 #endif
