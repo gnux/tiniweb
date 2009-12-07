@@ -435,34 +435,3 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
     
     return TRUE;
 }
-
-void testPathChecking()
-{
-    checkPath("../cgi-bin");
-    checkPath("../cgi-bin/foo");
-    checkPath("..");
-    checkPath("");
-    checkPath("../src/../src/auth.c");
-    checkPath("/etc/");
-    checkPath("/etc/foooooooo");
-    checkPath("/..");
-    
-    debugVerbose(PATH, "-----------------------------------\n");
-    
-    char* cp_path_1 = "/foo/../foo";
-    char* cp_path_2 = "/../foo/../foo/././juhu";
-    performPathChecking(&cp_path_1,&cp_path_2);
-    
-    debugVerbose(PATH, "-----------------------------------\n");
-    
-    char* cp_path_3 = "../../";
-    char* cp_path_4 = ".";
-    performPathChecking(&cp_path_3,&cp_path_4);
-    
-    debugVerbose(PATH, "-----------------------------------\n");
-    
-    char* cp_path_5 = "/../../";
-    char* cp_path_6 = "/.";
-    performPathChecking(&cp_path_5,&cp_path_6);
-}
-

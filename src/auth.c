@@ -92,11 +92,11 @@ bool authenticate(char* cp_path)
                 secExit(STATUS_LOGIN_FAILED);
             }
             
-            debug(AUTH, "####### HA1: %s\n", cp_ha1);
-            debug(AUTH, "####### http_autorization_->cp_nonce: %s\n", http_autorization_->cp_nonce);
-            debug(AUTH, "####### http_request_->cp_method: %s\n", http_request_->cp_method);
-            debug(AUTH, "####### http_autorization_->cp_uri: %s\n", http_autorization_->cp_uri);
-            debug(AUTH, "####### http_autorization_->cp_response: %s\n", http_autorization_->cp_response);
+//             debug(AUTH, "####### HA1: %s\n", cp_ha1);
+//             debug(AUTH, "####### http_autorization_->cp_nonce: %s\n", http_autorization_->cp_nonce);
+//             debug(AUTH, "####### http_request_->cp_method: %s\n", http_request_->cp_method);
+//             debug(AUTH, "####### http_autorization_->cp_uri: %s\n", http_autorization_->cp_uri);
+//             debug(AUTH, "####### http_autorization_->cp_response: %s\n", http_autorization_->cp_response);
 	        
 	        if (verifyResponse(cp_ha1, http_autorization_->cp_nonce, http_request_->cp_method, 
 	            http_autorization_->cp_uri, http_autorization_->cp_response) == FALSE)
@@ -381,7 +381,7 @@ bool verifyNonce(char* cp_nonce)
     char* cp_hmac = NULL;
     char* cp_nonce_calculated = NULL;
     
-    debugVerbose(AUTH, "######### string len: %i !\n", strlen(cp_nonce));
+//     debugVerbose(AUTH, "######### string len: %i !\n", strlen(cp_nonce));
     
     if (strlen(cp_nonce) < i_timestamp_len + i_hash_len * 2)
     {
@@ -511,14 +511,14 @@ int createNonce(char** cpp_nonce, time_t timestamp)
     uca_path_nonce[SCI_NONCE_LEN] = '\0';
     uca_time_path_hmac[SCI_NONCE_LEN] = '\0';
     
-    debugVerbose(AUTH,"Hex von 14: %x\n",14);
+//     debugVerbose(AUTH,"Hex von 14: %x\n",14);
     
     // Creating of the MD5 Hash of the Request Path
     md5_init(&path_state);
     md5_append(&path_state, (unsigned char*)http_request_->cp_path, strlen(http_request_->cp_path));
     md5_finish(&path_state, uca_path_nonce);
     
-    debugVerbose(AUTH, "###  uca_path_nonce lenght is: %i\n", strlen((char*)uca_path_nonce));
+//     debugVerbose(AUTH, "###  uca_path_nonce lenght is: %i\n", strlen((char*)uca_path_nonce));
     
     if (convertHash(uca_path_nonce, SCI_NONCE_LEN, &cp_path_hash) == EXIT_FAILURE)
     {
@@ -527,13 +527,13 @@ int createNonce(char** cpp_nonce, time_t timestamp)
     }
     
     debugVerbose(AUTH, "Hash of the Path: %s\n", cp_path_hash);
-    debugVerbose(AUTH, "Length of hashed Path: %i\n", strlen(cp_path_hash));
+//     debugVerbose(AUTH, "Length of hashed Path: %i\n", strlen(cp_path_hash));
 
     // Convert timestamp to Hex:
     memset(uca_time, 0, 9);
     sprintf((char*)uca_time,"%x",(unsigned int)timestamp);
     debugVerbose(AUTH, "Created the timestamp in Hex: %s\n", uca_time);
-    debugVerbose(AUTH, "Length of timestamp hex: %i\n", strlen(uca_time));
+//     debugVerbose(AUTH, "Length of timestamp hex: %i\n", strlen(uca_time));
     
     /** 
      *  STEP 1:
@@ -542,7 +542,7 @@ int createNonce(char** cpp_nonce, time_t timestamp)
     strAppend(&cp_concatenated_time_path, (char*)uca_time);
     strAppend(&cp_concatenated_time_path, cp_path_hash);
     debugVerbose(AUTH, "Concatenation of timestamp hex and Path hash: %s\n", cp_concatenated_time_path);
-    debugVerbose(AUTH, "Length of Concatenation of timestamp hex and Path hash: %i\n", strlen(cp_concatenated_time_path));
+//     debugVerbose(AUTH, "Length of Concatenation of timestamp hex and Path hash: %i\n", strlen(cp_concatenated_time_path));
     
     /** 
      *  STEP 2:
@@ -556,7 +556,7 @@ int createNonce(char** cpp_nonce, time_t timestamp)
         return EXIT_FAILURE;
     }
     debugVerbose(AUTH, "Calculated HMACMD5 of time and Path: %s\n", cp_time_path_hmac);
-    debugVerbose(AUTH, "###  Path+Time HMAC lenght is: %i\n", strlen(cp_time_path_hmac));
+//     debugVerbose(AUTH, "###  Path+Time HMAC lenght is: %i\n", strlen(cp_time_path_hmac));
     /** 
      *  Concatenate STEP 1 and STEP 2:
      */
@@ -564,7 +564,7 @@ int createNonce(char** cpp_nonce, time_t timestamp)
     strAppend(cpp_nonce, cp_time_path_hmac);
     debugVerbose(AUTH, "Concatenated (time : md5(path) : hmacmd5(time : md5(path))): %s\n", *cpp_nonce);
 	
-	debugVerbose(AUTH, "###  Nonce lenght is: %i\n", strlen(*cpp_nonce));
+// 	debugVerbose(AUTH, "###  Nonce lenght is: %i\n", strlen(*cpp_nonce));
     
     return EXIT_SUCCESS;
 }
@@ -572,18 +572,12 @@ int createNonce(char** cpp_nonce, time_t timestamp)
 int convertHash(unsigned char* ucp_hash, int i_hash_len, char** cp_hash_nonce)
 {
     int i_result_nonce_len = (i_hash_len * 2) + 1;
-    //char* cp_tmp_nonce_container = NULL;
-    
+
     if (i_result_nonce_len < i_hash_len)
         return EXIT_FAILURE;
     
-   // cp_tmp_nonce_container = secMalloc(3 * sizeof(char));
-    
     for (int i = 0; i < i_hash_len; i++)
     {
-        //sprintf(cp_tmp_nonce_container, "%x", ucp_hash[i]);
-        //cp_tmp_nonce_container[2] = '\0';
-        //strAppend(cp_hash_nonce, cp_tmp_nonce_container);
         if(ucp_hash[i] <= 15)
         {
             strAppendFormatString(cp_hash_nonce,"0%x",ucp_hash[i]);
@@ -594,32 +588,5 @@ int convertHash(unsigned char* ucp_hash, int i_hash_len, char** cp_hash_nonce)
         }
     }
     
-    //secFree(cp_tmp_nonce_container);    
-    
     return EXIT_SUCCESS;
 }
-
-void testHash() 
-{
-    md5_state_t hash_state;
-    unsigned char result[17];
-    char* method = "GET:";
-    char* uri = "/tests/webroot/index.html";
-    char* resultstring = NULL;
-    
-    debugVerbose(AUTH, "########## Bin Daaaaa, Wer noch? \n");
-    
-    md5_init(&hash_state);
-    md5_append(&hash_state, (unsigned char*)method, strlen(method));
-    md5_append(&hash_state, (unsigned char*)uri, strlen(uri));
-    md5_finish(&hash_state, result);
-    
-    debugVerbose(AUTH, "########## Bin Daaaaa, Wer noch?2 \n");
-    
-    result[16] = '\0';
-    
-    convertHash(result, 16, &resultstring);
-    debugVerbose(AUTH, "########## HashTest: %s, Length: %i\n", resultstring, strlen(resultstring));
-    
-}
-
