@@ -92,7 +92,7 @@ bool authenticate(char* cp_path)
                 secExit(STATUS_LOGIN_FAILED);
             }
 	        
-	        if (verifyResponse(cp_ha1, cp_nonce, http_request_->cp_method, 
+	        if (verifyResponse(cp_ha1, http_autorization_->cp_nonce, http_request_->cp_method, 
 	            http_request_->cp_uri, http_autorization_->cp_response) == FALSE)
 	        {
                 debug(AUTH, "The 'response' from the auth field is NOT valid!\n");
@@ -303,6 +303,8 @@ bool getRealmFromHTDigestFile(char* cp_path_to_file, char** cpp_realm)
 bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
                     char* cp_uri, char* cp_response)
 {
+    
+    
     md5_state_t ha2_state;
     md5_state_t expected_response_state;
     unsigned char uca_ha2[SCI_NONCE_LEN];
@@ -312,7 +314,6 @@ bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
     int i_nonce_len = strlen(cp_nonce);
     int i_http_request_method_len = strlen(cp_http_request_method);
     int i_uri_len = strlen(cp_uri);
-    
     // Calculate HA2:
     md5_init(&ha2_state);
     md5_append(&ha2_state, (unsigned char*)cp_http_request_method, i_http_request_method_len);
@@ -510,7 +511,9 @@ int createNonce(char** cpp_nonce, time_t timestamp)
      *  Concatenate timestamp hex and path hash
      */
     strAppend(&cp_concatenated_time_path, (char*)uca_time);
+    debugVerbose(AUTH, "###  Time lenght is: %i\n", strlen(cp_concatenated_time_path));
     strAppend(&cp_concatenated_time_path, cp_path_hash);
+    debugVerbose(AUTH, "###  Path Hash lenght is: %i\n", strlen(cp_path_hash));
     debugVerbose(AUTH, "Concatenation of timestamp hex and Path hash: %s\n", cp_concatenated_time_path);
     
     /** 
@@ -518,20 +521,26 @@ int createNonce(char** cpp_nonce, time_t timestamp)
      *  Calculate HMACMD5
      */
     performHMACMD5((unsigned char*)cp_concatenated_time_path, strlen(cp_concatenated_time_path), (unsigned char*)scp_secret_, strlen(scp_secret_), uca_time_path_hmac);
+    debugVerbose(AUTH, "###  Path+ Time lenght is: %i\n", strlen(cp_concatenated_time_path));
+    debugVerbose(AUTH, "###  Path+Time HMAC lenght is: %i\n", strlen(uca_time_path_hmac));
+    
     if (convertHash(uca_time_path_hmac, SCI_NONCE_LEN, &cp_time_path_hmac) == EXIT_FAILURE)
     {
         debugVerbose(AUTH, "ERROR: Converting of HMACMD5 Hash (Time and Path) did not work!");
         return EXIT_FAILURE;
     }
     debugVerbose(AUTH, "Calculated HMACMD5 of time and Path: %s\n", cp_time_path_hmac);
-    
+    debugVerbose(AUTH, "###  Path+Time HMAC lenght is: %i\n", strlen(uca_time_path_hmac));
     /** 
      *  Concatenate STEP 1 and STEP 2:
      */
     strAppend(cpp_nonce, cp_concatenated_time_path);
+    debugVerbose(AUTH, "###  cp_concatenated_time_path lenght is: %i\n", strlen(cp_concatenated_time_path));
     strAppend(cpp_nonce, cp_time_path_hmac);
+    debugVerbose(AUTH, "### cp_time_path_hmac lenght is: %i\n", strlen(cp_time_path_hmac));
     debugVerbose(AUTH, "Concatenated (time : md5(path) : hmacmd5(time : md5(path))): %s\n", *cpp_nonce);
-
+	
+	debugVerbose(AUTH, "###  Nonce lenght is: %i\n", strlen(*cpp_nonce));
     // TODO remove!
     //verifyNonce(*cpp_nonce);
     
