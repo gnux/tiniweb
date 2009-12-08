@@ -196,8 +196,6 @@ int main(int argc, char** argv) {
     bool b_digest_file_available = FALSE;
     bool b_authenticated = TRUE;
     
-    testHash();
-    
     if (mapRequestPath(&cp_mapped_path, &b_static) == FALSE)
     {
         secExit(STATUS_NOT_FOUND);
