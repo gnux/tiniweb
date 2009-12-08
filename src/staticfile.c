@@ -16,6 +16,8 @@
 #include "httpresponse.h"
 #include "pipe.h"
 #include "secmem.h"
+
+extern int si_cgi_timeout_;
  
 extern const enum SCE_KNOWN_METHODS e_used_method;
 
@@ -62,7 +64,8 @@ void processStaticFile(const char* ccp_path)
     
     cp_content_type = parseExtension(ccp_path);
 
-    i_success = sendHTTPResponseHeaderExplicit("200 OK", cp_content_type, i_content_length);
+
+    //i_success = sendHTTPResponseHeaderExplicit("200 OK", cp_content_type, i_content_length);
     
     if(i_success == EXIT_FAILURE)
     {
@@ -94,7 +97,7 @@ void processStaticFile(const char* ccp_path)
       
 }
 
-int writeFileTo(int i_fd, int i_dest_fd)
+int writeFileTo(int i_src_fd, int i_dest_fd)
 {
     
     int i_success = -1;
@@ -102,7 +105,7 @@ int writeFileTo(int i_fd, int i_dest_fd)
     
     my_pipe = secMalloc(sizeof(io_pipe));
 
-    i_success = initPipe(my_pipe, i_fd, STDOUT_FILENO);
+    i_success = initPipe(my_pipe, i_src_fd, STDOUT_FILENO);
 
     if(i_success == EXIT_FAILURE)
     {
@@ -112,7 +115,7 @@ int writeFileTo(int i_fd, int i_dest_fd)
     while (1)
     {
     
-        i_success = pollPipes(&my_pipe, 5000, 1);
+        i_success = pollPipes(&my_pipe, si_cgi_timeout_, 1);
         
         if(i_success == 1)
         {

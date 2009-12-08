@@ -11,6 +11,11 @@
 #endif
 #define EXIT_FAILURE -1
 
+// define maximal header an buffer allocation sizes
+#define MAX_HEADER_SIZE 8192
+#define MAX_BUFFER_ALLOCATION_SIZE (MAX_HEADER_SIZE * 2)
+#define PIPE_TIMEOUT 5000
+
 typedef unsigned char uint8;
 typedef unsigned short uint16;
 typedef unsigned int uint;

@@ -143,6 +143,8 @@ char* parseExtension(const char* cp_filename);
  */
 char* parseFilename(const char* filepath);
 
+char* parseFilepath(const char* cp_filename);
+
 
 
 #endif /*PARSER_H_*/

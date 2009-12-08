@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "typedef.h"
+#include "pipe.h"
 
 
 char* secPrint2String(const char* ccp_format, ...);
@@ -39,6 +40,13 @@ char hextodec(char a);
  * @params input char whiche should get checked
  */
 bool isHexDigit(char c);
+
+/**
+ * secGetline routine, is used like getline but uses secMemory functions
+ * every given pointer is tried to free, and new pointers are registered
+ * therefor every pointer should be secure
+ */
+ssize_t secGetlineFromFDWithPollin(char** cpp_lineptr, int fd);
 
 
 #endif

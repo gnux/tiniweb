@@ -19,7 +19,7 @@
 
 extern int si_cgi_timeout_;
 
-int writeToOutputStream(int i_fd, const char* ccp_text)
+int writeStringToFile(int i_fd, const char* ccp_text)
 {
     struct pollfd poll_fd[1];
     int i_text_length = 0;
@@ -107,7 +107,7 @@ int sendCGIHTTPResponseHeader(http_cgi_response *header)
     
     strAppend(&cp_cgi_http_response_header, "\n");
     
-    i_success = writeToOutputStream(STDOUT_FILENO, cp_cgi_http_response_header);
+    i_success = writeStringToFile(STDOUT_FILENO, cp_cgi_http_response_header);
     
     /*    
     fprintf(stdout, "HTTP/1.1 %s\n", header->status);
@@ -154,7 +154,7 @@ int sendHTTPResponseHeaderExplicit(const char* ccp_status, const char* ccp_conte
         fprintf(stdout, "Content-Length: %i\n", i_content_length);
     }
     */
-    i_success = writeToOutputStream(STDOUT_FILENO, cp_http_response_header);
+    i_success = writeStringToFile(STDOUT_FILENO, cp_http_response_header);
         
     return i_success;
 }
@@ -188,7 +188,7 @@ int sendHTTPAuthorizationResponse(const char* ccp_realm, const char* ccp_nonce)
     fprintf(stdout, "%s", cp_body);
     */
     
-    i_success = writeToOutputStream(STDOUT_FILENO, cp_http_auth_response);
+    i_success = writeStringToFile(STDOUT_FILENO, cp_http_auth_response);
         
     return i_success;
 }
@@ -210,7 +210,7 @@ int sendHTTPResponseHeader(int i_status, int i_content_type, int i_content_lengt
     
     strAppend(&cp_http_response_header, "\n");
     
-    i_success = writeToOutputStream(STDOUT_FILENO, cp_http_response_header);
+    i_success = writeStringToFile(STDOUT_FILENO, cp_http_response_header);
         
     return i_success;
     
@@ -244,7 +244,7 @@ int sendHTTPResponse(int i_status, int i_content_type, const char* ccp_body)
     if(i_success == EXIT_FAILURE)
         return EXIT_FAILURE;
     
-    i_success = writeToOutputStream(STDOUT_FILENO, ccp_body);
+    i_success = writeStringToFile(STDOUT_FILENO, ccp_body);
         
     return i_success;
 }
