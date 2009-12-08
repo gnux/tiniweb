@@ -3,7 +3,8 @@
 #include "typedef.h"
 #include <stdio.h>
 
-http_norm *normalizeHttp(FILE* fp_input, bool b_skipfirstline);
+//http_norm *normalizeHttp(FILE* fp_input, bool b_skipfirstline);
+http_norm *normalizeHttp(int fd, bool b_skipfirstline);
 int isBlank(const char* ccp_input, const size_t i_offset);
 int isNewLineChars(const char* ccp_input, const size_t i_offset);
 int isCharacter(const char* ccp_input, const size_t i_offset);

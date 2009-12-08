@@ -23,6 +23,7 @@
 #include "path.h"
 #include "httpresponse.h"
 #include "staticfile.h"
+#include "pipe.h"
 
 // default values for options, if no command line option is available
 //static const char SCCA_WEB_DIR[] = "/";
@@ -174,9 +175,16 @@ int main(int argc, char** argv) {
     debugVerbose(MAIN, "CGI_DIR = %s \n", scp_cgi_dir_);
     debugVerbose(MAIN, "SECRET = %s \n", scp_secret_);
     debugVerbose(MAIN, "CGI_TIMEOUT = %d \n", si_cgi_timeout_);
-    
-    
-	http_norm *hnp_info = normalizeHttp(stdin, FALSE);
+	
+	
+	debugVerbose(MAIN, "Switching stdin to non_blocking mode\n");
+	if(setNonblocking(STDIN_FILENO))
+	{
+		debugVerbose(MAIN, "Switching stdin to non_blocking mode failed!\n");
+		secAbort();
+	}
+
+	http_norm *hnp_info = normalizeHttp(STDIN_FILENO, FALSE);
 	
 	initEnvVarList("GATEWAY_INTERFACE","CGI/1.1");
     //appendToEnvVarList("SCRIPT_FILENAME",scp_cgi_dir_);
