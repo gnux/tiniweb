@@ -4,7 +4,7 @@
 #include "debug.h"
 #include "typedef.h"
 
-extern unsigned char sb_flag_verbose_;
+extern bool b_flag_verbose_;
 
 char* getTypeString(int type)
 {
@@ -59,7 +59,7 @@ void debug(int type, const char *ptr, ...){
 
 void debugVerbose(int type, const char *ptr, ...){
   va_list va;
-  if(!sb_flag_verbose_)
+  if(!b_flag_verbose_)
     return;
   fprintf(stderr,"%s_VERBOSE>> ", getTypeString(type));
   va_start(va, ptr);
@@ -71,7 +71,7 @@ void debugVerboseHash(int type, const unsigned char* cuca_hash, int i_hash_len, 
 {
     va_list va;
     int i = 0;
-    if(!sb_flag_verbose_)
+    if(!b_flag_verbose_)
         return;
     
     fprintf(stderr,"%s_VERBOSE>> ", getTypeString(type));

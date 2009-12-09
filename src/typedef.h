@@ -26,8 +26,8 @@
 // define timeouts
 #define PIPE_TIMEOUT 5000
 #define STDIN_TIMEOUT 5000
-#define CGI_TIME_OUT_MIN 1
-#define CGI_TIME_OUT_MAX 50
+#define CGI_TIME_OUT_MIN 1000
+#define CGI_TIME_OUT_MAX 50000
 
 // define some std variable types
 typedef unsigned char uint8;
