@@ -1,0 +1,4 @@
+GET //.////.././cgi-bin//.///env.cgi HTTP/1.1
+Host: localhost:8080
+X-Info: Simple correct DYNAMIC request path test with slashes
+
