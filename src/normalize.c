@@ -9,8 +9,6 @@
 #include "secstring.h"
 #include "pipe.h"
 
-//static const char *SCCP_BLANK = {" \t"};
-
 http_norm *normalizeHttp(const char* ccp_header, bool b_cgiresponse)
 {
 	http_norm *hnp_http_info;
@@ -155,7 +153,7 @@ void normalizeSingleLine(char** cpp_input)
 		}
 	}
 	(*cpp_input)[i-i_offset] = '\0';
-	*cpp_input = secRealloc(*cpp_input, strlen(*cpp_input) * sizeof(char) + 1);
+	*cpp_input = secRealloc(*cpp_input, (strlen(*cpp_input) + 1) * sizeof(char));
 }
 
 void printHttpNorm(http_norm* hnp_http_info)
@@ -193,7 +191,6 @@ void getHeaderFieldBody(char** cpp_output, const char* ccp_input)
 	// search for ':' token, there must be one, we've already checked that
 	for(i_offset_token = 0; ccp_input[i_offset_token] != ':'; ++i_offset_token);
 	i_len_output = strlen(ccp_input) - i_offset_token;
-	// TODO: discuss of defining MAX_STR_LEN ~ 100MB --- strnlen function!
 	*cpp_output = secCalloc(i_len_output, sizeof(char));
 	strncpy(*cpp_output, &ccp_input[i_offset_token + 1], i_len_output);
 	(*cpp_output)[i_len_output - 1] = '\0';

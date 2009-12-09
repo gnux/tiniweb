@@ -11,8 +11,6 @@
 #include "httpresponse.h"
 #include "typedef.h"
 
-int isValid(const char* ccp_input, const size_t i_offset);
-
 /**
 * describes list entry structure for a double-linked list, that holds ptr to memory blocks
 */
@@ -80,14 +78,6 @@ void *secMalloc(size_t size)
 {
 	return secCalloc(1, size);
 }
-//void *ptr;
-//ptr = malloc(size);
-//secProof(ptr);
-//secAddNewEntry();
-//lep_memory_handles_last->vp_ptr = ptr;
-//lep_memory_handles_last->i_len = size;
-//return lep_memory_handles_last->vp_ptr;
-//}
 
 void *secCalloc(size_t nmemb, size_t size)
 {
@@ -203,67 +193,3 @@ void secExit(int i_status){
 	secCleanup();
 	exit(-1);	
 }
-
-// ssize_t secGetline(char** cpp_lineptr, FILE *stream){
-// 	size_t i_num_reads = 0;
-// 	ssize_t i_ret = 0;
-// 	ssize_t i = 0;
-// 	if(*cpp_lineptr)
-// 		secFree(*cpp_lineptr);
-// 	
-// 	*cpp_lineptr = NULL;
-// 	i_ret = getline(cpp_lineptr, &i_num_reads, stream);
-// 	// proof our input, TODO: BAD request
-// 	if(i_ret == -1)
-// 		secAbort();
-// 	for(; i < i_ret; ++i)
-// 		if(isValid(*cpp_lineptr, i) == EXIT_FAILURE)
-// 			secAbort();
-// 		secProof(*cpp_lineptr);
-// 	secRegister(*cpp_lineptr);
-// 	
-// 	return i_ret;
-// }
-
-// void *secGetStringPart(const char* ccp_string, ssize_t start, ssize_t end){
-   // 	if(end < start || end > strlen(ccp_string))
-   // 		//TODO: something went wrong we would return NULL
-   // 		return NULL;
-   // 		//secAbort();
-   // 	ssize_t len = end - start + 2;
-   // 	ssize_t i;
-   // 	char *cp_fragment = secCalloc(len, sizeof(char));
-   // 	cp_fragment[len - 1] = '\0';
-   // 	for(i=0; i < len - 1; ++i)
-   // 	cp_fragment[i] = ccp_string[start + i];
-   // 	
-   // 	return cp_fragment;
-   // }
-   
-   // //TODO: remove this function, if not needed anymore
-   // void sec_test() {
-   //     char *ptr;
-   //     int i;
-   // 
-   //     for (i = 0; i < 500; i++) {
-   //         secMalloc(i);
-   //         secCalloc(i * 3, i);
-   //     }
-   //     ptr = secMalloc(30);
-   // 
-   //     for (i = 0; i < 100; ++i)
-   //         ptr = secRealloc(ptr, i);
-   // 
-   //     ptr = secMalloc(300000);
-   //     for (i = 0; i < 3000; ++i)
-   //         ptr = secRealloc(ptr, i);
-   //     ptr = secRealloc(0, 222);
-   //     ptr = secRealloc(ptr, 0);
-   // 
-   //     secCleanup();
-   //     ptr = secCalloc(5, 30);
-   //     secFree(ptr);
-   //     ptr = secCalloc(5, 30);
-   //     secCleanup();
-   // }
-   

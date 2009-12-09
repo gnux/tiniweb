@@ -80,7 +80,7 @@ char* retrieveHeader(int fd, int timeout)
 		secAbort();
 	
 	cp_header[i] = '\0';
-	return secRealloc(cp_header, i + 1);
+	return secRealloc(cp_header, (i + 1) * sizeof(char));
 }
 
 ssize_t pollAndRead(int fd, int timeout, char* cp_buffer, ssize_t num)
