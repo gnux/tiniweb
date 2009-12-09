@@ -282,7 +282,7 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
 		{
 			if(pipes[0]->i_in_ready)
 			{
-				i_success = getHeader(&cp_cgi_response_header, pipes[0]->i_in_fd);
+				i_success = getHeader(&cp_cgi_response_header, pipes[0]->i_in_fd, MAX_HEADER_SIZE + 1);
 				b_first_get_header_call = FALSE;
 				pipes[0]->i_in_ready = 0;
 				if(i_success == 0)
@@ -336,14 +336,19 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
 }
 
 
-int getHeader(char** cpp_header, int i_fd)
+int getHeader(char** cpp_header, int i_fd, int i_max_size)
 {
 	char c_character;
 	static int i_position = 0;
 	static bool b_gotcr = FALSE;
 	static bool b_gotnl = FALSE;
 	
-	if(i_position >= MAX_HEADER_SIZE)
+	if(cpp_header == NULL)
+	{
+	    return -1;
+	}
+	
+	if(i_position >= i_max_size - 1)
 	{
 		//TODO: header ohne newline am ende?
 		return EXIT_FAILURE;
@@ -359,7 +364,7 @@ int getHeader(char** cpp_header, int i_fd)
 	else if (in_size == 0) 
 	{
 		//TODO: STATUS_SCRIPT_ERROR
-		debugVerbose(NORMALISE, "Invalid Header delimiter detected\n");
+		debugVerbose(CGICALL, "Invalid Header delimiter detected\n");
 		secExit(STATUS_BAD_REQUEST);
 	}
 	if(c_character == '\r')
@@ -408,7 +413,7 @@ int getHeader(char** cpp_header, int i_fd)
 	
 	return 1;
 	}
-	
+	/*
 	bool isValidCharacter(char* c_character)
 	{
 		if(*c_character == '\n' || *c_character == '\r')
@@ -418,7 +423,7 @@ int getHeader(char** cpp_header, int i_fd)
 		if(isBlank(c_character, 0) == EXIT_SUCCESS)
 			return TRUE;
 		return FALSE;
-	}
+	}*/
 	/*
 	FILE* getCGIHeaderResponseStream(int i_source_fd)
 		{
