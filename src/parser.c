@@ -20,13 +20,13 @@
 static const char* SCCA_KNOWN_METHODS[] = {"GET", "POST", "HEAD"};
 static const int SCI_NUM_KNOWN_METHODS = 3;
 static const char* SCCP_KNOWN_HTTPVERSION = "HTTP/1.1";
-static const char* SCCP_CGI_BIN ="/cgi-bin/";
-static const char* SCCP_HTTP_HEADER_FIELD_MARKER = "HTTP_";
+//static const char* SCCP_CGI_BIN ="/cgi-bin/";
+//static const char* SCCP_HTTP_HEADER_FIELD_MARKER = "HTTP_";
 enum SCE_KNOWN_METHODS e_used_method = UNKNOWN;
 
 
 //TODO: really use global variable???
-bool B_CGI_BIN_FOUND = FALSE;
+//bool B_CGI_BIN_FOUND = FALSE;
 bool B_AUTORIZATION_FOUND = FALSE;
 http_autorization* http_autorization_ = NULL;
 
@@ -87,6 +87,8 @@ http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info){
 		if(strlen(hnp_info->cpp_header_field_name[1]) == 6)
 			if(strncasecmp("Status",hnp_info->cpp_header_field_name[1],6)==0){
 				http_cgi_response_->status = hnp_info->cpp_header_field_body[1];
+				if(isStatusCode(http_cgi_response_->status)==FALSE)
+					secExit(STATUS_INTERNAL_SERVER_ERROR);
 				i++;
 			}
 		if(http_cgi_response_->status == NULL)
@@ -116,6 +118,10 @@ http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info){
 	for(; i < hnp_info->i_num_fields; ++i){
 
 		i_len = strlen(hnp_info->cpp_header_field_name[i]);
+		if(i_len == 6 && strncasecmp("Content-Type",hnp_info->cpp_header_field_name[i],12)==0)
+			secExit(STATUS_INTERNAL_SERVER_ERROR);
+		if(i_len == 10 && strncasecmp("Status",hnp_info->cpp_header_field_name[i],6)==0)
+			secExit(STATUS_INTERNAL_SERVER_ERROR);
 		if(i_len == 6 && strncasecmp("Server",hnp_info->cpp_header_field_name[i],6)==0)
 			continue;
 		if(i_len == 10 && strncasecmp("Connection",hnp_info->cpp_header_field_name[i],10)==0)
@@ -184,7 +190,7 @@ int parseArguments(http_norm *hnp_info){
 	}
 	
 	// in case of cgi we would need to setup our envvars
-	if(B_CGI_BIN_FOUND == TRUE){
+	/*if(B_CGI_BIN_FOUND == TRUE){
 		for(ssize_t i = 0; i < hnp_info->i_num_fields; ++i){
 			cp_name = NULL;
 			strAppend(&cp_name, SCCP_HTTP_HEADER_FIELD_MARKER);
@@ -206,7 +212,7 @@ int parseArguments(http_norm *hnp_info){
 		appendToEnvVarList("SCRIPT_FILENAME","0");
 		//TODO:Where to get???
 		appendToEnvVarList("DOCUMENT_ROOT","0");
-	}
+	}*/
 	return EXIT_SUCCESS;
 }
 	
@@ -231,25 +237,44 @@ int parseAuthorizationInfos(const char* ccp_authstr){
 	//we check for them and save them in our structur, if something went wrong
 	//exit with EXIT_FAILURE else EXIT_SUCCESS
 	http_autorization_ = secCalloc(1, sizeof(http_autorization));
+	//Check for username
 	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "username=\"", "\"");
 	if(cp_helper == NULL)
-		return EXIT_FAILURE;
+		cp_helper = parseSubstringByDelimStrings(ccp_authstr, "username=", ",");
+	if(cp_helper == NULL)
+			return EXIT_FAILURE;
 	http_autorization_->cp_username = cp_helper;
+	//Check for realm
 	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "realm=\"", "\"");
-	if(cp_helper == NULL)
-		return EXIT_FAILURE;
+	if(cp_helper == NULL){
+		cp_helper = parseSubstringByDelimStrings(ccp_authstr, "realm=", ",");
+		if(cp_helper == NULL)
+			return EXIT_FAILURE;
+	}
 	http_autorization_->cp_realm = cp_helper;
+	//Check for nonce
 	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "nonce=\"", "\"");
-	if(cp_helper == NULL)
-		return EXIT_FAILURE;
+	if(cp_helper == NULL){
+		cp_helper = parseSubstringByDelimStrings(ccp_authstr, "nonce=", ",");
+		if(cp_helper == NULL)
+			return EXIT_FAILURE;
+	}
 	http_autorization_->cp_nonce = cp_helper;
+	//Check for uri
 	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "uri=\"", "\"");
-	if(cp_helper == NULL)
-		return EXIT_FAILURE;
+	if(cp_helper == NULL){
+		cp_helper = parseSubstringByDelimStrings(ccp_authstr, "uri=", ",");
+		if(cp_helper == NULL)
+			return EXIT_FAILURE;
+	}
 	http_autorization_->cp_uri = cp_helper;
+	//Check for response
 	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "response=\"", "\"");
-	if(cp_helper == NULL)
-		return EXIT_FAILURE;
+	if(cp_helper == NULL){
+		cp_helper = parseSubstringByDelimStrings(ccp_authstr, "response=", "\n");
+		if(cp_helper == NULL)
+			return EXIT_FAILURE;
+	}
 	http_autorization_->cp_response = cp_helper;
 	return EXIT_SUCCESS;
 }
@@ -377,10 +402,10 @@ int parseRequestURI(char* input, int offset){
 	cp_uri = secGetStringPart(input, i_offset_st, i_offset_en - 1);
 	
 	//Check if the URI starts with /cgi-bin/
-	if(strncmp(SCCP_CGI_BIN,cp_uri,min(strlen(SCCP_CGI_BIN), strlen(cp_uri)))==0){
+	/*if(strncmp(SCCP_CGI_BIN,cp_uri,min(strlen(SCCP_CGI_BIN), strlen(cp_uri)))==0){
 		B_CGI_BIN_FOUND = TRUE;
 		debugVerbose(PARSER, "CGI bin found\n");
-	}
+	}*/
 	
 	//It is possible that the URI contians an question and/or an fragment
 	//First find our path, it ends after an ?,#,' ', or if the line ends
@@ -614,6 +639,24 @@ char* parseFilepath(const char* cp_filename){
 	cp_path = secGetStringPart(cp_filename, i_str_begin, i_str_end);
 	
 	return cp_path;
+	
+}
+
+bool isStatusCode(const char* num){
+	
+	int i=0;
+	if(strlen(num)<4)
+		return FALSE;
+		
+	for(;i<3;i++){
+		if(num[i]<47 || num[i]>57)
+			return FALSE;
+	}
+	
+	if(num[3] != ' ')
+		return FALSE;
+	
+	return TRUE;
 	
 }
 
