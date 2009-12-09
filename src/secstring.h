@@ -1,7 +1,8 @@
-/** tiniweb
- * \file secstring.h
- * \author Georg Neubauer
- */
+/** secstring.h
+* Definition of secString functions
+* \file typedef.h
+* \author Patrick Plaschzug, Christian Partl, Georg Neubauer, Dieter Ladenhauf
+*/
 
 #ifndef __SEC_STRING_H__
 #define __SEC_STRING_H__
@@ -11,55 +12,90 @@
 #include "typedef.h"
 #include "pipe.h"
 
-
+/**
+* Print format string into a buffer allocated by secMemory
+*
+* @param ccp_format the format string
+* @param ... format values
+* @return freshly allocated and formated string
+*/
 char* secPrint2String(const char* ccp_format, ...);
 
+/**
+* Append format string to existing string.
+* Is able to handle NULL pointers.
+*
+* @param cpp_output output string
+* @param ccp_format the format string
+* @param ... format values
+*/
 void strAppendFormatString(char** cpp_output, const char* ccp_format, ...);
 
 /**
- * Appends the input string to the output string, it always
- * determinate with '\0'
- * 
- * @param ccp_output double pointer to string where it should be appanded
- * @param ccp_input  pointer to string you want to appand
- */
+* Appends the input string to the output string, it always
+* determinate with '\0'. If NULL Pointer is given a new string
+* is allocated by secMemory.
+* 
+* @param cpp_output double pointer to string where it should be appanded
+* @param ccp_input pointer to string you want to append
+*/
 void strAppend(char** cpp_output, const char* ccp_input);
 
-
-//void strAppend(char** cpp_output, const char* ccp_input);
-
-
+/**
+* Get a part from a string determined by start and end offset.
+* Returned string part is freshly allocated by secMemory.
+* 
+* @param ccp_output string to get part from
+* @param start offset from where to start
+* @param end offset where to end
+* @return string that holds requested part
+*/
 void *secGetStringPart(const char* ccp_string, ssize_t start, ssize_t end);
 
-
-long strDecodeHexToUInt(char* cp_string, ssize_t i_offset, ssize_t i_len);
+/**
+* Decode a given hex string to an unsigned long value.
+*
+* @param cp_string string to decode
+* @param i_offset where to start
+* @param i_len decode how many bytes from offset
+* @return decoded value
+*/
+unsigned long strDecodeHexToULong(char* cp_string, ssize_t i_offset, ssize_t i_len);
 
 /**
- * Transforms an String to an Upper Case String
- * 
- * @params char pointer to string wich should get transformed
- */
+* Transforms an String to an Upper Case String
+*
+* @param char pointer to string wich should get transformed
+*/
 void stringToUpperCase(char* cp_input);
 
-
+/**
+* Decode one hex char to its dezimal representation.
+*
+* @param a the char
+* @return decoded value
+*/
 char hextodec(char a);
 
 /**
- * Tries to check if the escaped chars hexdigit is correct
- * 
- * @params input char whiche should get checked
- */
+* Tries to check if the escaped chars hexdigit is correct
+* 
+* @param input char whiche should get checked
+* @return check result
+*/
 bool isHexDigit(char c);
 
 /**
- * secGetline routine, is used like getline but uses secMemory functions
- * every given pointer is tried to free, and new pointers are registered
- * therefor every pointer should be secure
- */
-ssize_t secGetlineFromFDWithPollin(char** cpp_lineptr, int fd);
-
-
-ssize_t getNextLineFromString(const char* ccp_string, char** cp_current_line, ssize_t i_offset);
+* getNextLineFromString routine, is used like getline but gets next line
+* delimited by '\n' from memory string. Uses secGetStringPart function.
+* Auto frees given valid pointers.
+* 
+* @param ccp_string string where to get the line
+* @param cpp_current_line where to store the line into
+* @param i_offset where to start search for next line
+* @return offset + 1 of last found '\n'
+*/
+ssize_t getNextLineFromString(const char* ccp_string, char** cpp_current_line, ssize_t i_offset);
 
 #endif
 

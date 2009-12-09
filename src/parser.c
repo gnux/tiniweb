@@ -501,7 +501,7 @@ int validateAbspath(char** cpp_string){
 			return EXIT_FAILURE;
 		if((*cpp_string)[i] == '%'){
 		
-			cp_decoded[i - i_offset] = (unsigned char) strDecodeHexToUInt(*cpp_string, i, 2);//decode(*cpp_string, i);
+			cp_decoded[i - i_offset] = (unsigned char) strDecodeHexToULong(*cpp_string, i, 2);//decode(*cpp_string, i);
 			//PROOF for NULL!!! TODO: bad request
 			//We don't support 00 or ff
 			if(cp_decoded[i - i_offset] == 0x00 )//|| cp_decoded[i - i_offset] == 0xff)

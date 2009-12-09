@@ -1,3 +1,9 @@
+/** secstring.c
+* Implementation of secString functions
+* \file secstring.c
+* \author Patrick Plaschzug, Christian Partl, Georg Neubauer, Dieter Ladenhauf
+*/
+
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,19 +18,18 @@
 #include "pipe.h"
 #include "normalize.h"
 
-
 char* secPrint2String(const char* ccp_format, ...)
 {
-  char* ucp_string = NULL;
-  va_list va;
-  va_start(va, ccp_format);
-  if(vasprintf(&ucp_string, ccp_format, va) == -1 || ucp_string == NULL)
-  {
-	  secAbort();
-  }
-  secRegister(ucp_string);
-  va_end(va);
-  return ucp_string;
+	char* ucp_string = NULL;
+	va_list va;
+	va_start(va, ccp_format);
+	if(vasprintf(&ucp_string, ccp_format, va) == -1 || ucp_string == NULL)
+	{
+		secAbort();
+	}
+	secRegister(ucp_string);
+	va_end(va);
+	return ucp_string;
 }
 
 void *secGetStringPart(const char* ccp_string, ssize_t start, ssize_t end)
@@ -32,31 +37,31 @@ void *secGetStringPart(const char* ccp_string, ssize_t start, ssize_t end)
 	if(end < start || end > strlen(ccp_string))
 		//TODO: something went wrong we would return NULL
 		return NULL;
-		//secAbort();
+	//secAbort();
 	ssize_t len = end - start + 2;
 	ssize_t i;
 	char *cp_fragment = secCalloc(len, sizeof(char));
 	cp_fragment[len - 1] = '\0';
 	for(i=0; i < len - 1; ++i)
-	cp_fragment[i] = ccp_string[start + i];
+		cp_fragment[i] = ccp_string[start + i];
 	
 	return cp_fragment;
 }
 
-ssize_t getNextLineFromString(const char* ccp_string, char** cp_current_line, ssize_t i_offset)
+ssize_t getNextLineFromString(const char* ccp_string, char** cpp_current_line, ssize_t i_offset)
 {
 	ssize_t i = 0;
-	if(*cp_current_line != NULL)
-		secFree(*cp_current_line);
+	if(*cpp_current_line != NULL)
+		secFree(*cpp_current_line);
 	
 	for(i = i_offset; i < strlen(ccp_string) && ccp_string[i] != '\n'; ++i);
-	*cp_current_line = secGetStringPart(ccp_string, i_offset, i);
+	*cpp_current_line = secGetStringPart(ccp_string, i_offset, i);
 	return i + 1;
 }
 
 void strAppend(char** cpp_output, const char* ccp_input){
 	if(ccp_input == NULL)
-	  return;
+		return;
 	if(!*cpp_output){
 		*cpp_output = secCalloc(1, sizeof(char));
 		(*cpp_output)[0] = '\0';
@@ -82,19 +87,18 @@ void strAppend(char** cpp_output, const char* ccp_input){
 
 void strAppendFormatString(char** cpp_output, const char* ccp_format, ...)
 {
-    char* cp_form = NULL;
+	char* cp_form = NULL;
 	va_list va;
-  va_start(va, ccp_format);
-  if(vasprintf(&cp_form, ccp_format, va) == -1 || cp_form == NULL)
-  {
-	  secAbort();
-  }
-  strAppend(cpp_output, cp_form);
-  free(cp_form);
-  va_end(va);
-
+	va_start(va, ccp_format);
+	if(vasprintf(&cp_form, ccp_format, va) == -1 || cp_form == NULL)
+	{
+		secAbort();
+	}
+	strAppend(cpp_output, cp_form);
+	free(cp_form);
+	va_end(va);
+	
 }
-
 
 void stringToUpperCase(char* cp_input){
 	//just convert every char from the string to an uppercase char
@@ -105,10 +109,10 @@ void stringToUpperCase(char* cp_input){
 	}	
 }
 
-long strDecodeHexToUInt(char* cp_string, ssize_t i_offset, ssize_t i_len){
+unsigned long strDecodeHexToULong(char* cp_string, ssize_t i_offset, ssize_t i_len)
+{
 	//If we found an % and the next to chars were hexdigit we decode them
 	long result = 0;
-
 	ssize_t i;
 	if(i_offset + i_len > strlen(cp_string))
 		i_len = strlen(cp_string) - i_offset;
@@ -142,3 +146,4 @@ bool isHexDigit(char c){
 	else
 		return FALSE;
 }
+

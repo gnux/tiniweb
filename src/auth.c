@@ -396,7 +396,7 @@ bool verifyNonce(char* cp_nonce)
     debugVerbose(AUTH, "Path Hash: %s \n", cp_path_hash);
     debugVerbose(AUTH, "HMACMD5 Hash: %s \n", cp_hmac);
     
-    i_timestamp_recieved = (int) strDecodeHexToUInt(cp_timestamp_hex, 0, i_timestamp_len);
+    i_timestamp_recieved = (int) strDecodeHexToULong(cp_timestamp_hex, 0, i_timestamp_len);
     
     if (i_timestamp_recieved + ci_timelimit < i_timestamp_current || i_timestamp_recieved > i_timestamp_current)
     {
