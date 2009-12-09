@@ -231,25 +231,44 @@ int parseAuthorizationInfos(const char* ccp_authstr){
 	//we check for them and save them in our structur, if something went wrong
 	//exit with EXIT_FAILURE else EXIT_SUCCESS
 	http_autorization_ = secCalloc(1, sizeof(http_autorization));
+	//Check for username
 	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "username=\"", "\"");
 	if(cp_helper == NULL)
-		return EXIT_FAILURE;
+		cp_helper = parseSubstringByDelimStrings(ccp_authstr, "username=", ",");
+	if(cp_helper == NULL)
+			return EXIT_FAILURE;
 	http_autorization_->cp_username = cp_helper;
+	//Check for realm
 	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "realm=\"", "\"");
-	if(cp_helper == NULL)
-		return EXIT_FAILURE;
+	if(cp_helper == NULL){
+		cp_helper = parseSubstringByDelimStrings(ccp_authstr, "realm=", ",");
+		if(cp_helper == NULL)
+			return EXIT_FAILURE;
+	}
 	http_autorization_->cp_realm = cp_helper;
+	//Check for nonce
 	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "nonce=\"", "\"");
-	if(cp_helper == NULL)
-		return EXIT_FAILURE;
+	if(cp_helper == NULL){
+		cp_helper = parseSubstringByDelimStrings(ccp_authstr, "nonce=", ",");
+		if(cp_helper == NULL)
+			return EXIT_FAILURE;
+	}
 	http_autorization_->cp_nonce = cp_helper;
+	//Check for uri
 	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "uri=\"", "\"");
-	if(cp_helper == NULL)
-		return EXIT_FAILURE;
+	if(cp_helper == NULL){
+		cp_helper = parseSubstringByDelimStrings(ccp_authstr, "uri=", ",");
+		if(cp_helper == NULL)
+			return EXIT_FAILURE;
+	}
 	http_autorization_->cp_uri = cp_helper;
+	//Check for response
 	cp_helper = parseSubstringByDelimStrings(ccp_authstr, "response=\"", "\"");
-	if(cp_helper == NULL)
-		return EXIT_FAILURE;
+	if(cp_helper == NULL){
+		cp_helper = parseSubstringByDelimStrings(ccp_authstr, "response=", "\n");
+		if(cp_helper == NULL)
+			return EXIT_FAILURE;
+	}
 	http_autorization_->cp_response = cp_helper;
 	return EXIT_SUCCESS;
 }
