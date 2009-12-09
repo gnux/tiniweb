@@ -81,7 +81,7 @@ void processStaticFile(const char* ccp_path)
         if(i_success == EXIT_FAILURE)
         {
             debugVerbose(STATIC_FILE, "Sending file failed.\n");
-            close(i_fd);
+            fclose(file);
             //TODO: safe exit
             return;
         }
@@ -89,7 +89,7 @@ void processStaticFile(const char* ccp_path)
         debugVerbose(STATIC_FILE, "Sent file to client.\n");
     }
     
-    if(close(i_fd) != 0)
+    if(fclose(file) != 0)
     {
         //TODO: safe exit?
         debugVerbose(STATIC_FILE, "Could not close file.\n");
