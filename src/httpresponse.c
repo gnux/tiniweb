@@ -210,6 +210,8 @@ int sendHTTPResponseHeader(int i_status, int i_content_type, int i_content_lengt
     
     strAppend(&cp_http_response_header, "\n");
     
+	//TODO: proof NULL-Pointer!
+	
     i_success = writeStringToFile(STDOUT_FILENO, cp_http_response_header);
         
     return i_success;

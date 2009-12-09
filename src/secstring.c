@@ -28,7 +28,8 @@ char* secPrint2String(const char* ccp_format, ...)
   return ucp_string;
 }
 
-void *secGetStringPart(const char* ccp_string, ssize_t start, ssize_t end){
+void *secGetStringPart(const char* ccp_string, ssize_t start, ssize_t end)
+{
 	if(end < start || end > strlen(ccp_string))
 		//TODO: something went wrong we would return NULL
 		return NULL;
@@ -41,6 +42,17 @@ void *secGetStringPart(const char* ccp_string, ssize_t start, ssize_t end){
 	cp_fragment[i] = ccp_string[start + i];
 	
 	return cp_fragment;
+}
+
+ssize_t getNextLineFromString(const char* ccp_string, char** cp_current_line, ssize_t i_offset)
+{
+	ssize_t i = 0;
+	if(*cp_current_line != NULL)
+		secFree(*cp_current_line);
+	
+	for(i = i_offset; i < strlen(ccp_string) && ccp_string[i] != '\n'; ++i);
+	*cp_current_line = secGetStringPart(ccp_string, i_offset, i);
+	return i + 1;
 }
 
 void strAppend(char** cpp_output, const char* ccp_input){
@@ -141,67 +153,67 @@ bool isHexDigit(char c){
 		return FALSE;
 }
 
-ssize_t secGetlineFromFDWithPollin(char** cpp_lineptr, int fd){
-	size_t i_num_reads = 0;
-	ssize_t i_ret = 0;
-	ssize_t i = 0;
-	char current;
-	if(*cpp_lineptr)
-		secFree(*cpp_lineptr);
-	
-	*cpp_lineptr = secCalloc(1, MAX_HEADER_SIZE+1);
-		
-	struct pollfd poll_fd;
-	int i_poll_result;
-	poll_fd.fd = fd;
-	poll_fd.events = POLLIN;
-	poll_fd.revents = 0;
-	
-	
-	for(i=0; i<MAX_HEADER_SIZE + 1; ++i){
-	 i_poll_result = poll(&poll_fd, 1, PIPE_TIMEOUT);
-     if (i_poll_result == -1) 
-     {
-         debugVerbose(PIPE, "I/O error during poll.\n");
-         //TODO: safe exit
-         return EXIT_FAILURE;
-     } else if (i_poll_result == 0) 
-     {
-         fprintf(stderr, "poll timed out\n");
-         //TODO: safe exit
-         return EXIT_FAILURE;
-     }
- 
-	/* Evaluate poll */
-    if((poll_fd.revents & ~POLLIN && !(poll_fd.revents & POLLIN)))
-		break;    
-	if(!(poll_fd.revents & POLLIN))
-		break;
-	
-	ssize_t in_size = read(fd, &current, 1);
-        if (in_size < 0) 
-        {
-            debugVerbose(PIPE, "I/O error on inbound file.\n");
-            secAbort();
-        }
-		else if (in_size == 0) 
-        {
-            break;
-        }
-		if(isValid(&current, 1) == EXIT_FAILURE)
-			secAbort();
-		(*cpp_lineptr)[i] = current;
-		if(current == '\n' || current == '\0' || current == EOF)
-		{
-			break;
-		}
-	}
-	
-	(*cpp_lineptr)[i+1] = '\0';
-	*cpp_lineptr = secRealloc(*cpp_lineptr, i+2);
-	
-		return i;
-}
+// ssize_t secGetlineFromFDWithPollin(char** cpp_lineptr, int fd){
+// 	size_t i_num_reads = 0;
+// 	ssize_t i_ret = 0;
+// 	ssize_t i = 0;
+// 	char current;
+// 	if(*cpp_lineptr)
+// 		secFree(*cpp_lineptr);
+// 	
+// 	*cpp_lineptr = secCalloc(1, MAX_HEADER_SIZE+1);
+// 		
+// 	struct pollfd poll_fd;
+// 	int i_poll_result;
+// 	poll_fd.fd = fd;
+// 	poll_fd.events = POLLIN;
+// 	poll_fd.revents = 0;
+// 	
+// 	
+// 	for(i=0; i<MAX_HEADER_SIZE + 1; ++i){
+// 	 i_poll_result = poll(&poll_fd, 1, PIPE_TIMEOUT);
+//      if (i_poll_result == -1) 
+//      {
+//          debugVerbose(PIPE, "I/O error during poll.\n");
+//          //TODO: safe exit
+//          return EXIT_FAILURE;
+//      } else if (i_poll_result == 0) 
+//      {
+//          fprintf(stderr, "poll timed out\n");
+//          //TODO: safe exit
+//          return EXIT_FAILURE;
+//      }
+//  
+// 	/* Evaluate poll */
+//     if((poll_fd.revents & ~POLLIN && !(poll_fd.revents & POLLIN)))
+// 		break;    
+// 	if(!(poll_fd.revents & POLLIN))
+// 		break;
+// 	
+// 	ssize_t in_size = read(fd, &current, 1);
+//         if (in_size < 0) 
+//         {
+//             debugVerbose(PIPE, "I/O error on inbound file.\n");
+//             secAbort();
+//         }
+// 		else if (in_size == 0) 
+//         {
+//             break;
+//         }
+// 		if(isValid(&current, 1) == EXIT_FAILURE)
+// 			secAbort();
+// 		(*cpp_lineptr)[i] = current;
+// 		if(current == '\n' || current == '\0' || current == EOF)
+// 		{
+// 			break;
+// 		}
+// 	}
+// 	
+// 	(*cpp_lineptr)[i+1] = '\0';
+// 	*cpp_lineptr = secRealloc(*cpp_lineptr, i+2);
+// 	
+// 		return i;
+// }
 
 
 

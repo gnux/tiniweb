@@ -41,6 +41,9 @@ char* getTypeString(int type)
         case MAIN:
             return "MAIN";
             break;
+		case FILEHANDLING:
+			return "FILE";
+			break;
         default:
             return "UNSPECIFIED";
     }    
