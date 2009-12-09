@@ -23,6 +23,7 @@
 #include "path.h"
 #include "httpresponse.h"
 #include "staticfile.h"
+#include "pipe.h"
 
 // default values for options, if no command line option is available
 //static const char SCCA_WEB_DIR[] = "/";
@@ -174,8 +175,16 @@ int main(int argc, char** argv) {
     debugVerbose(MAIN, "CGI_DIR = %s \n", scp_cgi_dir_);
     debugVerbose(MAIN, "SECRET = %s \n", scp_secret_);
     debugVerbose(MAIN, "CGI_TIMEOUT = %d \n", si_cgi_timeout_);
-    
-	http_norm *hnp_info = normalizeHttp(stdin, FALSE);
+	
+	
+	debugVerbose(MAIN, "Switching stdin to non_blocking mode\n");
+	if(setNonblocking(STDIN_FILENO))
+	{
+		debugVerbose(MAIN, "Switching stdin to non_blocking mode failed!\n");
+		secAbort();
+	}
+
+	http_norm *hnp_info = normalizeHttp(STDIN_FILENO, FALSE);
 	
 	initEnvVarList("GATEWAY_INTERFACE","CGI/1.1");
     //appendToEnvVarList("SCRIPT_FILENAME",scp_cgi_dir_);
@@ -193,6 +202,7 @@ int main(int argc, char** argv) {
     char* cp_path_to_htdigest_file = NULL;
     char* cp_search_path_root = NULL;
     bool b_digest_file_available = FALSE;
+    bool b_authenticated = TRUE;
     
     if (mapRequestPath(&cp_mapped_path, &b_static) == FALSE)
     {
@@ -216,22 +226,21 @@ int main(int argc, char** argv) {
     
     if (b_digest_file_available)
     {
-        authenticate(cp_path_to_htdigest_file);
+        b_authenticated = authenticate(cp_path_to_htdigest_file);
+    }
+
+    if(b_authenticated == TRUE)
+    {
+        if(b_static)
+        {
+            processStaticFile(cp_mapped_path);
+        }
+        else
+        {
+            processCGIScript(cp_mapped_path);
+        }
     }
     
-    
-    //processCGIScript("testscript");
-    processStaticFile("tests/webroot/index.html");
-/*
-    if(b_static)
-    {
-        processStaticFile("tests/werbroot/index.html");
-    }
-    else
-    {
-        processCGIScript("testscript");
-    }
-    */
     secCleanup();
     return EXIT_SUCCESS;
 }

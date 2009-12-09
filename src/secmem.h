@@ -8,6 +8,8 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "typedef.h"
+
 
 /** secMalloc routine, wrapper for malloc that registers allocated memory
  * \param size size of memory to allocate
@@ -75,17 +77,17 @@ void secAbort();
  */
 void secExit(int i_status);
 
-/**
- * secGetline routine, is used like getline but uses secMemory functions
- * every given pointer is tried to free, and new pointers are registered
- * therefor every pointer should be secure
- */
-ssize_t secGetline(char** cpp_lineptr, FILE *stream);
+// /**
+// * secGetline routine, is used like getline but uses secMemory functions
+// * every given pointer is tried to free, and new pointers are registered
+// * therefor every pointer should be secure
+// */
+// ssize_t secGetline(char** cpp_lineptr, FILE *stream);
 
 // void *secGetStringPart(const char* ccp_string, ssize_t start, ssize_t end);
 
 
 //TODO: remove this function, if not needed anymore
-void sec_test();
+//void sec_test();
 
 #endif

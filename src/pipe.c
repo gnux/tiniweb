@@ -35,7 +35,7 @@ int initPipe(io_pipe *pi, int i_in_fd, int i_out_fd)
     pi->i_out_ready = 0;
     pi->i_out_eof = 0;
     pi->valid = 0;
-
+    
     if (setNonblocking(i_in_fd) != 0 || setNonblocking(i_out_fd) != 0) 
     {
         debugVerbose(PIPE, "Setting pipes non-blocking failed.\n");
@@ -69,7 +69,6 @@ int servePipe(io_pipe *pi)
             /* Got data */
             pi->valid += in_size;
         }
-        debugVerbose(PIPE, "Read bytes: %d, valid bytes: %d.\n", in_size, pi->valid);
     }
 
     /* Drain the pipe buffer to output end */
@@ -102,10 +101,8 @@ int servePipe(io_pipe *pi)
                 memmove(pi->ca_buffer, pi->ca_buffer + out_size, pi->valid); 
             }
         }
-        
-        debugVerbose(PIPE, "Written bytes: %d, valid bytes: %d.\n", out_size, pi->valid);
-
     }
+    //printPipe(pi, "servePipe");
     
     return EXIT_SUCCESS;
 }
@@ -175,7 +172,10 @@ int pollPipes(io_pipe *pipes[], int i_timeout, unsigned int i_num_pipes)
     for(i_index = 0; i_index <= i_in_idx; i_index++)
     {
         int i_pipe_index = ia_io_idx_to_pipe_index_map[i_index];
-        pipes[i_pipe_index]->i_in_eof = pipes[i_pipe_index]->i_in_eof || (poll_fds[i_index].revents & ~POLLIN);
+        //debugVerbose(PIPE, "%i POLLIN: %d, POLLHUP: %d, POLLERR: %d\n", i_index, poll_fds[i_index].revents & POLLIN, 
+        //             poll_fds[i_index].revents & POLLHUP, poll_fds[i_index].revents & POLLERR);
+        pipes[i_pipe_index]->i_in_eof = pipes[i_pipe_index]->i_in_eof || 
+                                        (poll_fds[i_index].revents & ~POLLIN && !(poll_fds[i_index].revents & POLLIN));
         pipes[i_pipe_index]->i_in_ready = pipes[i_pipe_index]->i_in_ready || (poll_fds[i_index].revents & POLLIN);
     }
   
@@ -187,6 +187,15 @@ int pollPipes(io_pipe *pipes[], int i_timeout, unsigned int i_num_pipes)
     }
 
     return 0;
+}
+
+void printPipe(io_pipe *pi, const char* ccp_caption)
+{
+    debugVerbose(PIPE, "%s\n:", ccp_caption);
+    debugVerbose(PIPE, "IN: fd: %d, ready: %d, eof: %d\n", pi->i_in_fd, pi->i_in_ready, pi->i_in_eof);
+    debugVerbose(PIPE, "OUT: fd: %d, ready: %d, eof: %d\n", pi->i_out_fd, pi->i_out_ready, pi->i_out_eof);
+    debugVerbose(PIPE, "valid: %d\n\n", pi->valid);
+    
 }
 
 
