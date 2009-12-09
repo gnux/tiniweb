@@ -31,7 +31,8 @@ TINIWEB_SRC = \
     staticfile.c \
     path.c \
     pipe.c \
-    secstring.c
+    secstring.c \
+    filehandling.c
 
 # Sources for the MD5 demo application
 MD5_SRC = \

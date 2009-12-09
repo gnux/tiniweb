@@ -24,6 +24,7 @@
 #include "httpresponse.h"
 #include "staticfile.h"
 #include "pipe.h"
+#include "filehandling.h"
 
 // default values for options, if no command line option is available
 //static const char SCCA_WEB_DIR[] = "/";
@@ -36,43 +37,6 @@ unsigned char sb_flag_verbose_ = FALSE;
 char *scp_web_dir_ = NULL;
 char *scp_cgi_dir_ = NULL;
 char *scp_secret_ = NULL;
-
-/*char *generateHexString(char* ptr, int size){
-  int i;
-  unsigned char val;
-  char *res;
-  
-  // TODO: error handling!
-  if(size*2 < 0)
-    abort();
-  res = secMalloc(size*2 + 1);
-  memset(res, 0, size*2+1);
-  for(i=0; i<size; ++i)
-  {
-    sprintf(&res[i*2],"%x",ptr[i]);
-  
-  }
-  
-  for(i=0; i<16; ++i){
-    val = ptr[i] & 0x0f;
-    if(val<10)
-      val+=48;
-    else
-      val+=55;
-    res[i*2] = val;
-    val = ptr[i] & 0xf0;
-    val>>4;
-    if(val<10)
-      val+=48;
-    else
-      val+=55;
-    res[i*2+1] = val;
-}
-  
-    
- return res;
-  
-}*/
 
 int si_cgi_timeout_ = 1000;
 
@@ -183,8 +147,10 @@ int main(int argc, char** argv) {
 		debugVerbose(MAIN, "Switching stdin to non_blocking mode failed!\n");
 		secAbort();
 	}
+	
+	char* cp_header = retrieveHeader(STDIN_FILENO, STDIN_TIMEOUT);
 
-	http_norm *hnp_info = normalizeHttp(STDIN_FILENO, FALSE);
+	http_norm *hnp_info = normalizeHttp(cp_header, FALSE);
 	
 	initEnvVarList("GATEWAY_INTERFACE","CGI/1.1");
     //appendToEnvVarList("SCRIPT_FILENAME",scp_cgi_dir_);

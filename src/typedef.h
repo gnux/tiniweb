@@ -8,13 +8,15 @@
 
 #ifdef EXIT_FAILURE
 #undef EXIT_FAILURE
-#endif
 #define EXIT_FAILURE -1
+#endif
+
 
 // define maximal header an buffer allocation sizes
 #define MAX_HEADER_SIZE 8192
 #define MAX_BUFFER_ALLOCATION_SIZE (MAX_HEADER_SIZE * 2)
 #define PIPE_TIMEOUT 5000
+#define STDIN_TIMEOUT 5000
 
 typedef unsigned char uint8;
 typedef unsigned short uint16;
@@ -24,7 +26,19 @@ typedef unsigned char bool;
 #define FALSE 0
 //#define NULL 0
 
-int min(int a, int b);
+// min and max function macro, from http://tigcc.ticalc.org/doc/gnuexts.html#SEC69
+#define min(a,b) \
+  ({ typeof (a) _a = (a); \
+      typeof (b) _b = (b); \
+    _a < _b ? _a : _b; })
+
+#define max(a,b) \
+  ({ typeof (a) _a = (a); \
+      typeof (b) _b = (b); \
+    _a > _b ? _a : _b; })
+
+
+//int min(int a, int b);
 
 typedef struct http_norm {
   char *cp_first_line;

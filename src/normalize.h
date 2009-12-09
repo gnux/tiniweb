@@ -12,7 +12,7 @@
  * @param fp_input pointer to File you want to read from
  * @para, b_skipfirstline bool false for http, true for cgi
  */
-http_norm *normalizeHttp(FILE* fp_input, bool b_skipfirstline);
+http_norm *normalizeHttp(const char* ccp_header, bool b_cgiresponse);
 
 /**
  * Checks if the input char is a blank or not, blanks are defined here SCCP_BLANK

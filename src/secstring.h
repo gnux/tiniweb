@@ -49,5 +49,7 @@ bool isHexDigit(char c);
 ssize_t secGetlineFromFDWithPollin(char** cpp_lineptr, int fd);
 
 
+ssize_t getNextLineFromString(const char* ccp_string, char** cp_current_line, ssize_t i_offset);
+
 #endif
 

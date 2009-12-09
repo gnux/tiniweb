@@ -32,9 +32,9 @@ http_autorization* http_autorization_ = NULL;
 
 http_request *http_request_ = NULL;
 
-int min(int a, int b){
+/*int min(int a, int b){
 	return a < b ? a : b;
-}
+}*/
 
 void parse(http_norm *hnp_info){
  	//TODO: BETTER ERROR HANDLING

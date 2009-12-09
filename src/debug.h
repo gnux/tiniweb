@@ -17,8 +17,8 @@ static const enum SCE_DEBUG_TYPES
     STATIC_FILE,
     HTTP_RESPONSE,
     PIPE,
-    PATH
-    
+    PATH,
+	FILEHANDLING
 } SCE_DEBUG_TYPE;
 
 void debug(int type, const char *ptr, ...);
