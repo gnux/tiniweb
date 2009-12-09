@@ -14,6 +14,8 @@ typedef struct environment_variable_ {
     
 } environment_variable;
 
+void setupEnvVarList(const char* ccp_webroot_path, const char* ccp_cgi_filename);
+
 /**
  * Puts a new environment variable into the static env-var list
  *

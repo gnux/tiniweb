@@ -13,6 +13,15 @@
 
 static environment_variable* evp_first_element = NULL;
 
+void setupEnvVarList(const char* ccp_webroot_path, const char* ccp_cgi_filename)
+{
+    initEnvVarList("GATEWAY_INTERFACE", "CGI/1.1");
+    //appendToEnvVarList("SCRIPT_FILENAME",scp_cgi_dir_);
+	appendToEnvVarList("DOCUMENT_ROOT", ccp_webroot_path);
+	appendToEnvVarList("SERVER_SOFTWARE", "tiniweb/1.0");
+	appendToEnvVarList("CONTENT_LENGTH", "0");
+}
+
 int appendToEnvVarList(const char* cp_name, const char* cp_value)
 {
     environment_variable* evp_var = evp_first_element;
