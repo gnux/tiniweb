@@ -54,14 +54,11 @@ _a > _b ? _a : _b; })
 /** \struct http_norm
 * Structure for normalised and splittet header
 */
-// TODO: remove cp_header and cp_body
 typedef struct http_norm {
 	char *cp_first_line; /**< first line of the header (just in case of request) */
 	ssize_t i_num_fields; /**< number of available header fields */
 	char **cpp_header_field_name; /**< names of the header fields */
 	char **cpp_header_field_body; /**< header field bodys */
-	char *cp_header;
-	char *cp_body;
 } http_norm;
 
 /** \struct http_autorization

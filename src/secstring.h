@@ -16,7 +16,17 @@ char* secPrint2String(const char* ccp_format, ...);
 
 void strAppendFormatString(char** cpp_output, const char* ccp_format, ...);
 
+/**
+ * Appends the input string to the output string, it always
+ * determinate with '\0'
+ * 
+ * @param ccp_output double pointer to string where it should be appanded
+ * @param ccp_input  pointer to string you want to appand
+ */
 void strAppend(char** cpp_output, const char* ccp_input);
+
+
+//void strAppend(char** cpp_output, const char* ccp_input);
 
 
 void *secGetStringPart(const char* ccp_string, ssize_t start, ssize_t end);

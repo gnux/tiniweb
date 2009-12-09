@@ -34,8 +34,6 @@ http_norm *normalizeHttp(const char* ccp_header, bool b_cgiresponse)
 	hnp_http_info->i_num_fields = 0;
 	hnp_http_info->cpp_header_field_name = NULL;
 	hnp_http_info->cpp_header_field_body = NULL;
-	hnp_http_info->cp_header = NULL;
-	hnp_http_info->cp_body = NULL;
 	
 	// Proof the very first char
 	if(isCharacter(ccp_header, 0) == EXIT_FAILURE)
@@ -161,10 +159,6 @@ void printHttpNorm(http_norm* hnp_http_info)
 	
 	for(size_t i = 0; i < hnp_http_info->i_num_fields; ++i)
 		debugVerbose(NORMALISE, "%s: %s\n", hnp_http_info->cpp_header_field_name[i], hnp_http_info->cpp_header_field_body[i]);
-	
-	//TODO: remove cp_header
-	if(hnp_http_info->cp_header)
-		debugVerbose(NORMALISE, "complete request/response:\n%s", hnp_http_info->cp_header);
 	
 	debugVerbose(NORMALISE, "-----END HEADER STRUCT PRINTING-----\n");
 }
