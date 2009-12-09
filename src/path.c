@@ -12,6 +12,7 @@
 #include "normalize.h"
 #include "secmem.h"
 #include "secstring.h"
+#include "httpresponse.h"
 
 extern char *scp_web_dir_;
 extern char *scp_cgi_dir_;
@@ -100,7 +101,7 @@ bool convertToRealPath(char** cp_path)
     cp_realpath_result = realpath(*cp_path, ca_path_buffer);
     if ( cp_realpath_result == NULL || cp_realpath_result != ca_path_buffer)
     {
-        debugVerbose(AUTH, "ERROR, Path to File/Directory: '%s' could not be resolved!\n", *cp_path);
+        debugVerbose(PATH, "ERROR, Path to File/Directory: '%s' could not be resolved!\n", *cp_path);
         return FALSE;
     }
     *cp_path = ca_path_buffer;
@@ -356,10 +357,12 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
         {
             secFree(cp_relative_path_without_first_letter);
             secFree(cp_relative_path_without_cgi_bin);
+            secExit(STATUS_NOT_FOUND);
             return FALSE;
         }
         
         (*cb_static) = FALSE;
+        debugVerbose(PATH, "Mapping the request Path: Request is DYNAMIC\n");
         
          /** Does the request path now map to the sci-dir?
           *
@@ -375,6 +378,7 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
          if (checkIfFirstDirContainsSecondDir(scp_web_dir_, *cpp_final_path) == TRUE)
          {
             (*cb_static) = TRUE;
+            debugVerbose(PATH, "Mapping the request Path: Request is STATIC\n");
          }
          
          secFree(cp_relative_path_without_cgi_bin);
@@ -389,10 +393,12 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
             if (convertToRealPath(cpp_final_path) == FALSE)
             {
                 secFree(cp_relative_path_without_first_letter);
+                secExit(STATUS_NOT_FOUND);
                 return FALSE;
             }
             
             (*cb_static) = TRUE;
+            debugVerbose(PATH, "Mapping the request Path: Request is STATIC\n");
             
             /** Does the request path now map to the sci-dir?
              *
@@ -408,12 +414,15 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
             if (checkIfFirstDirContainsSecondDir(scp_cgi_dir_, *cpp_final_path) == TRUE)
             {
                 (*cb_static) = FALSE;
+                debugVerbose(PATH, "Mapping the request Path: Request is DYNAMIC\n");
             }
         }
         else
         {
-            debugVerbose(AUTH, "ERROR, mapping request-path to filesystem path did not work!\n");
+            debugVerbose(PATH, "ERROR, mapping request-path to filesystem path did not work!\n");
             secFree(cp_relative_path_without_first_letter);
+            
+            secExit(STATUS_BAD_REQUEST);
             return FALSE;
         }
     }
@@ -429,8 +438,8 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
     if (!( (checkIfFirstDirContainsSecondDir(scp_cgi_dir_, *cpp_final_path) == TRUE) ||
            (checkIfFirstDirContainsSecondDir(scp_web_dir_, *cpp_final_path) == TRUE) ))
     {
-        debug(AUTH, "ERROR, request Path would leave web/cgi directory!\n");
-        return FALSE;
+        debug(PATH, "ERROR, request Path would leave web/cgi directory!\n");
+        secExit(STATUS_FORBIDDEN);
     }
     
     return TRUE;
