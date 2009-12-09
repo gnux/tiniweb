@@ -29,8 +29,9 @@ char* retrieveHeader(int fd, int timeout)
 		// Error from file is never good
 		if(in_size == EXIT_FAILURE)
 		{
-			debugVerbose(FILEHANDLING, "Error reading from file\n");
-			secAbort();
+			debugVerbose(FILEHANDLING, "Got problems with our fds\n");
+			secFree(cp_header);
+			return NULL;
 		}
 		// Header has to end with \n\n
 		if(in_size == 0)

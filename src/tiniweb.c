@@ -149,6 +149,13 @@ int main(int argc, char** argv) {
 	}
 	
 	char* cp_header = retrieveHeader(STDIN_FILENO, STDIN_TIMEOUT);
+	// TODO: EXIT WITHOUT ANY MESSAGE
+	if(cp_header == NULL)
+	{
+		debugVerbose(MAIN,"STDIN has to talk to use! We don't like DoS\n");
+		secCleanup();
+		exit(0);
+	}
 
 	http_norm *hnp_info = normalizeHttp(cp_header, FALSE);
 	
