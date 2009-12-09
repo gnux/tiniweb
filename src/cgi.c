@@ -78,11 +78,11 @@ void processCGIScript(const char* cp_path)
 			//TODO: safe exit
 			debugVerbose(CGICALL, "Creating pipes to CGI script failed: %d\n", errno);
 		}
-		if(signal(SIGPIPE, SIG_IGN) == SIG_ERR)
-		{
-			//TODO safe exit, call signal earlier?
-			debugVerbose(CGICALL, "Setting signal handler failed.\n");
-		}
+	//	if(signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+	//	{
+	//		//TODO safe exit, call signal earlier?
+	//		debugVerbose(CGICALL, "Setting signal handler failed.\n");
+	//	}
 		
 	}
 	
@@ -232,7 +232,10 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
 		
 		if(i_success == 1)
 		{
+if(b_header_provided == TRUE)
 			return EXIT_SUCCESS;
+else
+return EXIT_FAILURE;
 		}
 		if(i_success == -1)
 		{
