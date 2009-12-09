@@ -9,13 +9,13 @@
  * If you want, to normalize an cgi-response we just have to skip
  * the first line.
  * 
- * @param fp_input pointer to File you want to read from
- * @para, b_skipfirstline bool false for http, true for cgi
+ * @param ccp_header complete header stored in one big string
+ * @param b_cgiresponse bool false for http, true for cgi
  */
 http_norm *normalizeHttp(const char* ccp_header, bool b_cgiresponse);
 
 /**
- * Checks if the input char is a blank or not, blanks are defined here SCCP_BLANK
+ * Checks if the input char is a blank or not
  * 
  * @param ccp_input pointer to string 
  * @param i_offset position of char from the string
@@ -23,7 +23,7 @@ http_norm *normalizeHttp(const char* ccp_header, bool b_cgiresponse);
 int isBlank(const char* ccp_input, const size_t i_offset);
 
 /**
- * Checks if the input char is a New Line or not, blanks are defined here SCCPA_NEW_LINE
+ * Checks if the input char is a New Line or not
  * 
  * @param ccp_input pointer to string 
  * @param i_offset position of char from the string
@@ -44,9 +44,10 @@ int isCharacter(const char* ccp_input, const size_t i_offset);
  * If you want to check an cgi response set b_skipfirstline to true 
  * 
  * @param ccp_input pointer to string
- * @b_skipfirstline true for CGI
+ * @param b_cgiresponse true for CGI
  */
-int isValidHeaderFieldStart(const char* ccp_input, bool b_skipfirstline);
+int isValidHeaderFieldStart(const char* ccp_input, bool b_cgiresponse);
+
 /**
  * Appends the input string to the output string, it always
  * determinate with '\0'
@@ -99,11 +100,6 @@ int isValid(const char* ccp_input, const size_t i_offset);
  * @param lalal description
  */
 void normalizeSingleLine(char** cpp_input);
-/**
- * lalal
- * 
- * @param lalal description
- */
-void restoreNormalizedHeader();
+
 
 #endif

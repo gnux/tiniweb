@@ -105,27 +105,6 @@ http_norm *normalizeHttp(const char* ccp_header, bool b_cgiresponse)
 	return hnp_http_info;
 }
 
-void restoreNormalizedHeader(http_norm* hnp_http_info)
-{
-	size_t i;
-	hnp_http_info->cp_header = NULL;
-	if(hnp_http_info->cp_first_line)
-	{
-		strAppend(&hnp_http_info->cp_header, hnp_http_info->cp_first_line);
-		strAppend(&hnp_http_info->cp_header, "\n");
-	}
-	
-	for(i=0; i<hnp_http_info->i_num_fields; ++i)
-	{
-		strAppend(&hnp_http_info->cp_header, hnp_http_info->cpp_header_field_name[i]);
-		strAppend(&hnp_http_info->cp_header, ": ");
-		strAppend(&hnp_http_info->cp_header, hnp_http_info->cpp_header_field_body[i]);
-		strAppend(&hnp_http_info->cp_header, "\n");
-	}
-	
-	strAppend(&hnp_http_info->cp_header, "\n");
-}
-
 void normalizeHeaderFields(http_norm* hnp_http_info)
 {
 	normalizeSingleLine(&(hnp_http_info->cp_first_line));
