@@ -375,7 +375,8 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
           *      The Mapped Request would now be 'home/foo/web/x.html' and DYNAMIC
           *      And that is why the folloging lines of code are necessary!
           */
-         if (checkIfFirstDirContainsSecondDir(scp_web_dir_, *cpp_final_path) == TRUE)
+         if (checkIfFirstDirContainsSecondDir(scp_web_dir_, scp_cgi_dir_) == FALSE &&
+             checkIfFirstDirContainsSecondDir(scp_web_dir_, *cpp_final_path) == TRUE)
          {
             (*cb_static) = TRUE;
             debugVerbose(PATH, "Mapping the request Path: Request is STATIC\n");
@@ -411,7 +412,8 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
              *      The Mapped Request would now be 'home/foo/cgi/script' and STATIC
              *      And that is why the folloging lines of code are necessary!
              */
-            if (checkIfFirstDirContainsSecondDir(scp_cgi_dir_, *cpp_final_path) == TRUE)
+            if (checkIfFirstDirContainsSecondDir(scp_web_dir_, scp_cgi_dir_) == FALSE &&
+                checkIfFirstDirContainsSecondDir(scp_cgi_dir_, *cpp_final_path) == TRUE)
             {
                 (*cb_static) = FALSE;
                 debugVerbose(PATH, "Mapping the request Path: Request is DYNAMIC\n");
