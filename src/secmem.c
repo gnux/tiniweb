@@ -59,8 +59,7 @@ void secAddNewEntry()
 	if (!lep_memory_handles_first)
 	{
 		lep_memory_handles_first = malloc(sizeof(list_entry));
-		if(!lep_memory_handles_first)
-			secAbort();
+		secProof(lep_memory_handles_first);
 		lep_memory_handles_last = lep_memory_handles_first;
 		lep_memory_handles_first->lep_before = 0;
 	}
@@ -69,8 +68,7 @@ void secAddNewEntry()
 		// be sure to rewind
 		secRewind();
 		lep_memory_handles_last->lep_next = malloc(sizeof(list_entry));
-		if(!lep_memory_handles_last)
-			secAbort();
+		secProof(lep_memory_handles_last->lep_next);
 		lep_memory_handles_last->lep_next->lep_before = lep_memory_handles_last;
 		lep_memory_handles_last = lep_memory_handles_last->lep_next;
 	}
