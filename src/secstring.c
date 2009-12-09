@@ -4,7 +4,6 @@
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
-#include <unistd.h>
 #include "secmem.h"
 #include "secstring.h"
 #include "typedef.h"
@@ -12,7 +11,7 @@
 #include "parser.h"
 #include "pipe.h"
 #include "normalize.h"
-#include <poll.h>
+
 
 char* secPrint2String(const char* ccp_format, ...)
 {
@@ -74,7 +73,7 @@ void strAppend(char** cpp_output, const char* ccp_input){
 		secAbort();
 	}
 	
-	*cpp_output = secRealloc(*cpp_output, i_len_new);
+	*cpp_output = secRealloc(*cpp_output, i_len_new * sizeof(char));
 	strncat(*cpp_output, ccp_input, i_len_input);
 	
 	// just be sure to delimit with '\0'
@@ -106,8 +105,6 @@ void stringToUpperCase(char* cp_input){
 	}	
 }
 
-
-
 long strDecodeHexToUInt(char* cp_string, ssize_t i_offset, ssize_t i_len){
 	//If we found an % and the next to chars were hexdigit we decode them
 	long result = 0;
@@ -120,14 +117,7 @@ long strDecodeHexToUInt(char* cp_string, ssize_t i_offset, ssize_t i_len){
 		result = result << 4;
 		result += hextodec(cp_string[i_offset + i]);
 	}
-//	unsigned char a;
-//	unsigned char b;
-//	a = cp_string[i_offset + 1];
-//	b = cp_string[i_offset + 2];
-//	hextodec(&a);
-//	hextodec(&b);
 	return result;
-	//return a*16 + b;
 }
 
 char hextodec(char c){
@@ -152,170 +142,3 @@ bool isHexDigit(char c){
 	else
 		return FALSE;
 }
-
-// ssize_t secGetlineFromFDWithPollin(char** cpp_lineptr, int fd){
-// 	size_t i_num_reads = 0;
-// 	ssize_t i_ret = 0;
-// 	ssize_t i = 0;
-// 	char current;
-// 	if(*cpp_lineptr)
-// 		secFree(*cpp_lineptr);
-// 	
-// 	*cpp_lineptr = secCalloc(1, MAX_HEADER_SIZE+1);
-// 		
-// 	struct pollfd poll_fd;
-// 	int i_poll_result;
-// 	poll_fd.fd = fd;
-// 	poll_fd.events = POLLIN;
-// 	poll_fd.revents = 0;
-// 	
-// 	
-// 	for(i=0; i<MAX_HEADER_SIZE + 1; ++i){
-// 	 i_poll_result = poll(&poll_fd, 1, PIPE_TIMEOUT);
-//      if (i_poll_result == -1) 
-//      {
-//          debugVerbose(PIPE, "I/O error during poll.\n");
-//          //TODO: safe exit
-//          return EXIT_FAILURE;
-//      } else if (i_poll_result == 0) 
-//      {
-//          fprintf(stderr, "poll timed out\n");
-//          //TODO: safe exit
-//          return EXIT_FAILURE;
-//      }
-//  
-// 	/* Evaluate poll */
-//     if((poll_fd.revents & ~POLLIN && !(poll_fd.revents & POLLIN)))
-// 		break;    
-// 	if(!(poll_fd.revents & POLLIN))
-// 		break;
-// 	
-// 	ssize_t in_size = read(fd, &current, 1);
-//         if (in_size < 0) 
-//         {
-//             debugVerbose(PIPE, "I/O error on inbound file.\n");
-//             secAbort();
-//         }
-// 		else if (in_size == 0) 
-//         {
-//             break;
-//         }
-// 		if(isValid(&current, 1) == EXIT_FAILURE)
-// 			secAbort();
-// 		(*cpp_lineptr)[i] = current;
-// 		if(current == '\n' || current == '\0' || current == EOF)
-// 		{
-// 			break;
-// 		}
-// 	}
-// 	
-// 	(*cpp_lineptr)[i+1] = '\0';
-// 	*cpp_lineptr = secRealloc(*cpp_lineptr, i+2);
-// 	
-// 		return i;
-// }
-
-
-
-
-	//if(read(fd, &(*cpp_lineptr)[i], 1))
-	
-	
-	 
-     
-//   
-//     for(i_index = i_in_idx + 1; i_index <= i_out_idx; i_index++)
-//     {
-//         int i_pipe_index = ia_io_idx_to_pipe_index_map[i_index];
-//         pipes[i_pipe_index]->i_out_eof = pipes[i_pipe_index]->i_out_eof || (poll_fds[i_index].revents & ~POLLOUT);
-//         pipes[i_pipe_index]->i_out_ready = pipes[i_pipe_index]->i_out_ready || (poll_fds[i_index].revents & POLLOUT);    
-//     }
-	
- 	//if(fd==NULL || cp_header == NULL)
- 	//	return EXIT_FAILURE;
- 	//if(len == 0)
- 	//	return 0;
-	
-	
-	//if(pollPipes(pipe, PIPE_TIMEOUT, 1));
-	
-	
-	//i_ret = getline(cpp_lineptr, &i_num_reads, stream);
-	// proof our input, TODO: BAD request
-	//if(i_ret == -1)
-	//	secAbort();
-	//for(; i < i_ret; ++i)
-	//	if(isValid(*cpp_lineptr, i) == EXIT_FAILURE)
-	//		secAbort();
-	//	secProof(*cpp_lineptr);
-	//secRegister(*cpp_lineptr);
-	
-
-/*
-ssize_t secGetCompleteHeaderDataFromPipe(char** cpp_lineptr, io_pipe* pipe){
-	size_t i_num_reads = 0;
-	ssize_t i_ret = 0;
-	ssize_t i = 0;
-	char* cp_header = secCalloc(1, )
-	if(*cpp_lineptr)
-		secFree(*cpp_lineptr);
-	
-	*cpp_lineptr = NULL;
-	
-	
-	struct pollfd poll_fd;
-	int i_poll_result;
-	poll_fd.fd = pipe->i_in_fd;
-	poll_fd.events = POLLIN;
-	poll_fd.revents = 0;
-	
-	 i_poll_result = poll(poll_fd, 1, PIPE_TIMEOUT);
-     if (i_poll_result == -1) 
-     {
-         debugVerbose(PIPE, "I/O error during poll.\n");
-         //TODO: safe exit
-         return EXIT_FAILURE;
-     } else if (i_poll_result == 0) 
-     {
-         fprintf(stderr, "poll timed out\n");
-         //TODO: safe exit
-         return EXIT_FAILURE;
-     }/*
- 
-     /* Evaluate poll */
-//      pipe->i_in_eof = pipe->i_in_eof || 
-//                    (poll_fd.revents & ~POLLIN && !(poll_fd.revents & POLLIN));
-//      pipe->i_in_ready = pipe->i_in_ready || (poll_fd.revents & POLLIN);
-	 
-// 	 */
-     
-//   
-//     for(i_index = i_in_idx + 1; i_index <= i_out_idx; i_index++)
-//     {
-//         int i_pipe_index = ia_io_idx_to_pipe_index_map[i_index];
-//         pipes[i_pipe_index]->i_out_eof = pipes[i_pipe_index]->i_out_eof || (poll_fds[i_index].revents & ~POLLOUT);
-//         pipes[i_pipe_index]->i_out_ready = pipes[i_pipe_index]->i_out_ready || (poll_fds[i_index].revents & POLLOUT);    
-//     }
-	
- 	//if(fd==NULL || cp_header == NULL)
- 	//	return EXIT_FAILURE;
- 	//if(len == 0)
- 	//	return 0;
-	
-	
-// 	if(pollPipes(pipe, PIPE_TIMEOUT, 1));
-// 	
-// 	
-// 	i_ret = getline(cpp_lineptr, &i_num_reads, stream);
-// 	// proof our input, TODO: BAD request
-// 	if(i_ret == -1)
-// 		secAbort();
-// 	for(; i < i_ret; ++i)
-// 		if(isValid(*cpp_lineptr, i) == EXIT_FAILURE)
-// 			secAbort();
-// 		secProof(*cpp_lineptr);
-// 	secRegister(*cpp_lineptr);
-// 	
-// 	return i_ret;
-// }*/
-
