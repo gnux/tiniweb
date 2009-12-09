@@ -70,7 +70,6 @@ http_norm *normalizeHttp(const char* ccp_header, bool b_cgiresponse)
 	
 	// now hunt for header-fields
 	while(1){
-		//TODO: sec abort
 		if(isValidHeaderFieldStart(cp_current_line, b_cgiresponse) == EXIT_FAILURE)
 		{   
 			//TODO: STATUS_SCRIPT_ERROR
@@ -99,7 +98,8 @@ http_norm *normalizeHttp(const char* ccp_header, bool b_cgiresponse)
 	return hnp_http_info;
 }
 
-void restoreNormalizedHeader(http_norm* hnp_http_info){
+void restoreNormalizedHeader(http_norm* hnp_http_info)
+{
 	size_t i;
 	hnp_http_info->cp_header = NULL;
 	if(hnp_http_info->cp_first_line){
@@ -117,7 +117,8 @@ void restoreNormalizedHeader(http_norm* hnp_http_info){
 	strAppend(&hnp_http_info->cp_header, "\n");
 }
 
-void normalizeHeaderFields(http_norm* hnp_http_info){
+void normalizeHeaderFields(http_norm* hnp_http_info)
+{
 	normalizeSingleLine(&(hnp_http_info->cp_first_line));
 	for(size_t i = 0; i < hnp_http_info->i_num_fields; ++i){
 		normalizeSingleLine(&hnp_http_info->cpp_header_field_name[i]);
@@ -126,7 +127,8 @@ void normalizeHeaderFields(http_norm* hnp_http_info){
 	}
 }
 
-void normalizeSingleLine(char** cpp_input){
+void normalizeSingleLine(char** cpp_input)
+{
 	size_t i_offset = 0;
 	size_t i = 0;
 	bool b_flag = 0;
@@ -156,7 +158,8 @@ void normalizeSingleLine(char** cpp_input){
 	*cpp_input = secRealloc(*cpp_input, strlen(*cpp_input) * sizeof(char) + 1);
 }
 
-void printHttpNorm(http_norm* hnp_http_info){
+void printHttpNorm(http_norm* hnp_http_info)
+{
 	debugVerbose(NORMALISE, "-----START HEADER STRUCT PRINTING-----\n");
 	
 	if(hnp_http_info->cp_first_line)
@@ -172,7 +175,8 @@ void printHttpNorm(http_norm* hnp_http_info){
 	debugVerbose(NORMALISE, "-----END HEADER STRUCT PRINTING-----\n");
 }
 
-void getHeaderFieldName(char** cpp_output, const char* ccp_input){
+void getHeaderFieldName(char** cpp_output, const char* ccp_input)
+{
 	size_t i_last_char_name;
 	// There must be an blank or an ':'
 	for(i_last_char_name = 0; isBlank(ccp_input, i_last_char_name) == EXIT_FAILURE && ccp_input[i_last_char_name] != ':'; ++i_last_char_name)
@@ -182,7 +186,8 @@ void getHeaderFieldName(char** cpp_output, const char* ccp_input){
 	(*cpp_output)[i_last_char_name] = '\0';  
 }
 
-void getHeaderFieldBody(char** cpp_output, const char* ccp_input){
+void getHeaderFieldBody(char** cpp_output, const char* ccp_input)
+{
 	size_t i_offset_token;
 	size_t i_len_output;
 	// search for ':' token, there must be one, we've already checked that
@@ -194,11 +199,9 @@ void getHeaderFieldBody(char** cpp_output, const char* ccp_input){
 	(*cpp_output)[i_len_output - 1] = '\0';
 }
 
-int isBlank(const char* ccp_input, const size_t i_offset){
-	for(size_t i = 0; SCCP_BLANK[i] != '\0'; ++i)
-		if(ccp_input[i_offset] == SCCP_BLANK[i])
-			return EXIT_SUCCESS;
-	return EXIT_FAILURE;
+int isBlank(const char* ccp_input, const size_t i_offset)
+{
+	return ((ccp_input[i_offset] == ' ' || ccp_input[i_offset] == '\t') ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 int isNewLineChars(const char* ccp_input, const size_t i_offset)
@@ -206,18 +209,19 @@ int isNewLineChars(const char* ccp_input, const size_t i_offset)
 	return (ccp_input[i_offset] == '\n' ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
-int isBlankNewLineChars(const char* ccp_input, const size_t i_offset){
+int isBlankNewLineChars(const char* ccp_input, const size_t i_offset)
+{
 	return ((isBlank(ccp_input, i_offset) == EXIT_SUCCESS) ? EXIT_SUCCESS : isNewLineChars(ccp_input, i_offset));
 }
 
-int isCharacter(const char* ccp_input, const size_t i_offset){
+int isCharacter(const char* ccp_input, const size_t i_offset)
+{
 	return (ccp_input[i_offset] > 32 && ccp_input[i_offset] < 127) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-int isValid(const char* ccp_input, const size_t i_offset){
-	if(isCharacter(ccp_input, i_offset) == EXIT_SUCCESS || isBlankNewLineChars(ccp_input, i_offset)==EXIT_SUCCESS)
-		return EXIT_SUCCESS;
-	return EXIT_FAILURE;
+int isValid(const char* ccp_input, const size_t i_offset)
+{
+	return ((isCharacter(ccp_input, i_offset) == EXIT_SUCCESS || isBlankNewLineChars(ccp_input, i_offset)==EXIT_SUCCESS) ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 
