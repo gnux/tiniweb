@@ -9,7 +9,7 @@
 #include "secstring.h"
 #include "pipe.h"
 
-static const char *SCCP_BLANK = {" \t"};
+//static const char *SCCP_BLANK = {" \t"};
 
 http_norm *normalizeHttp(const char* ccp_header, bool b_cgiresponse)
 {
@@ -221,7 +221,7 @@ int isCharacter(const char* ccp_input, const size_t i_offset)
 
 int isValid(const char* ccp_input, const size_t i_offset)
 {
-	return ((isCharacter(ccp_input, i_offset) == EXIT_SUCCESS || isBlankNewLineChars(ccp_input, i_offset)==EXIT_SUCCESS) ? EXIT_SUCCESS : EXIT_FAILURE);
+	return ((isCharacter(ccp_input, i_offset) == EXIT_SUCCESS) ? EXIT_SUCCESS : isBlankNewLineChars(ccp_input, i_offset));
 }
 
 

@@ -29,7 +29,7 @@ void processCGIScript(const char* cp_path);
  */
 int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_child);
 
-int getHeader(char** cpp_header, int i_fd, int i_max_size, bool b_new_header);
+int getHeader(char** cpp_header, int i_fd);
 
 bool isValidCharacter(char* c_character);
 

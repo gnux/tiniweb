@@ -189,22 +189,24 @@ int main(int argc, char** argv) {
     
     cp_search_path_root = b_static ? scp_web_dir_ : scp_cgi_dir_;
     
-    if (searchForHTDigestFile(cp_mapped_path, cp_search_path_root, &b_digest_file_available, &cp_path_to_htdigest_file) == EXIT_FAILURE)
-    {
-        
-         //  We found two .htdigest Files in the path! File is protected!
-         
-        secExit(STATUS_FORBIDDEN);
-    }
-    
-    if (b_digest_file_available)
-    {
-        b_authenticated = authenticate(cp_path_to_htdigest_file);
-    }
+//     if (searchForHTDigestFile(cp_mapped_path, cp_search_path_root, &b_digest_file_available, &cp_path_to_htdigest_file) == EXIT_FAILURE)
+//     {
+//         
+//          //  We found two .htdigest Files in the path! File is protected!
+//          
+//         secExit(STATUS_FORBIDDEN);
+//     }
+//     
+//     if (b_digest_file_available)
+//     {
+//         b_authenticated = authenticate(cp_path_to_htdigest_file);
+//     }
 
+b_authenticated = TRUE;
+b_static = FALSE;
     if(b_authenticated == TRUE)
     {
-        if(b_static)
+        if(b_static == TRUE)
         {
             processStaticFile(cp_mapped_path);
         }

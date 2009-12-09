@@ -16,7 +16,6 @@ char* retrieveHeader(int fd, int timeout)
 	char* cp_header = NULL;
 	ssize_t i = 0;
 	ssize_t in_size = 0;
-	char c_current = 0;
 	bool b_gotnl = FALSE;
 	bool b_gotcr = FALSE;
 	
@@ -68,8 +67,9 @@ char* retrieveHeader(int fd, int timeout)
 		// if we found a non character or a single \r we will break
 		if(isValid(cp_header, i) == EXIT_FAILURE || b_gotcr == TRUE)
 		{
+			// TODO: Script error
 			debugVerbose(FILEHANDLING, "Detected invalid char while retrieving header\n");
-			secAbort();
+			secExit(STATUS_BAD_REQUEST);
 		}
 		b_gotnl = FALSE;
 		b_gotcr = FALSE;
