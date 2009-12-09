@@ -178,6 +178,6 @@ char* parseFilename(const char* filepath);
 
 char* parseFilepath(const char* cp_filename);
 
-
+bool isStatusCode(const char* num);
 
 #endif /*PARSER_H_*/
