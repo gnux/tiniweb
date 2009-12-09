@@ -48,7 +48,7 @@ int main(int argc, char** argv)
     fprintf(stdout, "Content-Type: text/html\n");
 
     fprintf(stdout, "Status: 200 OK\n");
-    fprintf(stdout, "myfield: blabla\n bla\n\n");//<html>\n<body>I've to say hello to sase</body>\n</html> ");
+    fprintf(stdout, "myfield: blabla\n bla\r\n\n");//<html>\n<body>I've to say hello to sase</body>\n</html> ");
   //  fflush(stdout);
     
     if(!fgets(buf2, sizeof(buf2), stdin)) {

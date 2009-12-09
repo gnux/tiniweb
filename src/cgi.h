@@ -29,6 +29,10 @@ void processCGIScript(const char* cp_path);
  */
 int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_child);
 
+int getHeader(char** cpp_header, int i_fd, int i_max_size, bool b_new_header);
+
+bool isValidCharacter(char* c_character);
+
 /*
 int pipeThrough(int i_source_fd, int i_dest_fd, bool b_is_source_non_blocking, 
                 bool b_is_dest_non_blocking);

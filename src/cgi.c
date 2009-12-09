@@ -49,7 +49,6 @@ void processCGIScript(const char* cp_path)
     int ia_cgi_response_pipe[2] = {-1, -1};
     int ia_cgi_post_body_pipe[2] = {-1, -1};
     pid_t pid_child = 0;
-    //TODO: the filename and path should not be cleaned up
     char* cpa_cgi_args[2];
     char* cp_path_to_file = parseFilepath(cp_path);   
     char* cp_file_name = parseFilename(cp_path);
@@ -194,7 +193,12 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
 {
     io_pipe **pipes = NULL;
     int i_success = 0;
-    //TODO:REMOVE!!!
+    //TODO: if header provided and error afterwards, what to do?
+    bool b_header_provided = FALSE;
+    bool b_first_get_header_call = TRUE;
+    char* cp_cgi_response_header = NULL;
+    
+    cp_cgi_response_header = secMalloc((MAX_HEADER_SIZE + 1) * sizeof(char));
     
     pipes = secMalloc(sizeof(io_pipe*) * ((e_used_method == POST) ? 2 : 1));
     pipes[0] = secMalloc(sizeof(io_pipe));
@@ -255,31 +259,138 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
         
         //TODO: call parser, he somehow has to notify that he is finished
         /*
-        http_norm *hpn_info = normalizeHttp(response_stream, TRUE);
-        http_cgi_response *http_cgi_response_header = parseCgiResponseHeader(hpn_info);
-        
-        
-        i_success = sendCGIHTTPResponseHeader(http_cgi_response_header);
-        if(i_success == EXIT_SUCCESS)
+        if(!b_header_provided)
         {
-            debugVerbose(CGICALL, "CGI header provided successfully to http client.\n");
+            http_norm *hpn_info = normalizeHttp(i_cgi_response_pipe, TRUE);
+            http_cgi_response *http_cgi_response_header = parseCgiResponseHeader(hpn_info);
+            
+            
+            i_success = sendCGIHTTPResponseHeader(http_cgi_response_header);
+            if(i_success == EXIT_SUCCESS)
+            {
+                debugVerbose(CGICALL, "CGI header provided successfully to http client.\n");
+                b_header_provided = TRUE;
+            }
+            else
+            {
+                debugVerbose(CGICALL, "Providing cgi response header failed.\n");
+                return EXIT_FAILURE;
+            }
+        }
+        */
+        if(!b_header_provided)
+        {
+            if(pipes[0]->i_in_ready)
+            {
+                i_success = getHeader(&cp_cgi_response_header, pipes[0]->i_in_fd, MAX_HEADER_SIZE + 1, b_first_get_header_call);
+                b_first_get_header_call = FALSE;
+                pipes[0]->i_in_ready = 0;
+                if(i_success == 0)
+                {
+                
+                    i_success = writeStringToFile(STDOUT_FILENO, cp_cgi_response_header);
+                    if(i_success == EXIT_FAILURE)
+                    {
+                        //TODO: exit
+                        secAbort();
+                    }
+                    
+                    b_header_provided = TRUE;
+                    
+                } 
+                else if(i_success == -1)
+                {
+                    //TODO: exit
+                    secAbort();
+                }          
+            }
         }
         else
         {
-            debugVerbose(CGICALL, "Providing cgi response header failed.\n");
-            return EXIT_FAILURE;
+            i_success = servePipe(pipes[0]);
+            
+            if(i_success == EXIT_FAILURE)
+            {
+                debugVerbose(CGICALL, "An error occurred while reading cgi response.\n");
+                return EXIT_FAILURE;
+            }  
         }
-        */
-        
-        i_success = servePipe(pipes[0]);
-        
-        if(i_success == EXIT_FAILURE)
-        {
-            debugVerbose(CGICALL, "An error occurred while reading cgi response.\n");
-            return EXIT_FAILURE;
-        }  
     }
     
+}
+
+
+int getHeader(char** cpp_header, int i_fd, int i_max_size, bool b_new_header)
+{
+    char c_character;
+    static char sc_prev_chars[2] = {'\0', '\0'};
+    static int i_position = 0;
+    
+    if(b_new_header == TRUE)
+    {
+        sc_prev_chars[0] = '\0';
+        sc_prev_chars[1] = '\0';   
+        i_position = 0;     
+    }
+    
+    if(i_position >= i_max_size - 1)
+    {
+    //TODO: header ohne newline am ende?
+        return -1;
+    }
+    
+    ssize_t in_size = read(i_fd, &c_character, 1);
+    
+    if (in_size < 0) 
+    {
+        debugVerbose(CGICALL, "I/O error on inbound file.\n");
+        secAbort();
+    }
+	else if (in_size == 0) 
+    {
+    //TODO: header ohne newline am ende?
+        return -1;
+    }
+	if(isValidCharacter(&c_character) == FALSE)
+	{
+	    //TODO: bad request
+	    debugVerbose(CGICALL, "Got no char:%i.\n", c_character);
+		secAbort();
+	}
+	
+	if(sc_prev_chars[0] == '\r' && c_character != '\n')
+	{
+	    debugVerbose(CGICALL, "Got no char:%i.\n", sc_prev_chars[0]);
+		secAbort();
+	}
+	
+	(*cpp_header)[i_position] = c_character;
+	
+	if(c_character == '\n' && ((sc_prev_chars[0] == '\n') || 
+	                       ((sc_prev_chars[0] == '\r') && (sc_prev_chars[1] == '\n'))))
+	{
+	    (*cpp_header)[i_position + 1] = '\0';
+	    (*cpp_header) = secRealloc(*cpp_header, (i_position + 2) * sizeof(char));
+		return 0;
+	}
+	
+	sc_prev_chars[1] = sc_prev_chars[0];
+	sc_prev_chars[0] = c_character;
+
+	i_position++;
+	
+	return 1;
+}
+
+bool isValidCharacter(char* c_character)
+{
+    if(*c_character == '\n' || *c_character == '\r')
+        return TRUE;
+    if(isCharacter(c_character, 0) == EXIT_SUCCESS)
+        return TRUE;
+    if(isBlank(c_character, 0) == EXIT_SUCCESS)
+        return TRUE;
+    return FALSE;
 }
 /*
 FILE* getCGIHeaderResponseStream(int i_source_fd)
