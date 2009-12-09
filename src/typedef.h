@@ -93,7 +93,7 @@ typedef struct http_cgi_response{
 */
 typedef struct http_request{
 	char *cp_method; /**< used request method */
-	char *cp_uri; /**< rewuested uri */
+	char *cp_uri; /**< requested uri */
 	char *cp_query; /**< query string from uri */
 	char *cp_fragment; /**< fragment from uri */
 	char *cp_path; /**< requested file path */
