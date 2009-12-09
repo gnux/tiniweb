@@ -1,7 +1,7 @@
 /** typedef.h
 * Common definitions used globaly in whole program
 * \file typedef.h
-* \author Patrick Plaschzug, Christian Partl, Georg Neubuaer, Dieter Ladenhauf
+* \author Patrick Plaschzug, Christian Partl, Georg Neubauer, Dieter Ladenhauf
 */
 
 #ifndef TYPEDEF_
@@ -51,7 +51,7 @@ typeof (b) _b = (b); \
 _a > _b ? _a : _b; })
 
 
-/** \struct http_norm
+/**
 * Structure for normalised and splittet header
 */
 typedef struct http_norm {
@@ -61,7 +61,7 @@ typedef struct http_norm {
 	char **cpp_header_field_body; /**< header field bodys */
 } http_norm;
 
-/** \struct http_autorization
+/**
 * Structure for parsed authorization information
 */
 typedef struct http_autorization{
@@ -72,7 +72,7 @@ typedef struct http_autorization{
 	char *cp_response; /**< response */
 }http_autorization;
 
-/** \struct http_cgi_response
+/**
 * Structure for parsed cgi response
 */
 typedef struct http_cgi_response{
@@ -85,7 +85,7 @@ typedef struct http_cgi_response{
 	char **cpp_header_field_body; /**< header field bodys */
 }http_cgi_response;
 
-/** \struct http_request
+/**
 * Structure for parsed cgi response
 */
 typedef struct http_request{

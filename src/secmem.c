@@ -1,6 +1,7 @@
-/** tiniweb
-* \file secmem.c
-* \author Georg Neubauer
+/** secmem.c
+* Implementation of secMemory functions
+* \file typedef.h
+* \author Patrick Plaschzug, Christian Partl, Georg Neubauer, Dieter Ladenhauf
 */
 
 #include <memory.h>
@@ -10,16 +11,6 @@
 #include "debug.h"
 #include "httpresponse.h"
 #include "typedef.h"
-
-/**
-* describes list entry structure for a double-linked list, that holds ptr to memory blocks
-*/
-typedef struct list_entry {
-	struct list_entry *lep_before;
-	void *vp_ptr;
-	size_t i_len;
-	struct list_entry *lep_next;
-} list_entry;
 
 static list_entry *lep_memory_handles_first = 0;
 static list_entry *lep_memory_handles_last = 0;
@@ -170,6 +161,8 @@ void secRegister(void *ptr){
 	lep_memory_handles_last->vp_ptr=ptr;
 }
 
+
+//TODO: this 2 functions!!!
 void secAbort(){
 	//TODO:provide error handling! error responses, maybe get used of a secExit function that sends responses!
 	// use secAbort only for internal failures
@@ -193,3 +186,4 @@ void secExit(int i_status){
 	secCleanup();
 	exit(-1);	
 }
+

@@ -1,7 +1,7 @@
 /** normalize.c
 * Implementation of the normalizer
 * \file normalize.c
-* \author Patrick Plaschzug, Christian Partl, Georg Neubuaer, Dieter Ladenhauf
+* \author Patrick Plaschzug, Christian Partl, Georg Neubauer, Dieter Ladenhauf
 */
 
 #include <stdlib.h>

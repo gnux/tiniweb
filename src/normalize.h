@@ -1,3 +1,9 @@
+/** normalize.h
+* Definitions of normalizer functions
+* \file typedef.h
+* \author Patrick Plaschzug, Christian Partl, Georg Neubauer, Dieter Ladenhauf
+*/
+
 #ifndef __NORMALIZE_H__
 #define __NORMALIZE_H__
 #include "typedef.h"
