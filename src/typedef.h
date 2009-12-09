@@ -1,4 +1,4 @@
-/** tiniweb
+/** typedef.h
 * Common definitions used globaly in whole program
 * \file typedef.h
 * \author Patrick Plaschzug, Christian Partl, Georg Neubuaer, Dieter Ladenhauf
