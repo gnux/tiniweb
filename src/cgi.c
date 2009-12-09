@@ -118,7 +118,7 @@ void processCGIScript(const char* cp_path)
 				//TODO: safe exit
 				debugVerbose(CGICALL, "Changing directory failed.\n");
 			}
-			
+			printEnvVarList();
 			secCleanup();
 			
 			// Duplicate the pipes to stdIN / stdOUT

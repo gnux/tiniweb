@@ -234,8 +234,8 @@ void deleteCyclesFromPath(char** cpp_path_to_check)
     for (int i_current_folder = 0; i_current_folder < i_num_folders; i_current_folder++)
     {
         // handle the '..'
-        if (strncmp(cpp_path[i_current_folder], "../", 3) == 0 ||
-            strncmp(cpp_path[i_current_folder], "..", 2) == 0)
+        if (( strlen(cpp_path[i_current_folder]) >= 3 && strncmp(cpp_path[i_current_folder], "../", 3) == 0) ||
+            ( strlen(cpp_path[i_current_folder]) >= 2 && strncmp(cpp_path[i_current_folder], "..", 2) == 0 ) )
         {
             cpp_path[i_current_folder][0] = '\0';
             if (i_current_folder > 0)
@@ -263,8 +263,16 @@ void deleteCyclesFromPath(char** cpp_path_to_check)
         }
         
         // handle the '.'
-        else if ( strncmp(cpp_path[i_current_folder], "./", 2) == 0 || 
-                ( cpp_path[i_current_folder][0] == '.' && cpp_path[i_current_folder][1] == '\0' ) )
+        else if ( ( strlen(cpp_path[i_current_folder]) >= 2 && strncmp(cpp_path[i_current_folder], "./", 2) == 0 ) || 
+                  ( cpp_path[i_current_folder][0] == '.' && cpp_path[i_current_folder][1] == '\0' ) )
+        {
+            cpp_path[i_current_folder][0] = '\0';
+        }
+        
+        // handle the '/'
+        else if ( strlen(cpp_path[i_current_folder]) >= 1 && 
+                  strncmp(cpp_path[i_current_folder], "/", 1) == 0 && 
+                  i_current_folder != 0 )
         {
             cpp_path[i_current_folder][0] = '\0';
         }
@@ -344,6 +352,8 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
     
     char* cp_relative_path = http_request_->cp_path;
     int i_relative_path_len = strlen(cp_relative_path);
+    
+    deleteCyclesFromPath(&cp_relative_path);
 
     strAppend(&cp_relative_path_without_first_letter, cp_relative_path);
     
@@ -363,26 +373,8 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
         
         (*cb_static) = FALSE;
         debugVerbose(PATH, "Mapping the request Path: Request is DYNAMIC\n");
-        
-         /** Does the request path now map to the sci-dir?
-          *
-          *  This could happen if eg:
-          *
-          *      cgi-dir:  home/foo/cgi
-          *      web-dir:  home/foo/web
-          *      Request:  /cgi-bin/../web/x.html
-          *
-          *      The Mapped Request would now be 'home/foo/web/x.html' and DYNAMIC
-          *      And that is why the folloging lines of code are necessary!
-          */
-         if (checkIfFirstDirContainsSecondDir(scp_web_dir_, scp_cgi_dir_) == FALSE &&
-             checkIfFirstDirContainsSecondDir(scp_web_dir_, *cpp_final_path) == TRUE)
-         {
-            (*cb_static) = TRUE;
-            debugVerbose(PATH, "Mapping the request Path: Request is STATIC\n");
-         }
-         
-         secFree(cp_relative_path_without_cgi_bin);
+
+        secFree(cp_relative_path_without_cgi_bin);
     }
     else
     {
@@ -399,25 +391,27 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
             }
             
             (*cb_static) = TRUE;
-            debugVerbose(PATH, "Mapping the request Path: Request is STATIC\n");
             
-            /** Does the request path now map to the sci-dir?
+            /** Does the request path now map to the cgi-dir?
              *
              *  This could happen if eg:
              *
-             *      cgi-dir:  home/foo/cgi
-             *      web-dir:  home/foo/web
-             *      Request:  /../cgi/script
+             *      cgi-dir:  home/foo/webroot
+             *      web-dir:  home/foo/webroot/cgi
+             *      Request:  /cgi/script
              *
-             *      The Mapped Request would now be 'home/foo/cgi/script' and STATIC
+             *      The Mapped Request would now be 'home/foo/webroot/cgi/script' and Dynamic
              *      And that is why the folloging lines of code are necessary!
              */
-            if (checkIfFirstDirContainsSecondDir(scp_web_dir_, scp_cgi_dir_) == FALSE &&
-                checkIfFirstDirContainsSecondDir(scp_cgi_dir_, *cpp_final_path) == TRUE)
+            if (checkIfFirstDirContainsSecondDir(scp_cgi_dir_, *cpp_final_path) == TRUE)
             {
                 (*cb_static) = FALSE;
-                debugVerbose(PATH, "Mapping the request Path: Request is DYNAMIC\n");
             }
+            
+            if (*cb_static)
+                debugVerbose(PATH, "Mapping the request Path: Request is STATIC\n");
+            else
+                debugVerbose(PATH, "Mapping the request Path: Request is DYNAMIC\n");
         }
         else
         {
