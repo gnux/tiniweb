@@ -16,23 +16,25 @@ static const enum SCE_KNOWN_METHODS {
 
 /**
  * Takes the Normalized Input, and calls the functions parseHttpRequestHeader and parseArguments
- * if something went wrong or the input is incorrect we abort
+ * if something went wrong or the input is incorrect we call secExit
  * 
  * @param hnp_info Struct provided by the Normalizer
  */
 void parse(http_norm *hnp_info);
 
 /**
- * Takes the Normalized Input from an CGI-Respons, Parser for Contetn-Type and Status
+ * Takes the Normalized Input from an CGI-Response, parse for Content-Type and Status
+ * check if they only appere once, set status if you couldn't find one
  * Return EXIT_SUCESS or EXIT_FAILURE
  * 
  * @param hnp_info Struct provided by the Normalizer
  * @return http_cgi_response Struct defined in typedef.h
  */
 http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info);
+
 /**
- * Iterate to the hole Arguments providet from the Normalizer, add to all Headerfieldnames an HTTP_
- * an make them to upper Case by calling the stringToUpperCase funktion
+ * Iterate to the hole Arguments providet from the Normalizer, check for
+ * Host, Method, Autorization
  * 
  * @param hnp_info Struct provided by the Normalizer
  * @return EXIT_FAILURE if something went wrong, EXIT_SUCCESS if everything was right
@@ -62,7 +64,7 @@ int parseRequestLine(char* input);
  * 
  * @param input a char pointer to an string you want to get checked
  * @param offset point where you want to start to check
- * @return EXIT_FAILURE if something went wrong, pr the Offset how fare he has parsed the string
+ * @return EXIT_FAILURE if something went wrong, pointer to the Offset how fare we have parsed the string
  */
 int parseRequestMethod(char* input, int offset);
 
@@ -73,12 +75,12 @@ int parseRequestMethod(char* input, int offset);
  * 
  * @param input a char pointer to an string you want to get checked
  * @param offset point where you want to start to check
- * @return EXIT_FAILURE if something went wrong, pr the Offset how fare he has parsed the string
+ * @return EXIT_FAILURE if something went wrong, pointer to the Offset how fare we have parsed the string
  */
 int parseRequestURI(char* input, int offset);
 
 /**
- * Checks if the HttpVersion is supported, if no HttpVersion is given we set the following "HTTP/1.1"
+ * Checks if the HttpVersion is supported, if no HttpVersion is given secExit
  * 
  * @param input a char pointer to an string you want to get checked
  * @param offset point where you want to start to check
@@ -102,21 +104,6 @@ int validateAbspath(char** cp_string);
  * @return TRUE if it is an non escaped char or FALSE
  */
 bool isNonEscapedChar(char* cp_input, int i_offset);
-
-/**
- * Tries to check if the escaped chars hexdigit is correct
- * 
- * @params input char which should get checked
- * @return TRUE if it is an Hex Digit or FALSE if not
- */
-bool isHexDigit(char input);
-
-/**
- * Transforms an String to an Upper Case String
- * 
- * @params char pointer to string wich should get transformed
- */
-void stringToUpperCase(char* input);
 
 /**
  * Takes the string you are searching for and returns the header fieldbody if it could
@@ -157,7 +144,7 @@ void parsePrintStructures();
  * Parse the last characters until it finds the first "." afterwoods it checks if we know
  * the extension and returns the defined values
  * 
- * @param filepath const char pointer to the Filepath
+ * @param cp_filename const char pointer to the Filepath
  * @return char* which points to the extension
  */
 char* parseExtension(const char* cp_filename);
@@ -166,13 +153,27 @@ char* parseExtension(const char* cp_filename);
  * Parse the last characters until it finds the first "/" returns everything after "/" to 
  * end of File
  * 
- * @param filepath const char pointer to the Filepath
+ * @param cp_filename const char pointer to the Filepath
  * @return char* which points to the filepath
  */
-char* parseFilename(const char* filepath);
+char* parseFilename(const char* cp_filename);
 
+ /**
+ * Parse the last characters until it finds the first "." returns everything after "." to 
+ * end of File
+ * 
+ * @param cp_filename const char pointer to the Filepath
+ * @return char* which points to the filepath
+ */
 char* parseFilepath(const char* cp_filename);
 
-bool isStatusCode(const char* num);
+
+ /**
+ * Check if the first three Chars are be Digits followed with a space
+ * 
+ * @param cp_num const char pointer to the String 
+ * @return TRUE if it is a Code with 3 Digits or FALSE
+ */
+bool isStatusCode(const char* cp_num);
 
 #endif /*PARSER_H_*/
