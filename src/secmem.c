@@ -154,19 +154,16 @@ void secProof(void *ptr){
 	}
 }
 
-void secRegister(void *ptr){
+void secRegister(void *ptr)
+{
 	if(secFindElement(ptr))
 		return;
 	secAddNewEntry();
 	lep_memory_handles_last->vp_ptr=ptr;
 }
 
-
-//TODO: this 2 functions!!!
-void secAbort(){
-	//TODO:provide error handling! error responses, maybe get used of a secExit function that sends responses!
-	// use secAbort only for internal failures
-	
+void secAbort()
+{
 	sendHTTPErrorMessage(STATUS_INTERNAL_SERVER_ERROR);
 	
 	debug(SEC_MEM, "-----INTERNAL FAILURE, SERVER IS GOING TO ABORT-----\n");
@@ -176,30 +173,25 @@ void secAbort(){
 	abort();
 }
 
-void secExit(int i_status){
-	
-	if(i_status>STATUS_CANCEL){
+void secExit(int i_status)
+{
+	if(i_status > STATUS_CANCEL)
+	{
 		sendHTTPErrorMessage(i_status);
-		
 		debug(SEC_MEM, "-----FAILURE, SERVER IS GOING TO EXIT-----\n");	
 		debug(SEC_MEM, "------ERROR-MESSAGE: %s------\n",getStatusCode(i_status));
-		
-		secCleanup();
-		exit(-1);
 	}
-	else if(i_status==STATUS_CANCEL){
-		debug(SEC_MEM, "-----CANCEL, SERVER IS GOING TO EXIT-----\n");	
-		debug(SEC_MEM, "------MESSAGE: %s------\n",getStatusCode(i_status));
-		secCleanup();
-		exit(i_status);
-	
+	else if(i_status == STATUS_CANCEL)
+	{
+		debug(SEC_MEM, "-----CANCEL, SERVER IS GOING TO EXIT-----\n");
 	}
-	else{
+	else if(i_status == STATUS_OK)
+	{
 		debug(SEC_MEM, "-----OK, SERVER IS GOING TO EXIT-----\n");	
 		debug(SEC_MEM, "------MESSAGE: %s------\n",getStatusCode(i_status));
-		secCleanup();
-		exit(i_status);
 	}
-		
+	
+	secCleanup();
+	exit(i_status);
 }
 

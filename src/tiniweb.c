@@ -116,15 +116,12 @@ int main(int argc, char** argv) {
     if(!scp_cgi_dir_ || !scp_web_dir_ || !scp_secret_){
       debug(MAIN, "Mandatory parameter missing\n");
       debug(MAIN, "usage: ./tiniweb (--verbose) --web-dir <path> --cgi-dir <path> --secret <secret> (--cgi-timeout <msec>)\n");
-	  secExit(-1);
-	  
-	  //TODO: controlledShutdown();
-      //TODO: give answer internal server error! -> no answer!
+	  secExit(STATUS_CANCEL);
     }
     if (performPathChecking(&scp_cgi_dir_, &scp_web_dir_) == FALSE)
     {
         debug(MAIN, "ERROR, Paths not valid!\n");
-        secAbort();
+        secExit(STATUS_CANCEL);
     }
 //    if(!b_flag_cgi_timeout)
 //      sui_cgi_timeout = SCUI_CGI_TIMEOUT;
@@ -152,7 +149,7 @@ int main(int argc, char** argv) {
 	debugVerbose(MAIN, "Switching stdin to non_blocking mode\n");
 	if(setNonblocking(STDIN_FILENO))
 	{
-		debugVerbose(MAIN, "Switching stdin to non_blocking mode failed!\n");
+		debug(MAIN, "Switching stdin to non_blocking mode failed!\n");
 		secAbort();
 	}
 	
@@ -160,9 +157,8 @@ int main(int argc, char** argv) {
 	// TODO: EXIT WITHOUT ANY MESSAGE
 	if(cp_header == NULL)
 	{
-		debugVerbose(MAIN,"STDIN has to talk to use! We don't like DoS\n");
-		secCleanup();
-		exit(0);
+		debug(MAIN,"STDIN has to talk to use! We don't like DoS\n");
+		secExit(STATUS_CANCEL);
 	}
 
 	http_norm *hnp_info = normalizeHttp(cp_header, FALSE);
@@ -218,6 +214,6 @@ int main(int argc, char** argv) {
         }
     }
     
-    secCleanup();
-    return EXIT_SUCCESS;
+	secExit(STATUS_OK);
+	return EXIT_SUCCESS;
 }
