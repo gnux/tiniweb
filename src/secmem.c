@@ -178,12 +178,28 @@ void secAbort(){
 
 void secExit(int i_status){
 	
-	sendHTTPErrorMessage(i_status);
+	if(i_status>STATUS_CANCEL){
+		sendHTTPErrorMessage(i_status);
+		
+		debug(SEC_MEM, "-----FAILURE, SERVER IS GOING TO EXIT-----\n");	
+		debug(SEC_MEM, "------ERROR-MESSAGE: %s------\n",getStatusCode(i_status));
+		
+		secCleanup();
+		exit(-1);
+	}
+	else if(i_status==STATUS_CANCEL){
+		debug(SEC_MEM, "-----CANCEL, SERVER IS GOING TO EXIT-----\n");	
+		debug(SEC_MEM, "------MESSAGE: %s------\n",getStatusCode(i_status));
+		secCleanup();
+		exit(i_status);
 	
-	debug(SEC_MEM, "-----FAILURE, SERVER IS GOING TO EXIT-----\n");	
-	debug(SEC_MEM, "------ERROR-MESSAGE: %s------\n",getStatusCode(i_status));
-	
-	secCleanup();
-	exit(-1);	
+	}
+	else{
+		debug(SEC_MEM, "-----OK, SERVER IS GOING TO EXIT-----\n");	
+		debug(SEC_MEM, "------MESSAGE: %s------\n",getStatusCode(i_status));
+		secCleanup();
+		exit(i_status);
+	}
+		
 }
 

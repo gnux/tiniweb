@@ -103,11 +103,6 @@ int validateAbspath(char** cp_string);
  */
 bool isNonEscapedChar(char* cp_input, int i_offset);
 
-
-
-
-
-
 /**
  * Tries to check if the escaped chars hexdigit is correct
  * 

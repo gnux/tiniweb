@@ -152,11 +152,9 @@ http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info){
 	
 }
 
-
 int parseArguments(http_norm *hnp_info){
 	char* cp_name = NULL;
 	// search for required Arguments
-	
 	// we need a HOST field!
 	cp_name = parseFindExplicitHeaderField(hnp_info, "Host");
 	if(cp_name == NULL)
@@ -189,30 +187,6 @@ int parseArguments(http_norm *hnp_info){
 			B_AUTORIZATION_FOUND = TRUE;
 	}
 	
-	// in case of cgi we would need to setup our envvars
-	/*if(B_CGI_BIN_FOUND == TRUE){
-		for(ssize_t i = 0; i < hnp_info->i_num_fields; ++i){
-			cp_name = NULL;
-			strAppend(&cp_name, SCCP_HTTP_HEADER_FIELD_MARKER);
-			strAppend(&cp_name, hnp_info->cpp_header_field_name[i]);
-			stringToUpperCase(cp_name);
-			appendToEnvVarList(cp_name,hnp_info->cpp_header_field_body[i]);
-		}
-		appendToEnvVarList("GATEWAY_INTERFACE", "CGI/1.1");
-		appendToEnvVarList("SERVER_SOFTWARE", "tiniweb/1.0");
-		//TODO: What does it mean???? Which Content, body???
-		// Just set content length in case of POST, header field must exist
-		//WHERE to get???
-		if(e_used_method == POST)
-			appendToEnvVarList("CONTENT_LENGHT", "000");
-		//TODO:Where to get???
-		if(B_AUTORIZATION_FOUND == TRUE)
-			appendToEnvVarList("REMOTE_USER",http_autorization_->cp_username);
-		//TODO:Where to get???
-		appendToEnvVarList("SCRIPT_FILENAME","0");
-		//TODO:Where to get???
-		appendToEnvVarList("DOCUMENT_ROOT","0");
-	}*/
 	return EXIT_SUCCESS;
 }
 	
@@ -401,12 +375,6 @@ int parseRequestURI(char* input, int offset){
 	for(i_offset_en = i_offset_st; i_offset_en < strlen(input) && input[i_offset_en] != ' '; ++i_offset_en);
 	cp_uri = secGetStringPart(input, i_offset_st, i_offset_en - 1);
 	
-	//Check if the URI starts with /cgi-bin/
-	/*if(strncmp(SCCP_CGI_BIN,cp_uri,min(strlen(SCCP_CGI_BIN), strlen(cp_uri)))==0){
-		B_CGI_BIN_FOUND = TRUE;
-		debugVerbose(PARSER, "CGI bin found\n");
-	}*/
-	
 	//It is possible that the URI contians an question and/or an fragment
 	//First find our path, it ends after an ?,#,' ', or if the line ends
 	for(i_offset_st = 0; i_offset_st < strlen(cp_uri) && cp_uri[i_offset_st] != '?' && cp_uri[i_offset_st] != '#'; ++i_offset_st);
@@ -467,26 +435,6 @@ int parseHttpVersion(char* input, int offset){
 	return EXIT_SUCCESS;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int validateAbspath(char** cpp_string){
 	ssize_t i = 0;
 	ssize_t i_offset = 0;
@@ -539,27 +487,6 @@ bool isNonEscapedChar(char* cp_input, int i_offset){
 		return FALSE;
 }
 
-// bool isHexDigit(char c){
-// 	//check if the char is in a correct hexdigit range
-// 	if(c>0x29 && c < 0x3A)
-// 		return TRUE;
-// 	else if(c>0x40 && c < 0x47)
-// 		return TRUE;
-// 	else if(c>0x60 && c < 0x67)
-// 		return TRUE;
-// 	else
-// 		return FALSE;
-// }
-
-// void stringToUpperCase(char* input){
-// 	//just convert every char from the string to an uppercase char
-// 	for(int i=0; i<strlen(input);i++){
-// 		input[i] = toupper(input[i]);
-// 		if(input[i] == '-')
-// 			input[i] = '_';
-// 	}	
-// }
-
 void parsePrintStructures(){
 	//if the structure is not NULL print it out
 	debugVerbose(PARSER, "Here we show our structs...\n");
@@ -603,8 +530,6 @@ char* parseExtension(const char* cp_filename){
 			if(strncasecmp(cp_extension,ccp_file_type[i],strlen(ccp_file_type[i]))==0)
 				return cp_content_type[i];
 	
-	
-	
 	return cp_content_type[4];
 	
 }
@@ -642,18 +567,18 @@ char* parseFilepath(const char* cp_filename){
 	
 }
 
-bool isStatusCode(const char* num){
+bool isStatusCode(const char* cp_num){
 	
 	int i=0;
-	if(strlen(num)<4)
+	if(strlen(cp_num)<4)
 		return FALSE;
 		
 	for(;i<3;i++){
-		if(num[i]<47 || num[i]>57)
+		if(cp_num[i]<47 || cp_num[i]>57)
 			return FALSE;
 	}
 	
-	if(num[3] != ' ')
+	if(cp_num[3] != ' ')
 		return FALSE;
 	
 	return TRUE;
