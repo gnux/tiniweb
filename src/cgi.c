@@ -300,6 +300,10 @@ return EXIT_FAILURE;
 					{
 						debugVerbose(CGICALL, "CGI header provided successfully to http client.\n");
 						b_header_provided = TRUE;
+						if(e_used_method == HEAD)
+						{
+						    pipes[0]->i_in_eof = 1;
+						}
 					}
 					else
 					{
