@@ -77,7 +77,10 @@ char* retrieveHeader(int fd, int timeout)
 	
 	// Header is too large
 	if(i == MAX_HEADER_SIZE)
-		secAbort();
+	{
+		debug(FILEHANDLING, "Too long header! We don't like to get overflowed, bye bye\n");
+		secExit(STATUS_CANCEL);
+	}
 	
 	cp_header[i] = '\0';
 	return secRealloc(cp_header, (i + 1) * sizeof(char));
