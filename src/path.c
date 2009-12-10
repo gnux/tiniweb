@@ -92,7 +92,7 @@ bool performPathChecking(char** cpp_path_cgi, char** cpp_path_web)
 
 bool convertToRealPath(char** cp_path)
 {
-    char* ca_path_buffer = secMalloc(MAXPATHLEN * sizeof(char));
+    char* ca_path_buffer = secCalloc(MAXPATHLEN + 1, sizeof(char));
     char* cp_realpath_result = NULL;
     
     /**
@@ -316,7 +316,7 @@ void constructAbsolutePath(char** cpp_path)
     {
         char* cp_buffer = NULL;
         int i_buffer_len = 20;
-        cp_buffer = secMalloc(i_buffer_len * sizeof(char));
+        cp_buffer = secCalloc(i_buffer_len, sizeof(char));
         char* cp_result = getcwd(cp_buffer, i_buffer_len);
         
         while (cp_result == NULL)

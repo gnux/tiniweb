@@ -13,7 +13,6 @@
 
 #include "md5.h"
 #include "secmem.h"
-#include "typedef.h"
 #include "cgi.h"
 #include "debug.h"
 #include "parser.h"
@@ -25,20 +24,21 @@
 #include "staticfile.h"
 #include "pipe.h"
 #include "filehandling.h"
+#include "typedef.h"
 
 // default values for options, if no command line option is available
 //static const char SCCA_WEB_DIR[] = "/";
 //static const char SCCA_CGI_DIR[] = "/cgi-bin/";
-static const int SCI_CGI_TIMEOUT = 1;
+//static const int SCI_CGI_TIMEOUT = 1;
 
-unsigned char sb_flag_verbose_ = FALSE;
+bool b_flag_verbose_ = FALSE;
 
 
 char *scp_web_dir_ = NULL;
 char *scp_cgi_dir_ = NULL;
 char *scp_secret_ = NULL;
 
-int si_cgi_timeout_ = 1000;
+int si_cgi_timeout_ = CGI_TIME_OUT_MIN;
 
   
 /** tiniweb main routine
@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
 	    strncpy(scp_secret_, optarg, strlen(optarg));
 	    break;
         case 4:
-            sb_flag_verbose_ = TRUE;
+            b_flag_verbose_ = TRUE;
             debugVerbose(MAIN, "switching to verbose mode \n");
             
             break;
@@ -115,9 +115,11 @@ int main(int argc, char** argv) {
 
     if(!scp_cgi_dir_ || !scp_web_dir_ || !scp_secret_){
       debug(MAIN, "Mandatory parameter missing\n");
-      debug(MAIN, "usage: ./tiniweb --web-dir <path> --cgi-dir <path> --secret <secret> (--cgi-timeout <sec>)\n");
-      //TODO: controlledShutdown();
-      //TODO: give answer internal server error!
+      debug(MAIN, "usage: ./tiniweb (--verbose) --web-dir <path> --cgi-dir <path> --secret <secret> (--cgi-timeout <msec>)\n");
+	  secExit(-1);
+	  
+	  //TODO: controlledShutdown();
+      //TODO: give answer internal server error! -> no answer!
     }
     if (performPathChecking(&scp_cgi_dir_, &scp_web_dir_) == FALSE)
     {
@@ -127,10 +129,16 @@ int main(int argc, char** argv) {
 //    if(!b_flag_cgi_timeout)
 //      sui_cgi_timeout = SCUI_CGI_TIMEOUT;
     
-    if(si_cgi_timeout_ < 1){
-      debug(0, "cgi-timeout => 1 required, usind default value (%d)\n", SCI_CGI_TIMEOUT);
-      si_cgi_timeout_ = SCI_CGI_TIMEOUT;
+    if(si_cgi_timeout_ < CGI_TIME_OUT_MIN)
+	{
+      debug(0, "cgi-timeout is too short, using default value (%d)\n", CGI_TIME_OUT_MIN);
+      si_cgi_timeout_ = CGI_TIME_OUT_MIN;
     }
+	else if(si_cgi_timeout_ > CGI_TIME_OUT_MAX)
+	{
+      debug(0, "cgi-timeout is too long, using default value (%d)\n", CGI_TIME_OUT_MAX);
+      si_cgi_timeout_ = CGI_TIME_OUT_MAX;
+	}
 	
 
 
