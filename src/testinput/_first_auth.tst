@@ -1,9 +1,9 @@
-GET /tests/webroot/index.html HTTP/1.1
+GET /index.html HTTP/1.1
 Host: localhost
 Authorization: Digest username="testuser",
  realm="testrealm",
- nonce="4b1cc1eb5119622da2b01440f9c945408f1d724f7f34b773e92ddf5db390f7b5aaa9f6",
- uri="/../cgi-bin/testscript",
- response="2228a81e94b89116108ac7586d26792"
+ nonce="4b20e603d1546d731a9f30cc80127d57142a482bdc9547d86c9c0d593e68e02f57d580c3",
+ uri="/index.html",
+ response="6a660c14610b67f2f8d0c977ba62c0db"
 
  

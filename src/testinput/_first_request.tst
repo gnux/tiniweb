@@ -1,4 +1,4 @@
-GET /tests/webroot/index.html HTTP/1.1
+GET /index.html HTTP/1.1
 Host: host
 
 

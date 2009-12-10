@@ -91,12 +91,6 @@ bool authenticate(char* cp_path)
             {
                 secExit(STATUS_LOGIN_FAILED);
             }
-            
-//             debug(AUTH, "####### HA1: %s\n", cp_ha1);
-//             debug(AUTH, "####### http_autorization_->cp_nonce: %s\n", http_autorization_->cp_nonce);
-//             debug(AUTH, "####### http_request_->cp_method: %s\n", http_request_->cp_method);
-//             debug(AUTH, "####### http_autorization_->cp_uri: %s\n", http_autorization_->cp_uri);
-//             debug(AUTH, "####### http_autorization_->cp_response: %s\n", http_autorization_->cp_response);
 	        
 	        if (verifyResponse(cp_ha1, http_autorization_->cp_nonce, http_request_->cp_method, 
 	            http_autorization_->cp_uri, http_autorization_->cp_response) == FALSE)
@@ -337,11 +331,6 @@ bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
     i_ha2_len = strlen(cp_ha2_string);
     
     
-//     debugVerbose(AUTH, "##### HA1:        %s\n", cp_ha1);
-//     debugVerbose(AUTH, "##### Nonce:      %s\n", cp_nonce);
-//     debugVerbose(AUTH, "##### HA2:        %s\n", cp_ha2_string);
-//     debugVerbose(AUTH, "######## HA2 ReqMeth: %s, URI: %s\n", cp_http_request_method, cp_uri);
-    
     // Calculate expected response:
     md5_init(&expected_response_state);
     md5_append(&expected_response_state, (unsigned char*)cp_ha1, i_ha1_len);
@@ -350,11 +339,6 @@ bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
     md5_finish(&expected_response_state, uca_expected_response);
     convertHash(uca_expected_response, SCI_NONCE_LEN, &cp_expected_converted_response);
 
-    // TODO remove this debug output:
-//     debugVerbose(AUTH, "Hash from client: %s\n", cp_response);
-//     debugVerbose(AUTH, "HExpected Hash:   %s\n", cp_expected_converted_response);
-    
-    
     i_result = strncmp(cp_response, cp_expected_converted_response, SCI_NONCE_LEN * 2);
     if (i_result != 0)
     {
@@ -380,8 +364,6 @@ bool verifyNonce(char* cp_nonce)
     char* cp_path_hash = NULL;
     char* cp_hmac = NULL;
     char* cp_nonce_calculated = NULL;
-    
-//     debugVerbose(AUTH, "######### string len: %i !\n", strlen(cp_nonce));
     
     if (strlen(cp_nonce) < i_timestamp_len + i_hash_len * 2)
     {
@@ -468,10 +450,10 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len, unsigned char* uca_
          */
 
         /* start out by storing key in pads */
-        bzero( uca_k_ipad, sizeof(uca_k_ipad));
-        bzero( uca_k_opad, sizeof(uca_k_opad));
-        bcopy( uca_key, uca_k_ipad, i_key_len);
-        bcopy( uca_key, uca_k_opad, i_key_len);
+        memset( uca_k_ipad, 0, 65 );
+        memset( uca_k_opad, 0, 65 );
+        memcpy( uca_k_ipad, uca_key, i_key_len);
+        memcpy( uca_k_opad, uca_key, i_key_len);
 
         /* XOR key with ipad and opad values */
         for (i = 0; i < 64; i++) {
@@ -510,16 +492,12 @@ int createNonce(char** cpp_nonce, time_t timestamp)
     
     uca_path_nonce[SCI_NONCE_LEN] = '\0';
     uca_time_path_hmac[SCI_NONCE_LEN] = '\0';
-    
-//     debugVerbose(AUTH,"Hex von 14: %x\n",14);
-    
+        
     // Creating of the MD5 Hash of the Request Path
     md5_init(&path_state);
     md5_append(&path_state, (unsigned char*)http_request_->cp_path, strlen(http_request_->cp_path));
     md5_finish(&path_state, uca_path_nonce);
-    
-//     debugVerbose(AUTH, "###  uca_path_nonce lenght is: %i\n", strlen((char*)uca_path_nonce));
-    
+       
     if (convertHash(uca_path_nonce, SCI_NONCE_LEN, &cp_path_hash) == EXIT_FAILURE)
     {
         debugVerbose(AUTH, "ERROR: Converting of Path Hash did not work!");
@@ -527,14 +505,12 @@ int createNonce(char** cpp_nonce, time_t timestamp)
     }
     
     debugVerbose(AUTH, "Hash of the Path: %s\n", cp_path_hash);
-//     debugVerbose(AUTH, "Length of hashed Path: %i\n", strlen(cp_path_hash));
-
+    
     // Convert timestamp to Hex:
     memset(uca_time, 0, 9);
     sprintf((char*)uca_time,"%x",(unsigned int)timestamp);
     debugVerbose(AUTH, "Created the timestamp in Hex: %s\n", uca_time);
-//     debugVerbose(AUTH, "Length of timestamp hex: %i\n", strlen(uca_time));
-    
+   
     /** 
      *  STEP 1:
      *  Concatenate timestamp hex and path hash
@@ -556,16 +532,14 @@ int createNonce(char** cpp_nonce, time_t timestamp)
         return EXIT_FAILURE;
     }
     debugVerbose(AUTH, "Calculated HMACMD5 of time and Path: %s\n", cp_time_path_hmac);
-//     debugVerbose(AUTH, "###  Path+Time HMAC lenght is: %i\n", strlen(cp_time_path_hmac));
+
     /** 
      *  Concatenate STEP 1 and STEP 2:
      */
     strAppend(cpp_nonce, cp_concatenated_time_path);
     strAppend(cpp_nonce, cp_time_path_hmac);
     debugVerbose(AUTH, "Concatenated (time : md5(path) : hmacmd5(time : md5(path))): %s\n", *cpp_nonce);
-	
-// 	debugVerbose(AUTH, "###  Nonce lenght is: %i\n", strlen(*cpp_nonce));
-    
+	  
     return EXIT_SUCCESS;
 }
 

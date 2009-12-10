@@ -21,7 +21,7 @@ static const char* SCCA_KNOWN_METHODS[] = {"GET", "POST", "HEAD"};
 static const int SCI_NUM_KNOWN_METHODS = 3;
 static const char* SCCP_KNOWN_HTTPVERSION = "HTTP/1.1";
 //static const char* SCCP_CGI_BIN ="/cgi-bin/";
-//static const char* SCCP_HTTP_HEADER_FIELD_MARKER = "HTTP_";
+
 enum SCE_KNOWN_METHODS e_used_method = UNKNOWN;
 
 
@@ -90,10 +90,11 @@ http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info){
 				if(isStatusCode(http_cgi_response_->status)==FALSE)
 					secExit(STATUS_INTERNAL_SERVER_ERROR);
 				i++;
-			}
-		if(http_cgi_response_->status == NULL)
-			strAppend(&http_cgi_response_->status, "200 OK");	
+			}			
 	}
+	
+	if(http_cgi_response_->status == NULL)
+		strAppend(&http_cgi_response_->status, "200 OK");
 	
 	// DEFAULTS
 	strAppend(&http_cgi_response_->connection, "close");
