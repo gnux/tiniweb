@@ -11,7 +11,7 @@
 
 static const enum SCE_STATUS_CODE_
 {
-    STATUS_OK,
+    STATUS_OK = 0,
     STATUS_CANCEL,
     STATUS_BAD_REQUEST,
     STATUS_UNAUTHORIZED,
