@@ -20,21 +20,16 @@
 static const char* SCCA_KNOWN_METHODS[] = {"GET", "POST", "HEAD"};
 static const int SCI_NUM_KNOWN_METHODS = 3;
 static const char* SCCP_KNOWN_HTTPVERSION = "HTTP/1.1";
-//static const char* SCCP_CGI_BIN ="/cgi-bin/";
 
 enum SCE_KNOWN_METHODS e_used_method = UNKNOWN;
 
 
 //TODO: really use global variable???
-//bool B_CGI_BIN_FOUND = FALSE;
 bool B_AUTORIZATION_FOUND = FALSE;
 http_autorization* http_autorization_ = NULL;
 
 http_request *http_request_ = NULL;
 
-/*int min(int a, int b){
-	return a < b ? a : b;
-}*/
 
 void parse(http_norm *hnp_info){
  	//TODO: BETTER ERROR HANDLING
@@ -115,7 +110,8 @@ http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info){
 	http_cgi_response_->cpp_header_field_body[2] = http_cgi_response_->content_type;
 	
 	
-	//Find all other fields, but if we find server or connection do nothing	
+	//Find all other fields, but if we find server or connection do nothing
+	//If there are more content-type or status fields secExit
 	for(; i < hnp_info->i_num_fields; ++i){
 
 		i_len = strlen(hnp_info->cpp_header_field_name[i]);
@@ -138,7 +134,7 @@ http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info){
 	}
 		
 
-
+	//Create Debug output
 	debugVerbose(PARSER, "CGI Content: %s\n",http_cgi_response_->content_type);
 	debugVerbose(PARSER, "CGI Status: %s\n",http_cgi_response_->status);
 	debugVerbose(PARSER, "CGI Connection: %s\n",http_cgi_response_->connection);
@@ -161,7 +157,7 @@ int parseArguments(http_norm *hnp_info){
 	if(cp_name == NULL)
 		//TODO: ERROR handling, no host field!
 		return EXIT_FAILURE;
-	
+	//Check Request Method if we don't now the Method we secExit
 	switch(e_used_method){
 		case POST:
 			debugVerbose(PARSER, "Post Method found, go on!\n");
@@ -178,7 +174,9 @@ int parseArguments(http_norm *hnp_info){
 			break;
 	};
 	
-	//search for authorization field
+	//search for authorization field, if we find one, we now this could
+	//be an Authorization Request, so let us check if everything is here
+	//we call parseAuthorizationInfos
 	cp_name = parseFindExplicitHeaderField(hnp_info, "Authorization");
 	if(cp_name != NULL){
 		if(parseAuthorizationInfos(cp_name) == EXIT_FAILURE)
@@ -262,6 +260,7 @@ char* parseSubstringByDelimStrings(const char* ccp_string, const char* ccp_stdel
 	ssize_t i_len_en = strlen(ccp_endelim);
 	char* cp_helper = NULL;
 	debugVerbose(PARSER, "parserSubstringByDelimStrings: search for string delmited by %s and %s\n", ccp_stdelim, ccp_endelim);
+	//Iterate to the string as long as we find the cpp_stdelim
 	for(; i_st < i_len_in; ++i_st){
 		cp_helper = secGetStringPart(ccp_string, i_st, i_st + i_len_st);
 		if(cp_helper == NULL)
@@ -273,6 +272,7 @@ char* parseSubstringByDelimStrings(const char* ccp_string, const char* ccp_stdel
 	secFree(cp_helper);
 	if(i_st == i_len_in)
 		return NULL;
+	//Iterate to the string as long as we find the cpp_endelim
 	for(i_en = i_st + i_len_st; i_en < i_len_in; ++i_en){
 		cp_helper = secGetStringPart(ccp_string, i_en, i_en + i_len_en - 1);
 		if(cp_helper == NULL)
@@ -283,12 +283,15 @@ char* parseSubstringByDelimStrings(const char* ccp_string, const char* ccp_stdel
 		secFree(cp_helper);
 	}
 	secFree(cp_helper);
+	//now we know the start and the end of the first apperiance of this strings/chars in our
+	//big string. Just call secGetStringPart with this information
 	cp_helper = secGetStringPart(ccp_string, i_st + i_len_st, i_en - 1);
 	debugVerbose(PARSER, "parserSubstringByDelimStrings: we found %s\n", cp_helper);
 	return cp_helper;
 }
 
 int parseHttpRequestHeader(char* input){
+	//RequestHeader starts with RequestLine, rekursiv Parsing
 	debugVerbose(PARSER, "Parse HttpRequestHeader\n");
 	return parseRequestLine(input);
 }
@@ -477,15 +480,15 @@ bool isNonEscapedChar(char* cp_input, int i_offset){
 		if(cp_input[i_offset] == ccp_invalids[i])
 			return TRUE;
 		
-		if(cp_input[i_offset]=='%'){
-			if(strlen(cp_input) - i_offset < 3)
-				return TRUE;
-			else if(isHexDigit(cp_input[i_offset + 1]) == FALSE || isHexDigit(cp_input[i_offset + 2]) == FALSE)
-				return TRUE;
-			else;
-		}
+	if(cp_input[i_offset]=='%'){
+		if(strlen(cp_input) - i_offset < 3)
+			return TRUE;
+		else if(isHexDigit(cp_input[i_offset + 1]) == FALSE || isHexDigit(cp_input[i_offset + 2]) == FALSE)
+			return TRUE;
+		else;
+	}
 		
-		return FALSE;
+	return FALSE;
 }
 
 void parsePrintStructures(){
@@ -571,9 +574,11 @@ char* parseFilepath(const char* cp_filename){
 bool isStatusCode(const char* cp_num){
 	
 	int i=0;
+	//If the string is short then 4 it can't be right
 	if(strlen(cp_num)<4)
 		return FALSE;
-		
+	
+	//Check if the first 3 chars are Digits
 	for(;i<3;i++){
 		if(cp_num[i]<47 || cp_num[i]>57)
 			return FALSE;
@@ -582,6 +587,7 @@ bool isStatusCode(const char* cp_num){
 	if(cp_num[3] != ' ')
 		return FALSE;
 	
+	//First three chars were digits fourth char is an space
 	return TRUE;
 	
 }
