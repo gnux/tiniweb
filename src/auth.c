@@ -468,10 +468,10 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len, unsigned char* uca_
          */
 
         /* start out by storing key in pads */
-        bzero( uca_k_ipad, sizeof(uca_k_ipad));
-        bzero( uca_k_opad, sizeof(uca_k_opad));
-        bcopy( uca_key, uca_k_ipad, i_key_len);
-        bcopy( uca_key, uca_k_opad, i_key_len);
+        memset( uca_k_ipad, 0, 65 );
+        memset( uca_k_opad, 0, 65 );
+        memcpy( uca_k_ipad, uca_key, i_key_len);
+        memcpy( uca_k_opad, uca_key, i_key_len);
 
         /* XOR key with ipad and opad values */
         for (i = 0; i < 64; i++) {
