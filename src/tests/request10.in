@@ -2,3 +2,4 @@ GET /cgi-bin/env.cgi?a=x&b=y&c=z#fragment HTTP/1.1
 Host: localhost:8080
 X-Info: Good CGI request with query string and fragment
 
+

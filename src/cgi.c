@@ -93,6 +93,7 @@ void processCGIScript(const char* cp_path)
 	switch (pid_child) {
 		case 0:
 			/* We are the child process */
+			//TODO: exit im child process, was passiert mit parent?
 			
 			cpa_cgi_args[0] = malloc(sizeof(char)*(strlen(cp_file_name) + 1));
 			secProof(cpa_cgi_args[0]);
@@ -135,6 +136,11 @@ void processCGIScript(const char* cp_path)
 					//TODO: safe exit
 					debugVerbose(CGICALL, "Duplication of pipes failed.\n");
 				}
+			}
+			else
+			{
+			    i_success = close(STDIN_FILENO);
+			    //TODO: exit
 			}
 			
 			// Close the pipes
@@ -232,10 +238,10 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
 		
 		if(i_success == 1)
 		{
-if(b_header_provided == TRUE)
-			return EXIT_SUCCESS;
-else
-return EXIT_FAILURE;
+            if(b_header_provided == TRUE)
+	            return EXIT_SUCCESS;
+            else
+                return EXIT_FAILURE;
 		}
 		if(i_success == -1)
 		{
