@@ -167,12 +167,6 @@ int main(int argc, char** argv) {
 
 	http_norm *hnp_info = normalizeHttp(cp_header, FALSE);
 	
-	initEnvVarList("GATEWAY_INTERFACE","CGI/1.1");
-    //appendToEnvVarList("SCRIPT_FILENAME",scp_cgi_dir_);
-	appendToEnvVarList("DOCUMENT_ROOT",scp_web_dir_);
-	appendToEnvVarList("SERVER_SOFTWARE","tiniweb/1.0");
-	appendToEnvVarList("CONTENT_LENGTH","0");
-	//appendToEnvVarList("QUERY_STRING",hnp_info->);
 	
 	debugVerbose(MAIN, "Normalize finished \n");
 	parse(hnp_info);
@@ -183,7 +177,7 @@ int main(int argc, char** argv) {
     char* cp_path_to_htdigest_file = NULL;
     char* cp_search_path_root = NULL;
     bool b_digest_file_available = FALSE;
-    bool b_authenticated = TRUE;
+    bool b_authenticated = FALSE;
     
     if (mapRequestPath(&cp_mapped_path, &b_static) == FALSE)
     {
@@ -211,7 +205,7 @@ int main(int argc, char** argv) {
     }
 
 
-    if(b_authenticated == TRUE)
+    if(b_authenticated == TRUE || b_digest_file_available == FALSE)
     {
         if(b_static == TRUE)
         {
@@ -219,6 +213,7 @@ int main(int argc, char** argv) {
         }
         else
         {
+            setupEnvVarList(scp_web_dir_, cp_mapped_path, hnp_info, b_authenticated);
             processCGIScript(cp_mapped_path);
         }
     }

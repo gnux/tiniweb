@@ -6,6 +6,8 @@
 #ifndef __ENV_VAR_H__
 #define __ENV_VAR_H__
 
+#include "typedef.h"
+
 typedef struct environment_variable_ {
     
     const char* cp_name;
@@ -14,7 +16,8 @@ typedef struct environment_variable_ {
     
 } environment_variable;
 
-void setupEnvVarList(const char* ccp_webroot_path, const char* ccp_cgi_filename);
+void setupEnvVarList(const char* ccp_webroot_path, const char* ccp_cgi_filename, 
+                     http_norm* hnp_info, bool b_authenticated_user);
 
 /**
  * Puts a new environment variable into the static env-var list
