@@ -28,6 +28,15 @@ Software Anforderungen:
 Compiler GCC 4.3.2 mit GNU Libc 2.7 oder neuer
 x86 (32-bit oder 64-bit) Linux mit 2.6.x Kernel
 
+Testfiles/-scripts:
+Zusätzlich zu einigen Testfiles gibt es noch folgenden Scripts welche es uns ermöglichen mittels Browser
+den Webserver anzusprechen.
+  doxybrowse.sh
+  normalbrowse.sh
+Im Testordner wurden noch Testvectoren hinzugefügt
+  request11.in-request16.in
+
+
 Übergabeparameter:
 
 web-dir, cgi-dir, secret müssen mit Wert übergeben werden, falls nicht
