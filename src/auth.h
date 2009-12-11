@@ -91,7 +91,7 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len,
  * @param cpp_nonce nonce to be filled in
  * @param timestamp timestamp to create the nonce with
  */
-int createNonce(char** cpp_nonce, time_t timestamp);
+int createNonce(char** cpp_nonce, unsigned long timestamp);
 
 /**
  * Converts the hash from an unsigned char to a readable string
