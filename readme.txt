@@ -93,21 +93,17 @@ typedef struct http_request{
 Get und Post Methoden werden gleich behandelt....
 sieh NG: Message Body beim GET 11:34 Uhr 11.12.2009
 
-signal für PIPES....
-  was passiert wenn das CGI Script nicht von der Pipe liest?
-	ohne signal .... sterben wir
-	mit signal  .... gehts
-	Seiteneffekte?
-WRITE könnte auch fehlschlagen? signal verschieben? 
-
 Child lebt länger wie Parent, erwartetes Verhalten der Konsole umgehen damit das Beenden sauberer wrid
 
 Child töten nach erfolgreichem senden des Headers, CHILD immmer töten?
 
 
 uca_time ..... noch immer Fixes array
-
+Die time in ein string converten und �ber die stringl�nge das array inizialisieren
+und die time von hinten parsen falls sich die l�nge �ndert
 
 Aut .... nehmen wir sicher die Richtige URI für das Überprüfen der Responses ?????????????
+Uri's vergleichen
+
 
 
