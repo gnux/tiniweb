@@ -344,13 +344,14 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
     char* cp_web_dir = "/";
     char* cp_relative_path_without_first_letter = NULL;
     char* cp_relative_path_without_cgi_bin = NULL;
+    char* cp_relative_path = NULL;
     int i_cgi_bin_len = strlen(cp_cgi_bin);
     int i_web_dir_len = strlen(cp_web_dir);
     
     if (!http_request_->cp_path)
         return FALSE;
     
-    char* cp_relative_path = http_request_->cp_path;
+    strAppend(&cp_relative_path, http_request_->cp_path);
     int i_relative_path_len = strlen(cp_relative_path);
     
     deleteCyclesFromPath(&cp_relative_path);
@@ -367,6 +368,7 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
         {
             secFree(cp_relative_path_without_first_letter);
             secFree(cp_relative_path_without_cgi_bin);
+            secFree(cp_relative_path);
             secExit(STATUS_NOT_FOUND);
             return FALSE;
         }
@@ -386,6 +388,7 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
             if (convertToRealPath(cpp_final_path) == FALSE)
             {
                 secFree(cp_relative_path_without_first_letter);
+                secFree(cp_relative_path);
                 secExit(STATUS_NOT_FOUND);
                 return FALSE;
             }
@@ -417,13 +420,14 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
         {
             debugVerbose(PATH, "ERROR, mapping request-path to filesystem path did not work!\n");
             secFree(cp_relative_path_without_first_letter);
-            
+            secFree(cp_relative_path);
             secExit(STATUS_BAD_REQUEST);
             return FALSE;
         }
     }
     
     secFree(cp_relative_path_without_first_letter);
+    secFree(cp_relative_path);
     
     /** Check if we moved out of cgi-dir or web-dir
      *

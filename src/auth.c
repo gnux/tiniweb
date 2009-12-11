@@ -11,7 +11,6 @@
 #include <unistd.h>
 
 #include "auth.h"
-#include "typedef.h"
 #include "md5.h"
 #include "debug.h"
 #include "secmem.h"
@@ -21,6 +20,7 @@
 #include "parser.h"
 #include "envvar.h"
 #include "httpresponse.h"
+#include "typedef.h"
 
 
 extern char *scp_secret_;
@@ -30,7 +30,6 @@ extern char *scp_web_dir_;
 
 static const int SCI_NONCE_LEN = 16;
 static const int SCI_VALID_NONCE_TIMEOUT = 3600;
-static const int SCI_VALID_NONCE_TIME = 3600;
 
 bool authenticate(char* cp_path)
 {
@@ -50,7 +49,7 @@ bool authenticate(char* cp_path)
         
 	    debugVerbose(AUTH, "No 401-Unauthorized message was sent before.\n");
 	    
-	    if (createNonce(&cp_nonce, timestamp) == EXIT_FAILURE)
+	    if (createNonce(&cp_nonce, (unsigned long)timestamp) == EXIT_FAILURE)
 	    {
             secExit(STATUS_INTERNAL_SERVER_ERROR);
 	    }
@@ -63,7 +62,8 @@ bool authenticate(char* cp_path)
 
 	    if (sendHTTPAuthorizationResponse(cp_realm, cp_nonce) == EXIT_FAILURE)
         {
-            // TODO what shall we do with the drunken sailor?
+            debugVerbose(AUTH, "ERROR: Sending of 401 Message did not work!\n");
+            secExit(STATUS_CANCEL);
         }
         
         return FALSE;
@@ -78,8 +78,23 @@ bool authenticate(char* cp_path)
 	    if (http_autorization_->cp_nonce && http_autorization_->cp_realm &&
 	        http_autorization_->cp_response && http_autorization_->cp_uri &&
 	        http_autorization_->cp_username && http_request_->cp_path && 
-	        http_request_->cp_method)
+	        http_request_->cp_method && http_request_->cp_uri)
 	    {
+            
+            // check if uris are the same!
+            int i_request_uri_len = strlen(http_request_->cp_uri);
+            int i_authorization_uri_len = strlen(http_autorization_->cp_uri);
+            if (i_request_uri_len != i_authorization_uri_len)
+            {
+                debug(AUTH, "ERROR: The URIs have different lengths!\n");
+                secExit(STATUS_BAD_REQUEST);
+            }
+            
+            if (strncmp(http_request_->cp_uri, http_autorization_->cp_uri, i_request_uri_len) != 0)
+            {
+                debug(AUTH, "ERROR: The URIs are different!\n");
+                secExit(STATUS_BAD_REQUEST);
+            }
 	    
 	        if (getHA1HashFromHTDigestFile(cp_path, http_autorization_->cp_realm, 
 	                                       http_autorization_->cp_username, &cp_ha1) == FALSE)
@@ -353,40 +368,49 @@ bool verifyResponse(char* cp_ha1, char* cp_nonce, char* cp_http_request_method,
 
 bool verifyNonce(char* cp_nonce)
 {
-    // Set timelimit to one hour
-    const int ci_timelimit = 3600;
-    
-    int i_timestamp_len = 8;
-    int i_hash_len = SCI_NONCE_LEN * 2 - 1;
+    int i_nonce_len = 72;
+    int i_hash_len = 32;
     int i_timestamp_current = time(NULL);
-    int i_timestamp_recieved = 0;
+    int i_current_end = strlen(cp_nonce) - 1;
+    int i_current_start = i_current_end - i_hash_len + 1;
+    int i_timestamp_len = 0;
+    unsigned long ul_timestamp_recieved = 0;
     char* cp_timestamp_hex = NULL;
     char* cp_path_hash = NULL;
     char* cp_hmac = NULL;
     char* cp_nonce_calculated = NULL;
     
-    if (strlen(cp_nonce) < i_timestamp_len + i_hash_len * 2)
+    if (strlen(cp_nonce) < i_nonce_len)
     {
         debugVerbose(AUTH, "ERROR: Nonce length is too small!\n");
         return FALSE;
     }
-    cp_timestamp_hex = secGetStringPart(cp_nonce, 0, i_timestamp_len - 1);
-    cp_path_hash = secGetStringPart(cp_nonce, i_timestamp_len, i_timestamp_len + i_hash_len);
-    cp_hmac = secGetStringPart(cp_nonce, i_timestamp_len + i_hash_len, strlen(cp_nonce) - 1);
     
-    debugVerbose(AUTH, "Timestamp Hex: %s \n", cp_timestamp_hex);
-    debugVerbose(AUTH, "Path Hash: %s \n", cp_path_hash);
-    debugVerbose(AUTH, "HMACMD5 Hash: %s \n", cp_hmac);
+    cp_hmac = secGetStringPart(cp_nonce, i_current_start, i_current_end);
     
-    i_timestamp_recieved = (int) strDecodeHexToULong(cp_timestamp_hex, 0, i_timestamp_len);
+    i_current_end = i_current_start - 1;
+    i_current_start = i_current_end - i_hash_len + 1;
+    cp_path_hash = secGetStringPart(cp_nonce, i_current_start, i_current_end);
     
-    if (i_timestamp_recieved + ci_timelimit < i_timestamp_current || i_timestamp_recieved > i_timestamp_current)
+    i_current_end = i_current_start - 1;
+    i_current_start = 0;
+    cp_timestamp_hex = secGetStringPart(cp_nonce, i_current_start, i_current_end);
+    
+    debugVerbose(AUTH, "Recieved Nonce: %s, Length: %i\n", cp_nonce, strlen(cp_nonce));
+    debugVerbose(AUTH, "Timestamp Hex: %s, Length: %i\n", cp_timestamp_hex, strlen(cp_timestamp_hex));
+    debugVerbose(AUTH, "Path Hash: %s, Length: %i\n", cp_path_hash, strlen(cp_path_hash));
+    debugVerbose(AUTH, "HMACMD5 Hash: %s, Length: %i\n", cp_hmac, strlen(cp_hmac));
+    
+    i_timestamp_len = strlen(cp_timestamp_hex);
+    ul_timestamp_recieved = strDecodeHexToULong(cp_timestamp_hex, 0, i_timestamp_len);
+    
+    if (ul_timestamp_recieved + SCI_VALID_NONCE_TIMEOUT < i_timestamp_current || ul_timestamp_recieved > i_timestamp_current)
     {
         debugVerbose(AUTH, "ERROR: Recieved Timestamp is not valid! (Out of Time)\n", cp_hmac);
         return FALSE;
     }
     
-    if (createNonce(&cp_nonce_calculated, i_timestamp_recieved) == EXIT_FAILURE)
+    if (createNonce(&cp_nonce_calculated, ul_timestamp_recieved) == EXIT_FAILURE)
     {
         return FALSE;
     }
@@ -480,15 +504,15 @@ void performHMACMD5(unsigned char* uca_text, int i_text_len, unsigned char* uca_
 // END-FOREIGN-CODE (RFC2104)
 //------------------------------------------------------------------------
 
-int createNonce(char** cpp_nonce, time_t timestamp)
+int createNonce(char** cpp_nonce, unsigned long timestamp)
 {	
-    char uca_time[9];
-    md5_state_t path_state;
-    unsigned char uca_path_nonce[SCI_NONCE_LEN + 1];
+    char* cp_time = NULL;
     char* cp_path_hash = NULL;
     char* cp_concatenated_time_path = NULL;
-    unsigned char uca_time_path_hmac[SCI_NONCE_LEN + 1];
     char* cp_time_path_hmac = NULL;
+    unsigned char uca_path_nonce[SCI_NONCE_LEN + 1];
+    unsigned char uca_time_path_hmac[SCI_NONCE_LEN + 1];
+    md5_state_t path_state;
     
     uca_path_nonce[SCI_NONCE_LEN] = '\0';
     uca_time_path_hmac[SCI_NONCE_LEN] = '\0';
@@ -506,19 +530,16 @@ int createNonce(char** cpp_nonce, time_t timestamp)
     
     debugVerbose(AUTH, "Hash of the Path: %s\n", cp_path_hash);
     
-    // Convert timestamp to Hex:
-    memset(uca_time, 0, 9);
-    sprintf((char*)uca_time,"%x",(unsigned int)timestamp);
-    debugVerbose(AUTH, "Created the timestamp in Hex: %s\n", uca_time);
+    cp_time = secPrint2String("%x", timestamp);
+    debugVerbose(AUTH, "Created the timestamp in Hex: %s\n", cp_time);
    
     /** 
      *  STEP 1:
      *  Concatenate timestamp hex and path hash
      */
-    strAppend(&cp_concatenated_time_path, (char*)uca_time);
+    strAppend(&cp_concatenated_time_path, (char*)cp_time);
     strAppend(&cp_concatenated_time_path, cp_path_hash);
     debugVerbose(AUTH, "Concatenation of timestamp hex and Path hash: %s\n", cp_concatenated_time_path);
-//     debugVerbose(AUTH, "Length of Concatenation of timestamp hex and Path hash: %i\n", strlen(cp_concatenated_time_path));
     
     /** 
      *  STEP 2:
