@@ -411,7 +411,11 @@ int parseRequestURI(char* input, int offset){
 			return EXIT_FAILURE;
 		}
 	}
-
+	
+	// if we try do get an directory, we will force to get index.html
+	if(cp_path[strlen(cp_path) - 1] == '/')
+		strAppend(&cp_path, "index.html");
+	
 	// Fill up struct, remember it could contain NULL-pointers!
 	http_request_->cp_uri = cp_uri;
 	http_request_->cp_path = cp_path;
