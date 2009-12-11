@@ -92,6 +92,7 @@ int main(int argc, char** argv) {
 		    
 	    //TODO: controlledShutdown();
 	    si_cgi_timeout_ = (int) strtol(optarg, NULL, 10);
+            si_cgi_timeout_ *= 1000;
             b_flag_cgi_timeout = 1;
             break;
 	case 3:
