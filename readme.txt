@@ -6,25 +6,25 @@
 Installation:
   Funktioniert wie in der Aufgabenstellung gefordert.
 
-Ãœbergabeparameter:
-  web-dir, cgi-dir, secret mÃ¼ssen mit Wert Ã¼bergeben werden, falls nicht 
-   beendet der Server mit einer Fehlermeldung, schickt jedoch nichts Ã¼ber
+Übergabeparameter:
+  web-dir, cgi-dir, secret müssen mit Wert übergeben werden, falls nicht 
+   beendet der Server mit einer Fehlermeldung, schickt jedoch nichts über
    stdout.
   verbose schaltet den Server in Verbose Mode, dies ist optional
-  cgi-timeout ist optional und wird in Sekunden Ã¼bergeben als Standard wird 
-    1sek gesetzt ist nichts angegeben. Ist der Wert grÃ¶ÃŸer wie 50sek wird
+  cgi-timeout ist optional und wird in Sekunden übergeben als Standard wird 
+    1sek gesetzt ist nichts angegeben. Ist der Wert größer wie 50sek wird
     50sek gesetzt.
 
 ######Dieter PATHCHECKING######
 
-Der Server erwartet binnen der Ersten fÃ¼nf Sekunden eine Nachricht am stdin
+Der Server erwartet binnen der Ersten fünf Sekunden eine Nachricht am stdin
 ansonsten beendet er (polling). \r\n Sequenzen werden automatisch zu single \n.
 Aus der Nachricht wird der Header extrahiert normalisiert und geparst.
-Beim Normalisieren wird jedes empfangene Zeichen auf gÃ¼ltigkeit Ã¼berprÃ¼ft
+Beim Normalisieren wird jedes empfangene Zeichen auf Gültigkeit überprüft
   -BLANK ' ' und '\t'
   -NEWLINE '\n'
   -CHAR 32 < x < 127
-UngÃ¼ltige Headers werden bereits hier erkannt Headerfield (SPACE*): Fieldbody*
+Ungültige Headers werden bereits hier erkannt Headerfield (SPACE*): Fieldbody*
 
 Der Normalisierte Header wird in einer Struktur abgespeichert
 /**
@@ -38,24 +38,24 @@ Der Normalisierte Header wird in einer Struktur abgespeichert
 	char **cpp_header_field_body; /**< header field bodys */
   } http_norm;
 
-Diese Struktur wird an den Parser Ã¼bergeben, dieser prÃ¼ft nun alle EintrÃ¤ge
-auf GÃ¼ltigkeit und Extrahiert alle erforderlichen Request Informationen.
+Diese Struktur wird an den Parser übergeben, dieser prüft nun alle Eintrage
+auf Gültigkeit und Extrahiert alle erforderlichen Request Informationen.
 (GET, POST, HEAD, HOST, AUTENTICATION, HTTP/1.1)
-Der Parser ist auch dafÃ¼r zustÃ¤ndig Escaped Chars aufzulÃ¶sen auf ihre 
-GÃ¼ltigkeit zu Ã¼berprÃ¼fen.
-ZusÃ¤tzliche behandlung der URI:
+Der Parser ist auch dafür zustÃ¤ndig Escaped Chars aufzulösen auf ihre 
+Gültigkeit zu überprüfen.
+Zusätzliche behandlung der URI:
   + wird zu Leerzeichen
   Escaped %00 wird als Bad-Request behandelt
 
 Im falle einer CGI-Response werden Normalizer und Parser auch genutzt der 
-Normalizer ist Ã¼ber ein FLAG umschaltbar, im Falle von CGI wird cp_first_line
+Normalizer ist über ein FLAG umschaltbar, im Falle von CGI wird cp_first_line
 in der Structur nicht gesetzt und laut der RFC nur die Headerfields erkannt.
 Cgi-respons:
- nach RFC -> Host: ..nur ohne leerzeichen mÃ¶glich..wieso auch immer
-Der Parser wird fÃ¼r cgi-response parsen einfach Ã¼ber eine andere Funktion 
+ nach RFC -> Host: ..nur ohne leerzeichen möglich..wieso auch immer
+Der Parser wird für cgi-response parsen einfach über eine andere Funktion 
 gestartet. 
 Vergleiche: parse und parseCgiResponseHeader
-Je nach Aufruf wird vom Parser eine der folgenden Strukturen gefÃ¼llt:
+Je nach Aufruf wird vom Parser eine der folgenden Strukturen gefällt:
 /**
 * Structure for parsed cgi response
 */
@@ -93,17 +93,17 @@ typedef struct http_request{
 Get und Post Methoden werden gleich behandelt....
 sieh NG: Message Body beim GET 11:34 Uhr 11.12.2009
 
-Child lebt lÃ¤nger wie Parent, erwartetes Verhalten der Konsole umgehen damit das Beenden sauberer wrid
+Child lebt länger wie Parent, erwartetes Verhalten der Konsole umgehen damit das Beenden sauberer wrid
 
-Child tÃ¶ten nach erfolgreichem senden des Headers, CHILD immmer tÃ¶ten?
+Child töten nach erfolgreichem senden des Headers, CHILD immmer töten?
 
 
 uca_time ..... noch immer Fixes array
 Die time in ein string converten und über die stringlänge das array inizialisieren
 und die time von hinten parsen falls sich die länge ändert
 
-Aut .... nehmen wir sicher die Richtige URI fÃ¼r das ÃœberprÃ¼fen der Responses ?????????????
-Uri's vergleichen
+Aut .... nehmen wir sicher die Richtige URI für das Überprüfen der Responses ?????????????
+Uri's vergleichen 
 
 
 
