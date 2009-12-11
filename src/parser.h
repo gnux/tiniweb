@@ -159,7 +159,7 @@ char* parseExtension(const char* cp_filename);
 char* parseFilename(const char* cp_filename);
 
  /**
- * Parse the last characters until it finds the first "/" returns everything bevor "/" to 
+ * Parse the last characters until it finds the first "/" returns everything before "/" to 
  * end of File
  * 
  * @param cp_filename const char pointer to the Filepath

@@ -234,7 +234,6 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
         //TODO: exit?
     }
     
-//    debug(CGICALL, "before calc: time: %i, micro: %i\n", timeout_time.tv_sec, timeout_time.tv_usec);
     //TODO: Overflow?
     timeout_time.tv_sec += si_cgi_timeout_/1000;
     timeout_time.tv_usec += (si_cgi_timeout_%1000) * 1000;
@@ -243,11 +242,9 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
         timeout_time.tv_sec++;
         timeout_time.tv_usec -= 1000000;
     }
-    debug(CGICALL, "after calc: time: %i, micro: %i\n", timeout_time.tv_sec, timeout_time.tv_usec);
     
 	while (1)
 	{    
-	    debug(CGICALL, "time: %i, micro: %i\n", timeout_time.tv_sec, timeout_time.tv_usec);
 		i_success = pollPipes(pipes, si_cgi_timeout_, 2);
 		
 		//printPipe(pipes[0], "responsepipe after poll");
