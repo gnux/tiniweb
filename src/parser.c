@@ -96,18 +96,21 @@ http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info){
 	strAppend(&http_cgi_response_->server, "tiniweb/1.0");
 	
 	// add defaults
-	http_cgi_response_->i_num_fields = 3;
+	http_cgi_response_->i_num_fields = 4;
 	http_cgi_response_->cpp_header_field_name = secRealloc(http_cgi_response_->cpp_header_field_name, sizeof(char*) * http_cgi_response_->i_num_fields);
 	http_cgi_response_->cpp_header_field_body = secRealloc(http_cgi_response_->cpp_header_field_body, sizeof(char*) * http_cgi_response_->i_num_fields);
 	
-	http_cgi_response_->cpp_header_field_name[0] = "Server";
+	http_cgi_response_->cpp_header_field_name[0] = secPrint2String("Server");
 	http_cgi_response_->cpp_header_field_body[0] = http_cgi_response_->server;
 	
-	http_cgi_response_->cpp_header_field_name[1] = "Connection";
+	http_cgi_response_->cpp_header_field_name[1] = secPrint2String("Connection");
 	http_cgi_response_->cpp_header_field_body[1] = http_cgi_response_->connection;
 	
-	http_cgi_response_->cpp_header_field_name[2] = "Content-Type";
+	http_cgi_response_->cpp_header_field_name[2] = secPrint2String("Content-Type");
 	http_cgi_response_->cpp_header_field_body[2] = http_cgi_response_->content_type;
+	
+	http_cgi_response_->cpp_header_field_name[3] = secPrint2String("Content-Lenght");
+	http_cgi_response_->cpp_header_field_body[3] = secPrint2String("0");
 	
 	
 	//Find all other fields, but if we find server or connection do nothing
@@ -115,13 +118,15 @@ http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info){
 	for(; i < hnp_info->i_num_fields; ++i){
 
 		i_len = strlen(hnp_info->cpp_header_field_name[i]);
-		if(i_len == 6 && strncasecmp("Content-Type",hnp_info->cpp_header_field_name[i],12)==0)
+		if(i_len == 12 && strncasecmp("Content-Type",hnp_info->cpp_header_field_name[i],12)==0)
 			secExit(STATUS_INTERNAL_SERVER_ERROR);
-		if(i_len == 10 && strncasecmp("Status",hnp_info->cpp_header_field_name[i],6)==0)
+		if(i_len == 6 && strncasecmp("Status",hnp_info->cpp_header_field_name[i],6)==0)
 			secExit(STATUS_INTERNAL_SERVER_ERROR);
 		if(i_len == 6 && strncasecmp("Server",hnp_info->cpp_header_field_name[i],6)==0)
 			continue;
 		if(i_len == 10 && strncasecmp("Connection",hnp_info->cpp_header_field_name[i],10)==0)
+			continue;
+		if(i_len == 14 && strncasecmp("Content-Lenght",hnp_info->cpp_header_field_name[i],14)==0)
 			continue;
 			
 		++http_cgi_response_->i_num_fields;
@@ -132,6 +137,8 @@ http_cgi_response* parseCgiResponseHeader(http_norm *hnp_info){
 		http_cgi_response_->cpp_header_field_name[http_cgi_response_->i_num_fields - 1] = hnp_info->cpp_header_field_name[i];
 		http_cgi_response_->cpp_header_field_body[http_cgi_response_->i_num_fields - 1] = hnp_info->cpp_header_field_body[i];
 	}
+	
+	
 		
 
 	//Create Debug output
