@@ -150,6 +150,7 @@ int pollPipes(io_pipe *pipes[], int i_timeout, unsigned int i_num_pipes)
     /* Nothing to poll? */
     if (!i_num_polls) 
     {
+        debugVerbose(PIPE, "nothing to poll.\n");
         return 1;
     }
 
@@ -163,9 +164,9 @@ int pollPipes(io_pipe *pipes[], int i_timeout, unsigned int i_num_pipes)
 
     } else if (i_poll_result == 0) 
     {
-        fprintf(stderr, "poll timed out\n");
+        debugVerbose(PIPE, "poll timed out: %d\n", i_num_polls);
         //TODO: safe exit
-        return -1;
+        return 2;
     }
 
     /* Evaluate poll */
@@ -183,7 +184,11 @@ int pollPipes(io_pipe *pipes[], int i_timeout, unsigned int i_num_pipes)
     {
         int i_pipe_index = ia_io_idx_to_pipe_index_map[i_index];
         pipes[i_pipe_index]->i_out_eof = pipes[i_pipe_index]->i_out_eof || (poll_fds[i_index].revents & ~POLLOUT);
-        pipes[i_pipe_index]->i_out_ready = pipes[i_pipe_index]->i_out_ready || (poll_fds[i_index].revents & POLLOUT);    
+        pipes[i_pipe_index]->i_out_ready = pipes[i_pipe_index]->i_out_ready || (poll_fds[i_index].revents & POLLOUT);        
+        if(pipes[i_pipe_index]->i_out_eof)
+        {
+            pipes[i_pipe_index]->i_out_ready = 0;
+        }
     }
 
     return 0;

@@ -16,6 +16,15 @@ typedef struct environment_variable_ {
     
 } environment_variable;
 
+
+/**
+ * Creates all environment variables for the cgi script and puts them into the static env-var list
+ *
+ * @param ccp_webroot_path Absolute filesystem path to webroot
+ * @param ccp_cgi_filename Absolute filesystem path to CGI script
+ * @param hnp_info Normalized header struct containing all http header fields
+ * @param b_authenticated_user Determines whether a user has been authenticated or not
+ */
 void setupEnvVarList(const char* ccp_webroot_path, const char* ccp_cgi_filename, 
                      http_norm* hnp_info, bool b_authenticated_user);
 
@@ -24,16 +33,16 @@ void setupEnvVarList(const char* ccp_webroot_path, const char* ccp_cgi_filename,
  *
  * @param cp_name the name of the environment variable
  * @param cp_value the specified calue of the environment value
- * @return -1 in case of an error
- *          0 in case if it worked
+ * @return EXIT_FAILURE in case of an error
+ *         EXIT_SUCCESS in case if it worked
  */
 int appendToEnvVarList(const char* cp_name, const char* cp_value);
 
 /**
  * Deletes evry element inside of the evn-var list and frees the used memory.
  *
- * @return -1 in case of an error
- *          0 in case if it worked
+ * @return EXIT_FAILURE in case of an error
+ *         EXIT_SUCCESS in case if it worked
  */
 int deleteEnvVarList();
 
@@ -41,18 +50,16 @@ int deleteEnvVarList();
  * Initializes the first element of the env-var list
  *
  * @param cp_name the name of the environment variable
- * @param cp_value the specified calue of the environment value
- * @return -1 in case of an error
- *          0 in case if it worked
+ * @param cp_value the specified value of the environment value
  */
-int initEnvVarList(const char* cp_name, const char* cp_value);
+void initEnvVarList(const char* cp_name, const char* cp_value);
 
 /**
  * Sets the environment variables of the current process with the elements inside
  * of the static env-var list.
  *
- * @return -1 in case of an error
- *          0 in case if it worked
+ * @return EXIT_FAILURE in case of an error
+ *         EXIT_SUCCESS in case if it worked
  */
 int applyEnvVarList();
 

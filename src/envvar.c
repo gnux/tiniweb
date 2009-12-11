@@ -60,7 +60,7 @@ int appendToEnvVarList(const char* cp_name, const char* cp_value)
     environment_variable* evp_new_var = NULL;
     
     if (evp_var == NULL || cp_name == NULL || cp_value == NULL)
-        return -1;
+        return EXIT_FAILURE;
     
     while (evp_var->evp_next)
     {
@@ -73,7 +73,7 @@ int appendToEnvVarList(const char* cp_name, const char* cp_value)
     evp_new_var->evp_next = NULL;
     evp_var->evp_next = evp_new_var;
     
-    return 0;    
+    return EXIT_SUCCESS;    
 }
 
 int deleteEnvVarList()
@@ -82,7 +82,7 @@ int deleteEnvVarList()
     environment_variable* evp_var_next = evp_var->evp_next;
     
     if (evp_first_element == NULL)
-        return -1;
+        return EXIT_FAILURE;
     
     while (evp_var)
     {
@@ -95,17 +95,15 @@ int deleteEnvVarList()
     
     evp_first_element = NULL;
     
-    return 0;
+    return EXIT_SUCCESS;
 }
 
-int initEnvVarList(const char* cp_name, const char* cp_value)
+void initEnvVarList(const char* cp_name, const char* cp_value)
 {
     evp_first_element = (environment_variable*)secMalloc(sizeof(environment_variable));
     evp_first_element->cp_name = cp_name;
     evp_first_element->cp_value = cp_value;
     evp_first_element->evp_next = NULL;
-    
-    return 0;
 }
 
 int applyEnvVarList()
@@ -113,7 +111,7 @@ int applyEnvVarList()
     environment_variable* evp_current_var = NULL;
     int success = 0;
     if(evp_first_element == NULL)
-        return -1;
+        return EXIT_FAILURE;
     
     evp_current_var = evp_first_element;
     
@@ -128,7 +126,7 @@ int applyEnvVarList()
         evp_current_var = evp_current_var->evp_next;
     }
     
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 void printEnvVarList()
