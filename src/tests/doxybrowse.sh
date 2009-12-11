@@ -1,0 +1,1 @@
+socat -v TCP4-LISTEN:8080,reuseaddr,bind=localhost,fork SYSTEM:"valgrind -v --leak-check=full --show-reachable=yes ./../tiniweb --verbose --web-dir ../../doc/html --cgi-dir webroot/cgi-bin --secret sfdskfhgdsfhds"

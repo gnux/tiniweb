@@ -24,6 +24,7 @@
 #include "staticfile.h"
 #include "pipe.h"
 #include "filehandling.h"
+#include "secstring.h"
 #include "typedef.h"
 
 // default values for options, if no command line option is available
@@ -50,11 +51,14 @@ int si_cgi_timeout_ = CGI_TIME_OUT_MIN;
  */
 int main(int argc, char** argv) {
     int c = 0;
-    // specify flags
-    int b_flag_web_dir = 0;
-    int b_flag_cgi_dir = 0;
-    int b_flag_cgi_timeout = 0;
     int i_option_index = 0;
+    bool b_static = FALSE;
+    char* cp_mapped_path = NULL;
+    char* cp_path_to_htdigest_file = NULL;
+    char* cp_search_path_root = NULL;
+    bool b_digest_file_available = FALSE;
+    bool b_authenticated = FALSE;
+
 
     // command line parsing: like done in example from
     // http://www.gnu.org/s/libc/manual/html_node/Getopt-Long-Option-Example.html
@@ -71,48 +75,35 @@ int main(int argc, char** argv) {
         if (c == -1)
             break;
 
-        // TODO: Take arguments, in a secure way, alloc mem and copy!
-        //        prove flags
         switch (c) {
         case 0:
-            debugVerbose(MAIN, "option web-dir used with argument: %s \n", optarg);
-            scp_web_dir_ = secCalloc(strlen(optarg) + 1, sizeof(char));
-	    strncpy(scp_web_dir_,optarg, strlen(optarg));
-	    b_flag_web_dir = 1;
+			scp_web_dir_ = secPrint2String("%s", optarg);
+            debugVerbose(MAIN, "option web-dir used with argument: %s \n", scp_web_dir_);
             break;
         case 1:
-            debugVerbose(MAIN, "option cgi-dir used with argument: %s \n", optarg);
-	    scp_cgi_dir_ = secCalloc(strlen(optarg) + 1, sizeof(char));
-	    strncpy(scp_cgi_dir_, optarg, strlen(optarg));
-            b_flag_cgi_dir = 1;
-            break;
+			scp_cgi_dir_ = secPrint2String("%s",optarg);
+            debugVerbose(MAIN, "option cgi-dir used with argument: %s \n", scp_cgi_dir_);
+			break;
         case 2:
             debugVerbose(MAIN, "option cgi-timeout used with argument: %s \n",
                     optarg);
-		    
-	    //TODO: controlledShutdown();
-	    si_cgi_timeout_ = (int) strtol(optarg, NULL, 10);
+			si_cgi_timeout_ = (int) strtol(optarg, NULL, 10);
             si_cgi_timeout_ *= 1000;
-            b_flag_cgi_timeout = 1;
             break;
 	case 3:
-	    debugVerbose(MAIN, "option secret used with argument: %s \n", optarg);
-	    scp_secret_ = secCalloc(strlen(optarg) + 1, sizeof(char));
-	    strncpy(scp_secret_, optarg, strlen(optarg));
+		scp_secret_ = secPrint2String("%s", optarg);
+	    debugVerbose(MAIN, "option secret used with argument: %s \n", scp_secret_);
 	    break;
         case 4:
             b_flag_verbose_ = TRUE;
             debugVerbose(MAIN, "switching to verbose mode \n");
-            
             break;
         default:
             debug(MAIN, "encountert unknown argument \n");
-	    //TODO: controlledShutdown();
+			secExit(STATUS_CANCEL);
             break;
         }
     }
-
-    // TODO: prove flags, if no arg is given use default-vals
 
     if(!scp_cgi_dir_ || !scp_web_dir_ || !scp_secret_){
       debug(MAIN, "Mandatory parameter missing\n");
@@ -124,8 +115,6 @@ int main(int argc, char** argv) {
         debug(MAIN, "ERROR, Paths not valid!\n");
         secExit(STATUS_CANCEL);
     }
-//    if(!b_flag_cgi_timeout)
-//      sui_cgi_timeout = SCUI_CGI_TIMEOUT;
     
     if(si_cgi_timeout_ < CGI_TIME_OUT_MIN)
 	{
@@ -155,7 +144,6 @@ int main(int argc, char** argv) {
 	}
 	
 	char* cp_header = retrieveHeader(STDIN_FILENO, STDIN_TIMEOUT);
-	// TODO: EXIT WITHOUT ANY MESSAGE
 	if(cp_header == NULL)
 	{
 		debug(MAIN,"STDIN has to talk to use! We don't like DoS\n");
@@ -169,12 +157,6 @@ int main(int argc, char** argv) {
 	parse(hnp_info);
 	debugVerbose(MAIN, "Parsing finished \n"); 
 
-    bool b_static = FALSE;
-    char* cp_mapped_path = NULL;
-    char* cp_path_to_htdigest_file = NULL;
-    char* cp_search_path_root = NULL;
-    bool b_digest_file_available = FALSE;
-    bool b_authenticated = FALSE;
     
     if (mapRequestPath(&cp_mapped_path, &b_static) == FALSE)
     {
