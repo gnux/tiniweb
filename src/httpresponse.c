@@ -108,18 +108,7 @@ int sendCGIHTTPResponseHeader(http_cgi_response *header)
     strAppend(&cp_cgi_http_response_header, "\n");
     
     i_success = writeStringToFile(STDOUT_FILENO, cp_cgi_http_response_header);
-    
-    /*    
-    fprintf(stdout, "HTTP/1.1 %s\n", header->status);
-    
-    for(i_index = 0; i_index < header->i_num_fields; i_index++)
-    {
-        fprintf(stdout, "%s: %s\n", header->cpp_header_field_name[i_index], 
-                header->cpp_header_field_body[i_index]);
-    }
-    
-    fprintf(stdout, "\n");
-    */
+
     return i_success;
 }
 
@@ -143,17 +132,6 @@ int sendHTTPResponseHeaderExplicit(const char* ccp_status, const char* ccp_conte
     
     strAppend(&cp_http_response_header, "\n");
     
-    /*
-    fprintf(stdout, "HTTP/1.1 %s\n", ccp_status);
-    fprintf(stdout, "Server: tiniweb/1.0\n");
-    fprintf(stdout, "Connection: close\n");
-    fprintf(stdout, "Content-Type: %s\n", ccp_content_type);
-    
-    if(i_content_length >= 0)
-    {
-        fprintf(stdout, "Content-Length: %i\n", i_content_length);
-    }
-    */
     i_success = writeStringToFile(STDOUT_FILENO, cp_http_response_header);
         
     return i_success;
@@ -176,17 +154,6 @@ int sendHTTPAuthorizationResponse(const char* ccp_realm, const char* ccp_nonce)
     strAppendFormatString(&cp_http_auth_response, "Content-Type: %s\n", getContentType(TEXT_HTML));
     strAppendFormatString(&cp_http_auth_response, "Content-Length: %d\n\n", strlen(cp_body));
     strAppendFormatString(&cp_http_auth_response, "%s", cp_body);
-        
-    /*    
-    fprintf(stdout, "HTTP/1.1 %s\n", getStatusCode(STATUS_UNAUTHORIZED));
-    fprintf(stdout, "Server: tiniweb/1.0\n");
-    fprintf(stdout, "Connection: close\n");
-    fprintf(stdout, "WWW-Authenticate: Digest realm=\"%s\", nonce=\"%s\"\n", ccp_realm, ccp_nonce);
-    fprintf(stdout, "Content-Type: %s\n", getContentType(TEXT_HTML));
-    fprintf(stdout, "Content-Length: %i\n\n", strlen(cp_body));
-    
-    fprintf(stdout, "%s", cp_body);
-    */
     
     i_success = writeStringToFile(STDOUT_FILENO, cp_http_auth_response);
         
@@ -210,31 +177,16 @@ int sendHTTPResponseHeader(int i_status, int i_content_type, int i_content_lengt
     
     strAppend(&cp_http_response_header, "\n");
     
-	//TODO: proof NULL-Pointer!
 	
     i_success = writeStringToFile(STDOUT_FILENO, cp_http_response_header);
         
     return i_success;
-    
-    /*
-    fprintf(stdout, "HTTP/1.1 %s\n", getStatusCode(i_status));
-    fprintf(stdout, "Server: tiniweb/1.0\n");
-    fprintf(stdout, "Connection: close\n");
-    fprintf(stdout, "Content-Type: %s\n", getContentType(i_content_type));
-   
-    if(i_content_length >= 0)
-    {
-        fprintf(stdout, "Content-Length: %i\n", i_content_length);
-    }
-    
-    fprintf(stdout, "\n");
-    */
 }
 
 int sendHTTPResponse(int i_status, int i_content_type, const char* ccp_body)
 {
     int i_content_length = 0;
-    int i_success = 0;
+    int i_success = EXIT_SUCCESS;
     
     if(ccp_body != NULL)
     {       
@@ -246,7 +198,10 @@ int sendHTTPResponse(int i_status, int i_content_type, const char* ccp_body)
     if(i_success == EXIT_FAILURE)
         return EXIT_FAILURE;
     
-    i_success = writeStringToFile(STDOUT_FILENO, ccp_body);
+    if(ccp_body != NULL)
+    {
+        i_success = writeStringToFile(STDOUT_FILENO, ccp_body);
+    }
         
     return i_success;
 }

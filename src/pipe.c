@@ -159,13 +159,11 @@ int pollPipes(io_pipe *pipes[], int i_timeout, unsigned int i_num_pipes)
     if (i_poll_result == -1) 
     {
         debugVerbose(PIPE, "I/O error during poll.\n");
-        //TODO: safe exit
         return -1;
 
     } else if (i_poll_result == 0) 
     {
         debugVerbose(PIPE, "poll timed out: %d\n", i_num_polls);
-        //TODO: safe exit
         return 2;
     }
 

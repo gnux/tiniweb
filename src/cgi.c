@@ -56,28 +56,16 @@ void processCGIScript(const char* cp_path)
 	
 	if (pipe(ia_cgi_response_pipe))
 	{
-		//TODO: safe exit
 		debugVerbose(CGICALL, "Creating pipes to CGI script failed.\n");
+		secAbort();
 	}
-	
-//	if(e_used_method == POST)
-//	{
-		if (pipe(ia_cgi_post_body_pipe))
-		{
-			//TODO: safe exit
-			debugVerbose(CGICALL, "Creating pipes to CGI script failed: %d\n", errno);
-		}
-		
-		//TODO: an den anfang?
-		/*
-		if(signal(SIGPIPE, SIG_IGN) == SIG_ERR)
-		{
-			//TODO safe exit, call signal earlier?
-			debugVerbose(CGICALL, "Setting signal handler failed.\n");
-		}
-		*/
-		
-//	}
+
+	if (pipe(ia_cgi_post_body_pipe))
+	{
+		debugVerbose(CGICALL, "Creating pipes to CGI script failed.\n");
+		closePipes(ia_cgi_response_pipe);
+		secAbort();
+	}
 	
 	
 	/* Fork the child process */
@@ -86,7 +74,6 @@ void processCGIScript(const char* cp_path)
 	switch (pid_child) {
 		case 0:
 			/* We are the child process */
-			//TODO: exit im child process, was passiert mit parent?
 			
 			cpa_cgi_args[0] = malloc(sizeof(char)*(strlen(cp_file_name) + 1));
 			secProof(cpa_cgi_args[0]);
@@ -94,49 +81,56 @@ void processCGIScript(const char* cp_path)
 			cpa_cgi_args[1] = NULL;
 			
 			i_success = clearenv();
+			
 			if(i_success == -1)
 			{
-				//TODO: safe exit
+			//TODO: exit or abort, abort sends something, but i dont want that as child	
 				debugVerbose(CGICALL, "Clearing environment failed.\n");
+				closePipes(ia_cgi_post_body_pipe);
+			    closePipes(ia_cgi_response_pipe);
+				secExit(STATUS_CANCEL);
 			}
 			i_success = applyEnvVarList();
 			if(i_success == -1)
 			{
-				//TODO: safe exit
+				//TODO: exit or abort, abort sends something, but i dont want that as child
 				debugVerbose(CGICALL, "Applying environment variables failed.\n");
+				closePipes(ia_cgi_post_body_pipe);
+			    closePipes(ia_cgi_response_pipe);
+				secExit(STATUS_CANCEL);
 			}            
 			
 			i_success = chdir(cp_path_to_file);
 			if(i_success == -1)
 			{
-				//TODO: safe exit
+				//TODO: exit or abort, abort sends something, but i dont want that as child
 				debugVerbose(CGICALL, "Changing directory failed.\n");
+				closePipes(ia_cgi_post_body_pipe);
+			    closePipes(ia_cgi_response_pipe);
+				secExit(STATUS_CANCEL);
 			}
 			printEnvVarList();
 			secCleanup();
 			
 			// Duplicate the pipes to stdIN / stdOUT
-			if (dup2(ia_cgi_response_pipe[1], STDOUT_FILENO) < 0)
+			if ((dup2(ia_cgi_response_pipe[1], STDOUT_FILENO) < 0) || (dup2(ia_cgi_post_body_pipe[0], STDIN_FILENO) < 0))
 			{
-				//TODO: safe exit
+				//TODO: exit or abort, abort sends something, but i dont want that as child
 				debugVerbose(CGICALL, "Duplication of pipes failed.\n");
+				closePipes(ia_cgi_post_body_pipe);
+			    closePipes(ia_cgi_response_pipe);
+				secExit(STATUS_CANCEL);
 			}
-			
-			//if(e_used_method == POST)
-			//{
-				if (dup2(ia_cgi_post_body_pipe[0], STDIN_FILENO) < 0)
-				{
-					//TODO: safe exit
-					debugVerbose(CGICALL, "Duplication of pipes failed.\n");
-				}
-			//}
-			/*
-			else
+/*
+			if (dup2(ia_cgi_post_body_pipe[0], STDIN_FILENO) < 0)
 			{
-			    i_success = close(STDIN_FILENO);
-			    //TODO: exit
-			}*/
-			
+				//TODO: exit or abort, abort sends something, but i dont want that as child
+				debugVerbose(CGICALL, "Duplication of pipes failed.\n");
+				closePipes(ia_cgi_post_body_pipe);
+		        closePipes(ia_cgi_response_pipe);
+				secExit(STATUS_CANCEL);
+			}
+	*/		
 			// Close the pipes
 			closePipes(ia_cgi_post_body_pipe);
 			closePipes(ia_cgi_response_pipe);
@@ -145,8 +139,6 @@ void processCGIScript(const char* cp_path)
 			execv(cpa_cgi_args[0], cpa_cgi_args);
 			
 			debugVerbose(CGICALL, "Executing CGI script failed.\n");
-			/* Abort child "immediately" with _exit */
-			//TODO: exit
 			free(cpa_cgi_args[0]);
 			exit(-1);
 			
@@ -155,7 +147,7 @@ void processCGIScript(const char* cp_path)
 				
 				closePipes(ia_cgi_post_body_pipe);
 				closePipes(ia_cgi_response_pipe);
-				//TODO: safe exit
+				secAbort();
 				
 			default:
 				// Parent
@@ -163,22 +155,15 @@ void processCGIScript(const char* cp_path)
 				// We have no use for these pipe ends
 				close(ia_cgi_response_pipe[1]);
 				close(ia_cgi_post_body_pipe[0]);
-				/*       
-				if(e_used_method == POST)
-				{
-					if(dup2(STDIN_FILENO, ia_cgi_post_body_pipe[1]) < 0)
-					{
-						//TODO: safe exit
-						debug(CGICALL, "Duplication of pipes failed.\n");
-	}
-	
-	}
-	*/  
+
 				i_success = processCGIIO(ia_cgi_response_pipe[0], ia_cgi_post_body_pipe[1], pid_child);
 				if(i_success == EXIT_FAILURE)
 				{
-					//TODO: safe exit
 					debug(CGICALL, "CGI IO processing failed.\n");
+					closePipes(ia_cgi_post_body_pipe);
+				    closePipes(ia_cgi_response_pipe);
+				    kill(pid_child, SIGTERM);
+					secExit(STATUS_INTERNAL_SERVER_ERROR);
 				}
 				
 				closePipes(ia_cgi_post_body_pipe);
@@ -187,6 +172,7 @@ void processCGIScript(const char* cp_path)
 	};
 	
 	debug(CGICALL, "Finished processing CGI script.\n");
+	kill(pid_child, SIGTERM);
 }
 
 
@@ -194,7 +180,6 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
 {
 	io_pipe **pipes = NULL;
 	int i_success = 0;
-	//TODO: if header provided and error afterwards, what to do?
 	bool b_header_provided = FALSE;
 	bool b_first_get_header_call = TRUE;
 	char* cp_cgi_response_header = NULL;
@@ -207,34 +192,28 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
 	pipes[0] = secMalloc(sizeof(io_pipe));
 	
 	i_success = initPipe(pipes[0], i_cgi_response_pipe, STDOUT_FILENO);
+		
+	if(i_success == EXIT_FAILURE)
+	{
+	    debugVerbose(CGICALL, "Pipe init failed.\n");
+		return EXIT_FAILURE;
+	}
 	
+	pipes[1] = secMalloc(sizeof(io_pipe));
+	i_success = initPipe(pipes[1], STDIN_FILENO, i_cgi_post_body_pipe);
 	
 	if(i_success == EXIT_FAILURE)
 	{
 	    debugVerbose(CGICALL, "Pipe init failed.\n");
-		//TODO: safe exit? or in processcgiscript?
 		return EXIT_FAILURE;
 	}
-	
-//	if(e_used_method == POST)
-//	{
-		pipes[1] = secMalloc(sizeof(io_pipe));
-		i_success = initPipe(pipes[1], STDIN_FILENO, i_cgi_post_body_pipe);
-		
-		if(i_success == EXIT_FAILURE)
-		{
-		    debugVerbose(CGICALL, "Pipe init failed.\n");
-			//TODO: safe exit? or in processcgiscript?
-			return EXIT_FAILURE;
-		}
-//	}
 
 	if(gettimeofday(&timeout_time, NULL) != 0)
     {
-        //TODO: exit?
+        debugVerbose(CGICALL, "Making timestamp failed.\n");
+		return EXIT_FAILURE;
     }
     
-    //TODO: Overflow?
     timeout_time.tv_sec += si_cgi_timeout_/1000;
     timeout_time.tv_usec += (si_cgi_timeout_%1000) * 1000;
     if(timeout_time.tv_usec >= 1000000)
@@ -247,8 +226,6 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
 	{    
 		i_success = pollPipes(pipes, si_cgi_timeout_, 2);
 		
-		//printPipe(pipes[0], "responsepipe after poll");
-		
 		if(i_success == 1)
 		{
             if(b_header_provided == TRUE)
@@ -258,42 +235,41 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
 		}
 		if(i_success == 2)
 		{
-		    //TODO: SIGTERM und SIGKILL. 
 		    if(b_header_provided)
 		    {
-		    //TODO: kill?
 		        debugVerbose(CGICALL, "Polling timed out, but already sent header.\n");
 		        return EXIT_SUCCESS;
 		    }
 		    
-            kill(pid_child, SIGKILL);
 			debugVerbose(CGICALL, "CGI script timed out.\n");
 			return EXIT_FAILURE;
 		}
 		
 		if(i_success == -1)
 		{
-		    //TODO: SIGTERM und SIGKILL. 
+		    if(b_header_provided)
+		    {
+		        debugVerbose(CGICALL, "Polling failed, but header was provided successfully.\n");
+		        //Don't send error messages
+		        close(i_cgi_response_pipe);
+		        close(i_cgi_post_body_pipe);
+		        kill(pid_child, SIGTERM);
+		        secExit(STATUS_CANCEL);
+		    }
 			debugVerbose(CGICALL, "Polling failed.\n");
 			return EXIT_FAILURE;
+		}		
+		
+		i_success = servePipe(pipes[1]);
+		
+		if(i_success == EXIT_FAILURE)
+		{
+			debugVerbose(CGICALL, "An error occurred while providing body to cgi client.\n");
+			//Writing failed, but that's not so bad. 
+			//Possibly the cgi script terminated without reading the whole body
+			pipes[1]->i_in_eof = 1;
+			pipes[1]->i_out_eof = 1;
 		}
-		
-		
-		//if(e_used_method == POST)
-		//{
-			//printPipe(pipes[1], "postbodypipe after poll");
-			i_success = servePipe(pipes[1]);
-			// printPipe(pipes[1], "postbodypipe after serve");
-			
-			if(i_success == EXIT_FAILURE)
-			{
-				debugVerbose(CGICALL, "An error occurred while providing body to cgi client.\n");
-				//Writing failed, but that's not so bad. 
-				//Possibly the cgi script terminated without reading the whole body
-				pipes[1]->i_in_eof = 1;
-				pipes[1]->i_out_eof = 1;
-			}
-		//}
 
 		if(!b_header_provided)
 		{
@@ -328,21 +304,19 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
 				} 
 				else if(i_success == -1)
 				{
-					//TODO: exit
-					secExit(STATUS_INTERNAL_SERVER_ERROR);
+					return EXIT_FAILURE;
 				}          
 			}
 			
 			if(gettimeofday(&current_time, NULL) != 0)
             {
-                //TODO: exit?
+                debugVerbose(CGICALL, "Making timestamp failed.\n");
+		        return EXIT_FAILURE;
             }
             
             if(timercmp(&current_time, &timeout_time, >))
             {
                 debugVerbose(CGICALL, "No header was provided within cgi timeout.\n");
-                //TODO: SIGTERM und SIGKILL. 
-                kill(pid_child, SIGKILL);
                 return EXIT_FAILURE;
             }
 		}
@@ -352,8 +326,12 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
 			
 			if(i_success == EXIT_FAILURE)
 			{
-				debugVerbose(CGICALL, "An error occurred while reading cgi response.\n");
-				return EXIT_FAILURE;
+		        debugVerbose(CGICALL, "Serving cgi body failed, but header was provided successfully.\n");
+		        //Don't send error messages
+		        close(i_cgi_response_pipe);
+		        close(i_cgi_post_body_pipe);
+		        kill(pid_child, SIGTERM);
+		        secExit(STATUS_CANCEL);
 			}  
 		}
 	}
@@ -375,9 +353,8 @@ int getHeader(char** cpp_header, int i_fd, int i_max_size)
 	
 	if(i_position >= i_max_size - 1)
 	{
-		//TODO: header ohne newline am ende?
 		debugVerbose(CGICALL, "Invalid Header delimiter detected, or header too big.\n");
-		return EXIT_FAILURE;
+		return -1;
 	}
 	
 	ssize_t in_size = read(i_fd, &c_character, 1);
@@ -389,9 +366,8 @@ int getHeader(char** cpp_header, int i_fd, int i_max_size)
 	}
 	else if (in_size == 0) 
 	{
-		//TODO: STATUS_SCRIPT_ERROR
 		debugVerbose(CGICALL, "Invalid Header delimiter detected\n");
-		secExit(STATUS_BAD_REQUEST);
+		return -1;
 	}
 	if(c_character == '\r')
 	{
@@ -423,9 +399,8 @@ int getHeader(char** cpp_header, int i_fd, int i_max_size)
 		else{
 			if(isValid(&c_character, 0) == EXIT_FAILURE || b_gotcr == TRUE)
 			{
-				// TODO: Script error
 				debugVerbose(CGICALL, "Detected invalid char while retrieving header\n");
-				secExit(STATUS_BAD_REQUEST);
+				return -1;
 			}
 			else{
 				b_gotcr = FALSE;
@@ -438,5 +413,5 @@ int getHeader(char** cpp_header, int i_fd, int i_max_size)
 	i_position++;
 	
 	return 1;
-	}
+}
 

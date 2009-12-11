@@ -43,7 +43,8 @@ int initPipe(io_pipe *pi, int i_in_fd, int i_out_fd);
  * @param pipes array of pipes that shall be used for polling.
  * @param i_timeout Polling timeout.
  * @param i_num_pipes Number of pipes stored in the pipe array.
- * @return 0, if everything went ok, 1, if no pipe could be polled on and -1 on error.
+ * @return 0, if everything went ok, 1, if no pipe could be polled on, 
+ *         2, on timeout and -1 on error.
  */
 int pollPipes(io_pipe **pipes, int i_timeout, unsigned int i_num_pipes);
 

@@ -121,7 +121,7 @@ int applyEnvVarList()
         
         if(success == -1)
         {
-            //TODO: safe exit
+            return EXIT_FAILURE;
         }
         evp_current_var = evp_current_var->evp_next;
     }
