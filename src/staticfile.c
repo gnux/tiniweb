@@ -33,15 +33,13 @@ void processStaticFile(const char* ccp_path)
     if(ccp_path == NULL)
     {
         debugVerbose(STATIC_FILE, "Error, no file path specified.\n");
-        //TODO: safe exit
-        return;
+        secExit(STATUS_INTERNAL_SERVER_ERROR);
     }
     
     if(lstat(ccp_path, &stat_buffer) < 0)
     {
         debugVerbose(STATIC_FILE, "Opening file %s failed: %d\n", ccp_path, errno);
-        //TODO: safe exit
-        return;
+        secExit(STATUS_INTERNAL_SERVER_ERROR);
     }
     
     i_content_length = stat_buffer.st_size;
@@ -51,25 +49,25 @@ void processStaticFile(const char* ccp_path)
     if(file == NULL)
     {
         debugVerbose(STATIC_FILE, "Opening file %s failed: %d\n", ccp_path, errno);
-        //TODO: safe exit
-        return;
+        secExit(STATUS_INTERNAL_SERVER_ERROR);
     }
     
     i_fd = fileno(file);
     if(i_fd < 0)
     {
-        //TODO: safe exit
-        return;
+        debugVerbose(STATIC_FILE, "Retreiving a file descriptor from file pointer failed.\n");
+        secExit(STATUS_INTERNAL_SERVER_ERROR);
     }
     
     cp_content_type = parseExtension(ccp_path);
 
 
-    //i_success = sendHTTPResponseHeaderExplicit("200 OK", cp_content_type, i_content_length);
+    i_success = sendHTTPResponseHeaderExplicit("200 OK", cp_content_type, i_content_length);
     
     if(i_success == EXIT_FAILURE)
     {
-        //TODO: safe exit
+        debugVerbose(STATIC_FILE, "Sending header failed.\n");
+        secExit(STATUS_INTERNAL_SERVER_ERROR);
     }
     
     debugVerbose(STATIC_FILE, "Sent HTTP response header to client.\n");
@@ -82,8 +80,7 @@ void processStaticFile(const char* ccp_path)
         {
             debugVerbose(STATIC_FILE, "Sending file failed.\n");
             fclose(file);
-            //TODO: safe exit
-            return;
+            secExit(STATUS_CANCEL);
         }
         
         debugVerbose(STATIC_FILE, "Sent file to client.\n");
@@ -91,7 +88,7 @@ void processStaticFile(const char* ccp_path)
     
     if(fclose(file) != 0)
     {
-        //TODO: safe exit?
+        //Everything is finished, here, no need to do something special
         debugVerbose(STATIC_FILE, "Could not close file.\n");
     }
       
@@ -140,43 +137,3 @@ int writeFileTo(int i_src_fd, int i_dest_fd)
     }
 }
 
-/* 
-int writeFileTo(FILE *file, int i_dest_fd)
-{
-    char c_char[2] = {'\0', '\0'};
-    int i_result = 0;
-    int i_success = 0;
- 
-    do 
-    {
-        // Read data from input pipe
-        i_result = fgetc(file);
-        if(i_result == EOF)
-        {
-            debugVerbose(STATIC_FILE, "Finished writing file.\n");
-            return EXIT_SUCCESS;
-        }
-            
-        c_char[0] = (char)(i_result);
-        //debug(STATIC_FILE, "writing %c %d\n", c_char[0], c_char[0]);
-        i_success = writeToOutputStream(i_dest_fd, c_char);
-        
-        if(i_success == EXIT_FAILURE)
-        {
-            return EXIT_FAILURE;
-        }
-        
-        
-        //debug(CGICALL, "Before write.\n");
-        written_bytes = write(i_dest_fd, &c_char, 1);
-        total_written_bytes += written_bytes;
-        //debug(CGICALL, "Wrote %d bytes to http client.\n", written_bytes);
-        if (written_bytes < 0) 
-        {       
-            return EXIT_FAILURE;
-        } 
-        
-    } while (1);
-
-}
-*/
