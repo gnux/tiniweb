@@ -11,8 +11,8 @@
 #include "parser.h"
 #include "secmem.h"
 #include "secstring.h"
-#include "typedef.h"
 #include "debug.h"
+#include "typedef.h"
 
 static const char* SCCP_HTTP_HEADER_FIELD_MARKER = "HTTP_";
 
@@ -134,7 +134,7 @@ void printEnvVarList()
     environment_variable* evp_current_var = NULL;
     if(evp_first_element == NULL) 
     {
-        fprintf(stderr, "Envvar list is NULL\n");
+        debugVerbose(ENVVAR, "Envvar list is NULL\n");
         return;
     }
     

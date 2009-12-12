@@ -68,12 +68,6 @@ void secCleanup();
 void secFree(void *ptr);
 
 /**
-* secRewind routine, rewind referenced pointer list
-*
-*/
-void secRewind();
-
-/**
 * secProof routine, proof memory pointers
 */
 void secProof(void *ptr);

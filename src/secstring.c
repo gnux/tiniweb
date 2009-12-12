@@ -28,16 +28,14 @@ char* secPrint2String(const char* ccp_format, ...)
 		secAbort();
 	}
 	secRegister(ucp_string);
-	va_end(va);
+    va_end(va);
 	return ucp_string;
 }
 
 void *secGetStringPart(const char* ccp_string, ssize_t start, ssize_t end)
 {
-	if(end < start || end > strlen(ccp_string))
-		//TODO: something went wrong we would return NULL
+	if(end < start || end > strlen(ccp_string) || end < 0 || start < 0)
 		return NULL;
-	//secAbort();
 	ssize_t len = end - start + 2;
 	ssize_t i;
 	char *cp_fragment = secCalloc(len, sizeof(char));
@@ -72,7 +70,6 @@ void strAppend(char** cpp_output, const char* ccp_input){
 	size_t i_len_new = i_len_input + i_len_output + 1;
 	
 	// prevent overflow
-	// TODO: search for possible overflows!
 	if(i_len_new < i_len_input || i_len_new < i_len_output){
 		debugVerbose(NORMALISE, "Error in strAppend possible buffer overflow detected!\n");
 		secAbort();

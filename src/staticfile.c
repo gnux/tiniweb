@@ -10,12 +10,12 @@
 #include <sys/stat.h>
 
 #include "staticfile.h"
-#include "typedef.h"
-#include "debug.h"
 #include "parser.h"
 #include "httpresponse.h"
 #include "pipe.h"
 #include "secmem.h"
+#include "debug.h"
+#include "typedef.h"
 
 extern int si_cgi_timeout_;
  
@@ -67,7 +67,7 @@ void processStaticFile(const char* ccp_path)
     if(i_success == EXIT_FAILURE)
     {
         debugVerbose(STATIC_FILE, "Sending header failed.\n");
-        secExit(STATUS_INTERNAL_SERVER_ERROR);
+        secExit(STATUS_CANCEL);
     }
     
     debugVerbose(STATIC_FILE, "Sent HTTP response header to client.\n");
@@ -117,6 +117,10 @@ int writeFileTo(int i_src_fd, int i_dest_fd)
         if(i_success == 1)
         {
             return EXIT_SUCCESS;
+        }
+        if(i_success == 2)
+        {
+            return EXIT_FAILURE;
         }
         if(i_success == -1)
         {

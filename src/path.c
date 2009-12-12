@@ -41,11 +41,11 @@ int getSortedPath(char* cp_path, char*** cppp_sorted_path)
             int i_num_chars = i_end - i_start + 1;
 
             if (i_num_folders == 0)
-                (*cppp_sorted_path) = (char**) secMalloc((i_num_folders + 1) * sizeof(char*));
+                (*cppp_sorted_path) = (char**) secCalloc((i_num_folders + 1), sizeof(char*));
             else
                 (*cppp_sorted_path) = (char**) secRealloc((*cppp_sorted_path), (i_num_folders + 1) * sizeof(char*));
             
-            (*cppp_sorted_path)[i_num_folders] = (char*) secMalloc((i_num_chars + 1) * sizeof(char));
+            (*cppp_sorted_path)[i_num_folders] = (char*) secCalloc((i_num_chars + 1), sizeof(char));
             
             // Write all chars into new sorted array
             strncpy((*cppp_sorted_path)[i_num_folders], cp_path + i_start, i_num_chars);
@@ -156,22 +156,6 @@ bool checkRequestPath(char* cp_path)
         // Is the file a regular file?
         if ( (buffer.st_mode & S_IFMT) != S_IFREG)
         {
-            // Is it a folder?
-//             if ( (buffer.st_mode & S_IFMT) == S_IFDIR )
-//             {
-//                 /**
-//                  *  Now we have to map to index.html in that folder!
-//                  *  If it exists, continue with the mapped path
-//                  */                
-//                 
-//                 debugVerbose(PATH, "INFO: The Requested ressource is a folder! Trying to map to index.html\n");
-//                 strAppend(&cp_path, "/index.html");
-//                 
-//                 struct stat index_path_buffer;
-//                 if (lstat(cp_path, &index_path_buffer) == 0)
-//                     return TRUE;
-//                 
-//             }
             debugVerbose(PATH, "ERROR: The Requested ressource is no file!\n");
             return FALSE;
         }
@@ -315,16 +299,17 @@ void constructAbsolutePath(char** cpp_path)
     if (!isAbsolutePath(*cpp_path))
     {
         char* cp_buffer = NULL;
-        int i_buffer_len = 20;
-        cp_buffer = secCalloc(i_buffer_len, sizeof(char));
-        char* cp_result = getcwd(cp_buffer, i_buffer_len);
+        cp_buffer = secCalloc(MAXPATHLEN + 1, sizeof(char));
+        char* cp_result = getcwd(cp_buffer, MAXPATHLEN);
+
         
-        while (cp_result == NULL)
+        if (cp_result == NULL)
         {
-            i_buffer_len += 1;
-            cp_buffer = secRealloc(cp_buffer, i_buffer_len * sizeof(char));
-            cp_result = getcwd(cp_buffer, i_buffer_len);
+            debugVerbose(PATH, "ERROR: getcwd() did not work!.\n");
+            secExit(STATUS_INTERNAL_SERVER_ERROR);
         }
+        
+        cp_result = secRealloc(cp_result, (strlen(cp_result) + 2) * sizeof(char));
         
         strAppend(&cp_result, "/");
         strAppend(&cp_result, *cpp_path);
@@ -399,8 +384,8 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
              *
              *  This could happen if eg:
              *
-             *      cgi-dir:  home/foo/webroot
-             *      web-dir:  home/foo/webroot/cgi
+             *      web-dir:  home/foo/webroot
+             *      cgi-dir:  home/foo/webroot/cgi
              *      Request:  /cgi/script
              *
              *      The Mapped Request would now be 'home/foo/webroot/cgi/script' and Dynamic
@@ -434,6 +419,8 @@ bool mapRequestPath(char** cpp_final_path, bool *cb_static)
      *  Sample:     web-dir:        home/foo/web
      *              Request:        /../../some-important-system-file
      *              Mapped Request: home/some-important-system-file
+     *
+     *  This should never happen!!
      */
     if (!( (checkIfFirstDirContainsSecondDir(scp_cgi_dir_, *cpp_final_path) == TRUE) ||
            (checkIfFirstDirContainsSecondDir(scp_web_dir_, *cpp_final_path) == TRUE) ))

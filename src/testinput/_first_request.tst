@@ -1,4 +1,4 @@
-GET /index.html HTTP/1.1
+GET /a.htdigest HTTP/1.1
 Host: host
 
 

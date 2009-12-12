@@ -11,11 +11,11 @@
 #include <poll.h>
 
 #include "httpresponse.h"
-#include "typedef.h"
-#include "debug.h"
 #include "normalize.h"
 #include "pipe.h"
 #include "secstring.h"
+#include "debug.h"
+#include "typedef.h"
 
 extern int si_cgi_timeout_;
 

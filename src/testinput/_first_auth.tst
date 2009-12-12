@@ -2,8 +2,9 @@ GET /index.html HTTP/1.1
 Host: localhost
 Authorization: Digest username="testuser",
  realm="testrealm",
- nonce="4b226a57d1546d731a9f30cc80127d57142a482b6199a93ee51c177ad6a2890c89380b9a",
- uri="/index.html",
- response="2642da8dd00c9705f6618703a63bbf3f"
+ uri=/index.html,
+ response="e990e48fceabf21a5a3859d77fb17256",
+ gaga="juhu",
+ nonce=4b22c637d1546d731a9f30cc80127d57142a482b72ba55b038d97ea375fc5401f2682ffe
 
  

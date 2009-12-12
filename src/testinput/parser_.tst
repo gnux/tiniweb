@@ -1,4 +1,4 @@
-GET /../../../proc/self/maps   	 HTTP/1.1
+GET /file.oct   	 HTTP/1.1
 Test: Test1
 Host: www.blabla.at\1
 Host2: gdgdgd.as ds  sad     sd  sd s sd   ds  sadas

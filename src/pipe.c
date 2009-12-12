@@ -65,7 +65,8 @@ int servePipe(io_pipe *pi)
             /* Input end EOF */
             pi->i_in_eof = 1;
             
-        } else {
+        } else 
+        {
             /* Got data */
             pi->valid += in_size;
         }
@@ -102,7 +103,6 @@ int servePipe(io_pipe *pi)
             }
         }
     }
-    //printPipe(pi, "servePipe");
     
     return EXIT_SUCCESS;
 }

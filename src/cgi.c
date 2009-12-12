@@ -16,13 +16,12 @@
 #include "parser.h"
 #include "staticfile.h"
 #include "normalize.h"
-#include "debug.h"
 #include "envvar.h"
 #include "secmem.h"
 #include "pipe.h"
+#include "debug.h"
 #include "typedef.h"
 
-//static const int MAX_HEADER_SIZE = 8192;
 static const int SCI_BUF_SIZE = 256;
 
 extern int si_cgi_timeout_;
@@ -53,7 +52,7 @@ void processCGIScript(const char* cp_path)
 	char* cpa_cgi_args[2];
 	char* cp_path_to_file = parseFilepath(cp_path);   
 	char* cp_file_name = parseFilename(cp_path);
-	
+
 	if (pipe(ia_cgi_response_pipe))
 	{
 		debugVerbose(CGICALL, "Creating pipes to CGI script failed.\n");
@@ -84,29 +83,29 @@ void processCGIScript(const char* cp_path)
 			
 			if(i_success == -1)
 			{
-			//TODO: exit or abort, abort sends something, but i dont want that as child	
 				debugVerbose(CGICALL, "Clearing environment failed.\n");
 				closePipes(ia_cgi_post_body_pipe);
 			    closePipes(ia_cgi_response_pipe);
+                free(cpa_cgi_args[0]);
 				secExit(STATUS_CANCEL);
 			}
 			i_success = applyEnvVarList();
 			if(i_success == -1)
 			{
-				//TODO: exit or abort, abort sends something, but i dont want that as child
 				debugVerbose(CGICALL, "Applying environment variables failed.\n");
 				closePipes(ia_cgi_post_body_pipe);
 			    closePipes(ia_cgi_response_pipe);
+                free(cpa_cgi_args[0]);
 				secExit(STATUS_CANCEL);
 			}            
 			
 			i_success = chdir(cp_path_to_file);
 			if(i_success == -1)
 			{
-				//TODO: exit or abort, abort sends something, but i dont want that as child
 				debugVerbose(CGICALL, "Changing directory failed.\n");
 				closePipes(ia_cgi_post_body_pipe);
 			    closePipes(ia_cgi_response_pipe);
+                free(cpa_cgi_args[0]);
 				secExit(STATUS_CANCEL);
 			}
 			printEnvVarList();
@@ -115,22 +114,12 @@ void processCGIScript(const char* cp_path)
 			// Duplicate the pipes to stdIN / stdOUT
 			if ((dup2(ia_cgi_response_pipe[1], STDOUT_FILENO) < 0) || (dup2(ia_cgi_post_body_pipe[0], STDIN_FILENO) < 0))
 			{
-				//TODO: exit or abort, abort sends something, but i dont want that as child
 				debugVerbose(CGICALL, "Duplication of pipes failed.\n");
 				closePipes(ia_cgi_post_body_pipe);
 			    closePipes(ia_cgi_response_pipe);
+                free(cpa_cgi_args[0]);
 				secExit(STATUS_CANCEL);
 			}
-/*
-			if (dup2(ia_cgi_post_body_pipe[0], STDIN_FILENO) < 0)
-			{
-				//TODO: exit or abort, abort sends something, but i dont want that as child
-				debugVerbose(CGICALL, "Duplication of pipes failed.\n");
-				closePipes(ia_cgi_post_body_pipe);
-		        closePipes(ia_cgi_response_pipe);
-				secExit(STATUS_CANCEL);
-			}
-	*/		
 			// Close the pipes
 			closePipes(ia_cgi_post_body_pipe);
 			closePipes(ia_cgi_response_pipe);
@@ -181,7 +170,6 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
 	io_pipe **pipes = NULL;
 	int i_success = 0;
 	bool b_header_provided = FALSE;
-	bool b_first_get_header_call = TRUE;
 	char* cp_cgi_response_header = NULL;
 	struct timeval timeout_time;
 	struct timeval current_time;
@@ -276,7 +264,6 @@ int processCGIIO(int i_cgi_response_pipe, int i_cgi_post_body_pipe, pid_t pid_ch
 			if(pipes[0]->i_in_ready)
 			{
 				i_success = getHeader(&cp_cgi_response_header, pipes[0]->i_in_fd, MAX_HEADER_SIZE + 1);
-				b_first_get_header_call = FALSE;
 				pipes[0]->i_in_ready = 0;
 				if(i_success == 0)
 				{

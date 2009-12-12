@@ -7,7 +7,7 @@ Dieter Ladenhauf (0530361),
 Georg Neubauer (0530228),
 Patrick Plaschzug (0530227)
 
-Datum der Fertigstellung: 11.12.2009
+Datum der Fertigstellung: 12.12.2009 ~3:40
 
 Name of the Project: Wunderwuzzi
 
@@ -36,6 +36,10 @@ den Webserver anzusprechen.
 Im Testordner wurden noch Testvectoren hinzugefügt
   request11.in-request16.in
 
+
+Besonderheit:
+minimalistische Garbagecollection, registrieren allen angeforderten Speichers, ausnullen
+und freigeben des selben!
 
 Übergabeparameter:
 

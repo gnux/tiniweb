@@ -1,7 +1,7 @@
 /** secmem.c
 * Implementation of secMemory functions
-* \file typedef.h
-* \author Patrick Plaschzug, Christian Partl, Georg Neubauer, Dieter Ladenhauf
+* @file typedef.h
+* @author Patrick Plaschzug, Christian Partl, Georg Neubauer, Dieter Ladenhauf
 */
 
 #include <memory.h>
@@ -17,7 +17,6 @@ static list_entry *lep_memory_handles_last = 0;
 
 void secCleanup() {
 	list_entry *lep_iterate = 0;
-	secRewind();
 	// clean up all registered pointers
 	while (lep_memory_handles_first) {
 		lep_iterate = lep_memory_handles_first->lep_next;
@@ -28,18 +27,8 @@ void secCleanup() {
 		free(lep_memory_handles_first);
 		lep_memory_handles_first = lep_iterate;
 	}
-	lep_memory_handles_first = 0;
-	lep_memory_handles_last = 0;
-}
-
-void secRewind()
-{
-	if(!lep_memory_handles_first || !lep_memory_handles_last)
-		return;
-	while (lep_memory_handles_first->lep_before)
-		lep_memory_handles_first = lep_memory_handles_first->lep_before;
-	while (lep_memory_handles_last->lep_next)
-		lep_memory_handles_last = lep_memory_handles_last->lep_next;
+	lep_memory_handles_first = NULL;
+	lep_memory_handles_last = NULL;
 }
 
 void secAddNewEntry()
@@ -54,8 +43,6 @@ void secAddNewEntry()
 	}
 	else
 	{
-		// be sure to rewind
-		secRewind();
 		lep_memory_handles_last->lep_next = malloc(sizeof(list_entry));
 		secProof(lep_memory_handles_last->lep_next);
 		lep_memory_handles_last->lep_next->lep_before = lep_memory_handles_last;
@@ -72,18 +59,18 @@ void *secMalloc(size_t size)
 
 void *secCalloc(size_t nmemb, size_t size)
 {
-	void *ptr = NULL;
+	void *ptr = 0;
 	if(!((nmemb < MAX_BUFFER_ALLOCATION_SIZE) &&
 		(size < MAX_BUFFER_ALLOCATION_SIZE) &&
 		((nmemb * size) < MAX_BUFFER_ALLOCATION_SIZE)))
 	{
-		debug(SEC_MEM, "Requested size \n");
+		debug(SEC_MEM, "Requested size is too big\n");
 		secAbort();
 	}
-	ptr = calloc(nmemb, size);
-	secProof(ptr);
+    ptr = calloc(nmemb, size);
+    secProof(ptr);
 	secAddNewEntry();
-	lep_memory_handles_last->vp_ptr = ptr;
+    lep_memory_handles_last->vp_ptr = ptr;
 	lep_memory_handles_last->i_len = nmemb * size;
 	return lep_memory_handles_last->vp_ptr;
 }
@@ -106,7 +93,7 @@ void *secRealloc(void *ptr, size_t size)
 	}
 	if (!size) {
 		secFree(ptr);
-		return 0;
+		return NULL;
 	}
 	ptr = realloc(ptr, size);
 	secProof(ptr);
@@ -137,9 +124,8 @@ void secFree(void *ptr) {
 
 void *secFindElement(void *ptr) {
 	list_entry *le = 0;
-	secRewind();
 	le = lep_memory_handles_first;
-	while (le) {
+	while (le != 0) {
 		if (le->vp_ptr == ptr)
 			break;
 		le = le->lep_next;
@@ -156,7 +142,7 @@ void secProof(void *ptr){
 
 void secRegister(void *ptr)
 {
-	if(secFindElement(ptr))
+	if(secFindElement(ptr) != 0)
 		return;
 	secAddNewEntry();
 	lep_memory_handles_last->vp_ptr=ptr;
@@ -169,7 +155,6 @@ void secAbort()
 	debug(SEC_MEM, "-----INTERNAL FAILURE, SERVER IS GOING TO ABORT-----\n");
 	debug(SEC_MEM, "------ERROR-MESSAGE: 500 Internal Server Error------\n");	
 	secCleanup();
-	//TODO: cleanup open files and pipes
 	abort();
 }
 
