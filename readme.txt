@@ -1,12 +1,5 @@
 #############################################################################################################
 
-Sase Group 03
-
-Christian Partl (0430360),
-Dieter Ladenhauf (0530361),
-Georg Neubauer (0530228),
-Patrick Plaschzug (0530227)
-
 Datum der Fertigstellung: 12.12.2009 ~3:40
 
 Name of the Project: Wunderwuzzi
