@@ -1,113 +1,178 @@
-#############################################################################################################
 
-Datum der Fertigstellung: 12.12.2009 ~3:40
+Wunderwuzzi is a small webserver written in C, which implements a 
+simple version of the protocol HTTP in version 1.0. It offers the 
+possibility to deliver static files and to run CGI scripts.
 
-Name of the Project: Wunderwuzzi
+The source code of this project was written during the course "Security
+Aspects in Software Engineering" (in german "Sicherheitsaspekte in 
+der Softwareentwicklung" [1]) at Graz University of Technology [2] 
+during the winter term in 2009/2010.
 
-#############################################################################################################
+The authors of Wunderwuzzi are:
 
+Dieter Ladenhauf,
+Georg Neubauer,
+Christian Partl, and
+Patrick Plaschzug
 
-Installation:
+Due to the fact that this project helped us to improve our 
+understanding of HTTP, CGI, webservers, and of course the programming 
+language C we decided to release it under the terms and conditions of 
+the GNU General Public License (GNU GPL) in order to help others. We 
+hope that you benefit from it. Feel free to do whatever you want with 
+Wunderwuzzi.
 
-make
-./tiniweb --web-dir xxx --cgi-dir xxx --secret xxx (--cgi-timeout xxx) (--verbose)
+-----------------------------------------------------------------------
+-----------------------------------------------------------------------
 
-Kurze Beschreibung:
-Wunderwuzzi ist ein Webserver, welcher eine vereinfachte Version des HTTP/1.1
-Protokolls implementiert und statische Files anbietet. Weiters ist es möglich
-CGI-Skripts ausführen. 
+Software requirements:
 
-Software Anforderungen:
-Compiler GCC 4.3.2 mit GNU Libc 2.7 oder neuer
-x86 (32-bit oder 64-bit) Linux mit 2.6.x Kernel
+Compiler GCC 4.3.2 with GNU Libc 2.7 or higher
+x86 (32-bit or 64-bit) Linux with 2.6.x Kernel
 
-Testfiles/-scripts:
-Zusätzlich zu einigen Testfiles gibt es noch folgenden Scripts welche es uns ermöglichen mittels Browser
-den Webserver anzusprechen.
-  doxybrowse.sh
-  normalbrowse.sh
-Im Testordner wurden noch Testvectoren hinzugefügt
-  request11.in-request16.in
+-----------------------------------------------------------------------
+-----------------------------------------------------------------------
 
+Compile and run Wunderwuzzi:
 
-Besonderheit:
-minimalistische Garbagecollection, registrieren allen angeforderten Speichers, ausnullen
-und freigeben des selben!
+  make
 
-Übergabeparameter:
+  ./tiniweb --web-dir xxx --cgi-dir xxx --secret xxx 
+           (--cgi-timeout xxx) (--verbose)
 
-web-dir, cgi-dir, secret müssen mit Wert übergeben werden, falls nicht
-beendet der Server mit einer Fehlermeldung, schickt jedoch nichts über
-stdout.
+-----------------------------------------------------------------------
 
-verbose schaltet den Server in Verbose Mode, dies ist optional
-cgi-timeout ist optional und wird in Sekunden übergeben als Standard wird
-1sek gesetzt ist nichts angegeben.
-Ist der Wert größer als 50sek wird 50sek gesetzt.
-Ist der Wert kleiner als 1sek wird 1sek gesetzt.
+Mandatory parameters:
 
-Die Übergebenen Pfade werden zu Beginn überprüft. Wenn sie keinen gültigen 
-Ordner enthalten, wird das Programm beendet.
+If Wunderwuzzi is started without any of the following mandatory 
+parameters, the webserver is terminated with displaying an error 
+message. However, it does not send anything via std out.
 
-Der Server erwartet binnen der ersten fünf Sekunden eine Nachricht am stdin
-ansonsten beendet er (polling). \r\n Sequenzen werden automatisch zu single \n.
-Aus der Nachricht wird der Header extrahiert normalisiert und geparst.
-Beim Normalisieren wird jedes empfangene Zeichen auf Gültigkeit überprüft
+--web-dir xxx
 
--BLANK ' ' und '\t'
+   The local directory which is mapped on the server. It contains the 
+   files which can be accessed using a HTTP request to the server.
+
+--cgi-dir xxx
+
+   The local directory which is mapped on the server, containing the 
+   CGI scripts.
+
+--secret xxx
+
+   This string determines the secret which is used for authentication 
+   purposes.
+
+-----------------------------------------------------------------------
+
+Optional parameters:
+
+--cgi-timeout xxx
+
+   The CGI timeout sets the amount of time, the SGI script has to send 
+   its complete header. If the script does not send any content for 
+   longer than the given timeout span, it is assumed that the complete 
+   body was sent.
+
+   The time span has to be specified using seconds. If the parameter 
+   is not specified, the default value of 1 second is set.
+
+   If the value is larger than 50 seconds, it is set to 50.
+   If the value is smaller than 1 second, it is set to 1.
+
+--verbose
+
+   This parameter triggers the webserver to start in verbose mode. In 
+   this case, extended debug output will be displayed.
+
+-----------------------------------------------------------------------
+-----------------------------------------------------------------------
+
+Testfiles:
+
+The files request01.in - request16.in within the folder src/tests 
+contain static testinput for the webserver. Additionally, there are the
+files doxybrowse.sh and normalbrowse.sh in order to test the webserver 
+using a web browser. 
+
+-----------------------------------------------------------------------
+-----------------------------------------------------------------------
+
+Detailed description of Wunderwuzzi:
+
+Wunderwuzzi includes a minimalistic garbage collection mechanism, 
+which consists of a double chained list containing all registered 
+memory. Using this mechanism, it is possible to free the used memory 
+at once in order to terminate the webserver safely.
+
+In the beginning, the given paths are analyzed and if they are not 
+valid, the server is terminated. After starting, if no message is 
+recieved on std-in for a timespan of exactly five seconds (polling), 
+the server is terminated again.
+
+-----------------------------------------------------------------------
+
+Normalizing and parsing:
+
+The header of a message is extracted and normalized at the beginning 
+and during the normalizing process, every single character is checked 
+if it is valid. The valid characters are:
+
+-BLANK ' ' and '\t'
 -NEWLINE '\n'
 -CHAR 32 < x < 127
 
-Ungültige Headers werden bereits hier erkannt. Gültige müssen wie folgt aussehen:
+Strings containing "\r\n" are automatically converted to "\n". Not 
+valid headers are detected during this procedure and in this case, 
+the server answers with a "Bad Request" and terminates itself. Valid 
+headers must look as follows:
+
 Fieldheader (SPACE*): Fieldbody*
 
-Wird ein ungültiger Input erkannt antwortet der Server mit "Bad Request" und beendet.
-
-Der Normalisierte Header wird in einer Struktur abgespeichert.
+Valid headers are saved within this structure:
 
 /** 
-* Structure for normalised and splittet header
+* Structure for normalized and split header
 */
-
 typedef struct http_norm {
-char *cp_first_line;
-/**< first line of the header (just in case of request) */
-ssize_t i_num_fields; /**< number of available header fields */
-char **cpp_header_field_name; /**< names of the header fields */
-char **cpp_header_field_body; /**< header field bodys */
+
+  char *cp_first_line;
+  /**< first line of the header (just in case of request) */
+  ssize_t i_num_fields; /**< number of available header fields */
+  char **cpp_header_field_name; /**< names of the header fields */
+  char **cpp_header_field_body; /**< header field bodies */
+
 } http_norm;
 
+This structure is passed to the parser, which checks all entries for 
+validity and extracts all fields necessary for the request (GET, POST, 
+HEAD, HOST, AUTENTICATION, HTTP/1.1, etc.). Additionally, the parser is
+responsible for validating and converting all escaped chars. There are 
+three special cases:
 
-Diese Struktur wird an den Parser übergeben, dieser prüft nun alle Eintrage
-auf Gültigkeit und Extrahiert alle erforderlichen Request Informationen.
-(GET, POST, HEAD, HOST, AUTENTICATION, HTTP/1.1, etc.)
+*)  + becomes a space
+*)  %00 is treated as a "Bad Request"
+*)  If there is a / at the end of the URI, the server maps to 
+       URI/index.html
 
-Der Parser ist auch dafür zuständig Escaped Chars aufzulösen auf ihre
-Gültigkeit zu überprüfen.
+In the case of a CGI response, the normalizer and the parser are used 
+as well, because the normalizer can be controlled via a flag. In case 
+of a CGI request, the field cp_first_fine in the structure is not set 
+and according to RFC, only the header fields are recognized. 
 
-Zusätzliche behandlung der URI:
+-----------------------------------------------------------------------
 
-+ wird zu Leerzeichen
-Escaped %00 wird als Bad-Request behandelt
-Wenn am Ende der URI ein / gefunden wird, wird auf URI/index.html gemappt.
+CGI response:
 
-Im Falle einer CGI-Response werden Normalizer und Parser auch genutzt der
-Normalizer ist über ein FLAG umschaltbar, im Falle von CGI wird cp_first_line
-in der Struktur nicht gesetzt und laut der RFC nur die Headerfields erkannt.
-
-Cgi-response:
-
-nach RFC -> Fieldheader: ...nur ohne Leerzeichen möglich
-Der Parser wird für cgi-response parsen einfach über eine andere Funktion
-gestartet.
-Vergleiche: parse und parseCgiResponseHeader
-Je nach Aufruf des Parsers, wird eine der folgenden Strukturen gefüllt:
+As mentioned before, the parser is started for parsing the CGI response
+ with another function (parseCgiResponseHeader() instead of parse()). 
+Depending on the call, one of these structures is filled:
 
 /**
-* Structure for parsed cgi response
+* Structure for parsed CGI response
 */
-
 typedef struct http_cgi_response{
+
   int i_num_fields; /**< number of available header fields */
   char *content_type; /**< response content type */
   char *status; /**< response status */
@@ -115,55 +180,73 @@ typedef struct http_cgi_response{
   char *server; /**< which server */
   char **cpp_header_field_name; /**< names of other header fields */
   char **cpp_header_field_body; /**< header field bodys */
+
 } http_cgi_response;
 
 
 /**
-* Structure for parsed http request
+* Structure for parsed HTTP request
 */
-
 typedef struct http_request{
+
   char *cp_method; /**< used request method */
   char *cp_uri; /**< requested uri */
   char *cp_query; /**< query string from uri */
   char *cp_fragment; /**< fragment from uri */
   char *cp_path; /**< requested file path */
-}http_request;
 
+} http_request;
+
+-----------------------------------------------------------------------
 
 Pathchecking:
 
-Wenn Requests wie z.B. '../../index.html' eintreffen, so entspricht dies 
-einem Request auf '/index.html'. Das Webroot, cgi-bin kann auf diese Weise 
-nicht verlassen werden.
-Damit ist es nicht möglich die Ordnerstruktur der unterliegenden Verzeichnisse
-herauszufinden.
-Wenn man zufällig im cgi-dir landet, so wird der Request als dynamisch 
-interpretiert und das referenzierte Skript ausgeführt.
+If the requested path looks like "../../index.html", the server maps 
+the request to "index.html". In this way it is ensured, that the 
+webroot (and cgi-bin) directory cannot be left and the underlying 
+folder structure cannot be explored. If the request targets for some 
+reason the cgi-bin directory, the request is handled as dynamic and the
+referenced CGI script is called.
 
+-----------------------------------------------------------------------
 
 Authentication:
 
-Die Authentifizierung ist vollständig implementiert.
-Die Nonce wird mittels HMAC MD5 erzeugt. (Referenzen wurden im Code entsprechend ausgewiesen)
-Sie hat das folgende Format: 
+The authentication is fully implemented. It uses a nonce, which is 
+created with HMAC MD5. Here, foreign code is used. It is properly 
+declared within the source files. The nonce consists of this parts:
 
    time + md5(path) + hmacmd5(time : md5(path))
 
-Sie ist nach dem Erstellen genau 3600 Sek (1 Stunde) gültig.
+It is valid for 3600 seconds (1 hour) after its creation.
 
+-----------------------------------------------------------------------
 
 CGI:
 
-Ein CGI Skript wird grundsätzlich mittels fork/exec ausgeführt. Dabei gilt, dass das CGI Skript 
-innerhalb des CGI-Timeouts den kompletten Header geschickt haben muss, ein eventuell vorhandener
-Body wird danach einfach durchgeschleust. Wird beim Durchscheusen länger als das CGI-Timeout nichts
-geschickt, wird der Body als vollständig behandelt. Da nach Beenden des Servers ein CGI Skript potentiell
-ewig weiterlaufen könnte, wird dieses kurz vor dem Beenden des Servers terminiert.
-Weiters wird der Body eines HTTP-Requests unabhängig von der HTTP-Method (GET, POST, HEAD) immer an das
-CGI Skript weitergeletet (sofern vorhanden).
-Der CGI-Header muss bei unserer Implementierung als erstes Header Field den Content-Type und als 2. optional
-den Status gesetzt haben (siehe RFC3875). Da ein eventuell vom CGI gesetztes Content-Length Field nicht
-vertrauenswürdig ist, wird dieses auf 0 gesetzt (-> bis eof lesen). Sollte ein weiters Content-Type oder
-Status Feld gefunden werden, wird ein Internal Server Error ausgegeben. Die Felder Server und Connection
-werden statisch gesetzt.
+In Wunderwizzei, a CGI script is executed using fork and exec syscalls.
+Thereby, the script must send the complete header during the CGI 
+timeout (which can be passed on startup). Next, the body (if available)
+is sent. If nothing is sent any more for a timespan longer than the CGI
+timeout, it is assumed that the body is complete. Due to the fact that 
+the process of a CGI script could be running indefinitly after the 
+server is closed, the process is automatically terminated if the server
+is shot down.
+
+The body of a HTTP request is sent to the CGI script (if available) 
+independently from the HTTP method (GET, POST, HEAD).
+
+In Wunderwuzzi, the first header field of a CGI header must be the 
+content type and the second field must be the status (see RFC3875). Due
+to the fact that a content length field set from CGI, is not 
+trustworthy, it is set to 0 (read until eof). If there is any 
+additional content type field found, an "Internal Server Error" is 
+returned by the server. The fields Server and Connect are set 
+statically.
+
+-----------------------------------------------------------------------
+
+[1] https://online.tugraz.at/tug_online/lv.detail?clvnr=138501&sprache=1
+[2] http://www.tugraz.at/
+
+
